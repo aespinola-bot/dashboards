@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏆 World Cup 2026 — Match Calendar (Pacific Time)</title>
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --panel2: #eef2f8;
+    --border: #d8dee8;
+    --text: #1a2230;
+    --muted: #64748b;
+    --accent: #d4810b;
+    --accent-bg: #fff4e0;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --blue: #2563eb;
+    --blue-bg: #dbeafe;
+    --A:#dc2626; --B:#ea580c; --C:#d97706; --D:#65a30d;
+    --E:#16a34a; --F:#0d9488; --G:#0891b2; --H:#2563eb;
+    --I:#4f46e5; --J:#9333ea; --K:#db2777; --L:#e11d48;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4fa 100%);
+    padding: 24px 24px 18px;
+    border-bottom: 3px solid var(--accent);
+    box-shadow: 0 2px 12px rgba(20, 40, 80, 0.06);
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 {
+    margin: 0 0 6px 0;
+    font-size: 24px;
+    color: #0c1727;
+  }
+  header h1 .emoji { filter: none; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .controls {
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .btn, select {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--panel2); border-color: #b8c2d2; }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .btn.danger  { background: #fff; color: var(--red); border-color: #fca5a5; }
+  .btn.danger:hover { background: var(--red-bg); }
+  .stats {
+    display: flex; gap: 16px; font-size: 12px; color: var(--muted);
+    margin-left: auto;
+  }
+  .stats b { color: var(--text); font-size: 14px; }
+
+  main { padding: 20px; max-width: 1400px; margin: 0 auto; }
+
+  .day-group { margin-bottom: 28px; }
+  .day-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: var(--panel);
+    border-left: 4px solid var(--accent);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(20,40,80,0.04);
+  }
+  .day-header h2 { margin: 0; font-size: 18px; color: #0c1727; }
+  .day-header .day-meta { color: var(--muted); font-size: 12px; }
+
+  .matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 12px;
+  }
+
+  .match-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--gcolor, var(--accent));
+    border-radius: 10px;
+    padding: 14px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 4px rgba(20,40,80,0.04);
+    position: relative;
+  }
+  .match-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(20,40,80,0.10); }
+  .match-card.scored.correct { background: linear-gradient(180deg, var(--green-bg) 0%, var(--panel) 30%); border-left-color: var(--green); }
+  .match-card.scored.partial { background: linear-gradient(180deg, var(--accent-bg) 0%, var(--panel) 30%); border-left-color: var(--accent); }
+  .match-card.scored.wrong   { background: linear-gradient(180deg, var(--red-bg) 0%, var(--panel) 30%); border-left-color: var(--red); }
+
+  .match-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--muted); margin-bottom: 10px;
+  }
+  .group-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--gcolor);
+    font-size: 11px;
+  }
+  .match-id { font-family: monospace; }
+
+  .teams-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+    margin: 10px 0;
+  }
+  .team {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600;
+  }
+  .team.away { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
+  .team img {
+    width: 32px; height: 22px;
+    object-fit: cover;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(20,40,80,0.15);
+    border: 1px solid rgba(0,0,0,0.05);
+    flex-shrink: 0;
+  }
+  .vs {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .score-inputs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+    margin: 12px 0 10px 0;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+  }
+  .score-inputs input {
+    width: 100%;
+    padding: 8px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    font-family: inherit;
+  }
+  .score-inputs input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .score-inputs .dash { color: var(--muted); font-weight: 700; }
+
+  .prediction {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+  .prediction b { color: var(--accent); }
+  .prediction .accuracy {
+    display: inline-block; margin-left: 6px;
+    padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 700;
+  }
+  .accuracy.exact   { background: var(--green-bg); color: var(--green); }
+  .accuracy.right   { background: var(--blue-bg); color: var(--blue); }
+  .accuracy.wrong   { background: var(--red-bg); color: var(--red); }
+
+  .info-row {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    display: grid;
+    gap: 4px;
+  }
+  .info-row .pin { color: var(--accent); width: 14px; display: inline-block; }
+  .info-row .tv { color: var(--blue); width: 14px; display: inline-block; }
+  .info-row .net { font-weight: 600; color: #334155; }
+
+  .note {
+    font-size: 11px;
+    color: #475569;
+    margin-top: 6px;
+    line-height: 1.4;
+    background: var(--bg);
+    padding: 6px 8px;
+    border-radius: 4px;
+    border-left: 2px solid var(--border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s;
+    padding-top: 0; padding-bottom: 0;
+    margin-top: 0;
+  }
+  .match-card.expanded .note {
+    max-height: 240px;
+    margin-top: 6px;
+    padding: 6px 8px;
+  }
+  .expand-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 11px; padding: 0; margin-top: 6px;
+    text-decoration: underline;
+  }
+
+  .standings-toggle {
+    position: fixed; bottom: 20px; right: 20px;
+    z-index: 99;
+    background: var(--accent); color: #fff;
+    border: none; padding: 12px 18px;
+    border-radius: 50px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212, 129, 11, 0.35);
+  }
+  .standings-panel {
+    position: fixed;
+    right: -100%;
+    top: 0;
+    width: min(420px, 95vw);
+    height: 100vh;
+    background: var(--panel);
+    border-left: 3px solid var(--accent);
+    box-shadow: -8px 0 30px rgba(20,40,80,0.15);
+    overflow-y: auto;
+    padding: 20px;
+    z-index: 200;
+    transition: right 0.3s ease;
+  }
+  .standings-panel.open { right: 0; }
+  .standings-panel h2 { margin-top: 0; }
+  .standings-panel .close {
+    position: absolute; top: 12px; right: 12px;
+    background: none; border: none; color: var(--text);
+    font-size: 24px; cursor: pointer;
+  }
+  .group-table {
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .group-table h3 {
+    margin: 0;
+    padding: 8px 12px;
+    background: var(--gcolor);
+    color: #fff;
+    font-size: 14px;
+  }
+  .group-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    background: #fff;
+  }
+  .group-table th, .group-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .group-table td:nth-child(2) { text-align: left; }
+  .group-table th { background: var(--panel2); color: var(--muted); font-weight: 600; }
+  .group-table tr.qualified { background: var(--green-bg); }
+  .group-table tr.third { background: var(--accent-bg); }
+  .group-table tr.out { color: #94a3b8; }
+
+  @media (max-width: 600px) {
+    .matches-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 19px; }
+    .stats { width: 100%; margin-left: 0; }
+  }
+
+  @media print {
+    header { position: static; }
+    .controls, .standings-toggle, .standings-panel, .score-inputs, .expand-btn, .tabs { display: none !important; }
+  }
+
+  /* ===== Tabs ===== */
+  .tabs {
+    display: flex; gap: 4px;
+    background: #eaeef5;
+    padding: 8px 20px 0;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 99;
+  }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    font-family: inherit;
+  }
+  .tab-btn.active {
+    background: var(--bg);
+    color: var(--accent);
+    border-color: var(--border);
+    border-bottom: 2px solid var(--bg);
+    margin-bottom: -1px;
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ===== Simulator ===== */
+  .sim-wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+  .sim-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(20,40,80,0.04);
+  }
+  .sim-panel h2 { margin: 0 0 6px 0; font-size: 18px; }
+  .sim-panel p.lead { color: var(--muted); font-size: 13px; margin: 0 0 14px 0; }
+  .sim-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .sim-status {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .sim-status.ready { background: var(--green-bg); color: var(--green); }
+
+  /* Bracket */
+  .bracket {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 16px 4px 24px;
+  }
+  .bracket-round {
+    flex: 0 0 auto;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+  }
+  .bracket-round h3 {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .bracket-matches { display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: space-around; }
+  .ko-match {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 180px;
+    box-shadow: 0 1px 3px rgba(20,40,80,0.06);
+  }
+  .ko-match.completed { border-left-color: var(--accent); }
+  .ko-match.final { border-left-color: var(--green); background: var(--green-bg); }
+  .ko-team {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 0;
+    color: #475569;
+  }
+  .ko-team img { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
+  .ko-team.winner { font-weight: 700; color: var(--text); }
+  .ko-team.loser { opacity: 0.55; text-decoration: line-through; }
+  .ko-team .score { margin-left: auto; font-weight: 700; min-width: 16px; text-align: right; }
+  .ko-team .placeholder { font-style: italic; color: #94a3b8; }
+  .ko-meta { font-size: 10px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .ko-resim { background: none; border: none; color: var(--blue); font-size: 11px; cursor: pointer; padding: 0; text-decoration: underline; margin-top: 4px; }
+
+  .champion-banner {
+    background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-top: 20px;
+  }
+  .champion-banner h2 { margin: 0 0 8px 0; color: #92400e; }
+  .champion-banner .winner-row {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 28px; font-weight: 800; color: #78350f;
+  }
+  .champion-banner img { width: 60px; height: 40px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+  .mini-standings {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .mini-group {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 11px;
+    background: #fff;
+  }
+  .mini-group h4 { margin: 0; padding: 4px 8px; background: var(--gcolor); color: #fff; font-size: 12px; }
+  .mini-group table { width: 100%; border-collapse: collapse; }
+  .mini-group td { padding: 2px 6px; border-bottom: 1px solid #f1f5f9; }
+  .mini-group tr.q td { background: var(--green-bg); font-weight: 600; }
+  .mini-group tr.b3 td { background: var(--accent-bg); }
+  .mini-group td.pts { text-align: right; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏆 2026 FIFA World Cup — Group Stage Match Calendar</h1>
+  <div class="sub">72 matches · All times <b>Pacific (PDT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · Scores save in your browser as you type</div>
+  <div class="controls">
+    <select id="filter-group">
+      <option value="">All Groups</option>
+    </select>
+    <select id="filter-status">
+      <option value="">All Matches</option>
+      <option value="upcoming">Upcoming Only</option>
+      <option value="scored">Scored Only</option>
+    </select>
+    <button class="btn" id="expand-all">Expand All Notes</button>
+    <button class="btn" id="collapse-all">Collapse All</button>
+    <button class="btn danger" id="reset-all">Reset All Scores</button>
+    <div class="stats">
+      <span>Played: <b id="stat-played">0</b>/72</span>
+      <span>Pred. Hit: <b id="stat-hit">0</b></span>
+      <span>Exact: <b id="stat-exact">0</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="calendar">📅 Match Calendar</button>
+  <button class="tab-btn" data-tab="simulator">🎲 Tournament Simulator</button>
+</nav>
+
+<div class="tab-pane active" id="tab-calendar">
+<main id="main"></main>
+</div>
+
+<div class="tab-pane" id="tab-simulator">
+<div class="sim-wrap">
+  <div class="sim-panel">
+    <h2>🎲 Step 1 — Group Stage Source <span id="gs-status" class="sim-status">12/12 groups need scores</span></h2>
+    <p class="lead">Choose where group-stage scores come from. Then the bracket builds automatically.</p>
+    <div class="sim-actions">
+      <button class="btn primary" id="sim-fill-predictions">Use My Predictions</button>
+      <button class="btn" id="sim-random-groups">🎲 Random Simulation</button>
+      <button class="btn" id="sim-use-entered">Use Scores I Entered</button>
+      <button class="btn danger" id="sim-clear">Clear Sim</button>
+    </div>
+    <div id="mini-standings" class="mini-standings"></div>
+  </div>
+
+  <div class="sim-panel">
+    <h2>🏆 Step 2 — Knockout Bracket <span id="ko-status" class="sim-status">waiting for group stage</span></h2>
+    <p class="lead">Top 2 from each group + 8 best 3rd-place teams advance to the Round of 32. Goals modelled via Poisson with team-strength ratings + light random variance. Click <em>↻ Re-sim</em> on any match to re-roll.</p>
+    <div class="sim-actions">
+      <button class="btn primary" id="sim-knockouts">🏆 Build & Simulate Knockouts</button>
+      <button class="btn" id="sim-resim-all">🎲 Re-roll All Knockouts</button>
+    </div>
+    <div id="bracket-wrap"></div>
+    <div id="champion-wrap"></div>
+  </div>
+</div>
+</div>
+
+
+<button class="standings-toggle" id="open-standings">📊 Standings</button>
+
+<aside class="standings-panel" id="standings-panel">
+  <button class="close" id="close-standings">×</button>
+  <h2>📊 Live Group Standings</h2>
+  <p style="color:var(--muted); font-size:12px; margin-top:-8px;">
+    Standings update from the scores you enter. Top 2 = qualified (green). 3rd = best-third race (orange).
+  </p>
+  <div id="standings-content"></div>
+</aside>
+
+<script>
+const FLAGS = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Czech Republic':'cz',
+  'Canada':'ca','Bosnia & Herzegovina':'ba','Qatar':'qa','Switzerland':'ch',
+  'Brazil':'br','Morocco':'ma','Haiti':'ht','Scotland':'gb-sct',
+  'United States':'us','Paraguay':'py','Australia':'au','Turkey':'tr',
+  'Germany':'de','Curaçao':'cw','Ivory Coast':'ci','Ecuador':'ec',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Saudi Arabia':'sa','Cape Verde':'cv','Uruguay':'uy',
+  'France':'fr','Senegal':'sn','Iraq':'iq','Norway':'no',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','DR Congo':'cd','Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa'
+};
+
+const GROUPS = {
+  'A':['Mexico','South Korea','South Africa','Czech Republic'],
+  'B':['Canada','Bosnia & Herzegovina','Qatar','Switzerland'],
+  'C':['Brazil','Morocco','Haiti','Scotland'],
+  'D':['United States','Australia','Paraguay','Turkey'],
+  'E':['Germany','Ivory Coast','Curaçao','Ecuador'],
+  'F':['Netherlands','Japan','Sweden','Tunisia'],
+  'G':['Belgium','Egypt','Iran','New Zealand'],
+  'H':['Spain','Saudi Arabia','Cape Verde','Uruguay'],
+  'I':['France','Senegal','Iraq','Norway'],
+  'J':['Argentina','Algeria','Austria','Jordan'],
+  'K':['Portugal','DR Congo','Uzbekistan','Colombia'],
+  'L':['England','Croatia','Ghana','Panama']
+};
+
+// All 72 matches — times converted to Pacific (PDT, UTC-7)
+// TV: US English (FOX or FS1) + Spanish (Telemundo or Universo)
+// FOX gets marquee matches (USA, Mexico, opener, Brazil/Argentina/England/France/Spain); FS1 the rest.
+// Telemundo gets marquees in Spanish; Universo handles overflow.
+const MATCHES = [
+  // MD1 — Jun 11–17 (Pacific)
+  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175."},
+  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220."},
+  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins."},
+  {id:4,  group:'D', date:'2026-06-12', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'United States',          away:'Paraguay',               tv:'FOX · Telemundo',     pred:[2,1], note:"USA 5W-1D-1L H2H. Pochettino's compact 4-3-3 (Pulisic/Reyna/Balogun). Home crowd decisive."},
+  {id:5,  group:'B', date:'2026-06-13', timePT:'12:00', venue:"Levi's Stadium, Santa Clara",           home:'Qatar',                  away:'Switzerland',            tv:'FS1 · Universo',      pred:[0,2], note:"Xhaka-Embolo dictate tempo. Qatar's '22 collapse foretells; SUI control xG."},
+  {id:6,  group:'C', date:'2026-06-13', timePT:'15:00', venue:'MetLife Stadium, East Rutherford',      home:'Brazil',                 away:'Morocco',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ H2H: MAR won 2-1 friendly Mar 2023. Final-squad update: Rodrygo IS in the squad. Hakimi-Diaz-Ounahi vs Brazil. Ancelotti's first WC. Books drifted BRA −180→−135."},
+  {id:7,  group:'C', date:'2026-06-13', timePT:'18:00', venue:'Gillette Stadium, Foxborough',          home:'Haiti',                  away:'Scotland',               tv:'FS1 · Universo',      pred:[0,2], note:"Tierney-McTominay midfield steel; Haiti's first WC since 1974."},
+  {id:8,  group:'D', date:'2026-06-13', timePT:'21:00', venue:'BC Place, Vancouver',                   home:'Australia',              away:'Turkey',                 tv:'FS1 · Universo',      pred:[1,2], note:"Cool indoor surface favours TUR's tempo. Güler-Yıldız creative axis vs Aus 3-5-2."},
+  {id:9,  group:'E', date:'2026-06-14', timePT:'10:00', venue:'NRG Stadium, Houston',                  home:'Germany',                away:'Curaçao',                tv:'FOX · Telemundo',     pred:[3,0], note:"Wirtz-Musiala feast. Curaçao WC debut (smallest population ever to qualify)."},
+  {id:10, group:'F', date:'2026-06-14', timePT:'13:00', venue:'AT&T Stadium, Arlington',               home:'Netherlands',            away:'Japan',                  tv:'FOX · Telemundo',     pred:[1,1], note:"⚠️ H2H: NED unbeaten. JPN beat ENG 1-0 at Wembley Mar 31, 2026 — first Asian team to do so. Both injury-hit (NED: Simons/De Ligt/Schouten). Draw is sharp value."},
+  {id:11, group:'E', date:'2026-06-14', timePT:'16:00', venue:'Lincoln Financial Field, Philadelphia', home:'Ivory Coast',            away:'Ecuador',                tv:'FS1 · Universo',      pred:[1,1], note:"CIV's AFCON champion DNA vs ECU's Caicedo-anchored 4-3-3."},
+  {id:12, group:'F', date:'2026-06-14', timePT:'19:00', venue:'Estadio BBVA, Guadalupe (Monterrey)',   home:'Sweden',                 away:'Tunisia',                tv:'FS1 · Universo',      pred:[2,0], note:"Isak-Gyökeres firepower (39 club goals last season). Tunisia compact but limited going forward."},
+  {id:13, group:'H', date:'2026-06-15', timePT:'09:00', venue:'Mercedes-Benz Stadium, Atlanta',        home:'Spain',                  away:'Cape Verde',             tv:'FOX · Telemundo',     pred:[3,0], note:"Yamal-Olmo-N.Williams attacking trident · Rodri-Pedri midfield. Cape Verde debut."},
+  {id:14, group:'G', date:'2026-06-15', timePT:'12:00', venue:'Lumen Field, Seattle',                  home:'Belgium',                away:'Egypt',                  tv:'FOX · Telemundo',     pred:[2,1], note:"De Bruyne–Doku just edge Salah. Belgian golden generation tail-end; Egypt's possession game troubles BEL midfield."},
+  {id:15, group:'H', date:'2026-06-15', timePT:'15:00', venue:'Hard Rock Stadium, Miami Gardens',      home:'Saudi Arabia',           away:'Uruguay',                tv:'FS1 · Universo',      pred:[0,2], note:"Núñez-Valverde too much. Bielsa's high-press perfect for KSA's deep block."},
+  {id:16, group:'G', date:'2026-06-15', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'Iran',                   away:'New Zealand',            tv:'FS1 · Universo',      pred:[2,0], note:"Taremi-Azmoun front pair experienced. NZ debut atmosphere; OFC level gap shows."},
+  {id:17, group:'I', date:'2026-06-16', timePT:'12:00', venue:'MetLife Stadium, East Rutherford',      home:'France',                 away:'Senegal',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ Sharp eyes here. Mbappé-Dembélé pace · Tchouaméni-Camavinga midfield. Senegal still strong (Sarr-Mané-Jackson); FRA Elo edge ~120 pts."},
+  {id:18, group:'I', date:'2026-06-16', timePT:'15:00', venue:'Gillette Stadium, Foxborough',          home:'Iraq',                   away:'Norway',                 tv:'FS1 · Universo',      pred:[0,3], note:"Haaland-Ødegaard demolition. Iraq's first WC — gulf in finishing immense."},
+  {id:19, group:'J', date:'2026-06-16', timePT:'18:00', venue:'Arrowhead Stadium, Kansas City',        home:'Argentina',              away:'Algeria',                tv:'FOX · Telemundo',     pred:[2,0], note:"Messi-Álvarez routine. Algeria's reset under Petković; Mahrez creative spark but ARG midfield controls tempo."},
+  {id:20, group:'J', date:'2026-06-16', timePT:'21:00', venue:"Levi's Stadium, Santa Clara",           home:'Austria',                away:'Jordan',                 tv:'FS1 · Universo',      pred:[2,0], note:"Sabitzer-Arnautović. Jordan WC debut. Austria primed for runner-up race."},
+  {id:21, group:'K', date:'2026-06-17', timePT:'10:00', venue:'NRG Stadium, Houston',                  home:'Portugal',               away:'DR Congo',               tv:'FOX · Telemundo',     pred:[2,1], note:"Ronaldo's 6th WC tournament (record). DRC dangerous on counter but POR depth (B.Fernandes/Vitinha/Leão) too much."},
+  {id:22, group:'L', date:'2026-06-17', timePT:'13:00', venue:'AT&T Stadium, Arlington',               home:'England',                away:'Croatia',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ Marquee. H2H: 2018 WC semi (CRO 2-1), Euro 2020 + 2024 (ENG 1-0 each). Bellingham vs Modrić's last dance. Foden IS in Tuchel's final 26 — ENG firepower restored."},
+  {id:23, group:'L', date:'2026-06-17', timePT:'16:00', venue:'BMO Field, Toronto',                    home:'Ghana',                  away:'Panama',                 tv:'FS1 · Universo',      pred:[2,1], note:"Kudus difference-maker. Panama tournament-tough but lacks Kudus-level creative axis."},
+  {id:24, group:'K', date:'2026-06-17', timePT:'19:00', venue:'Estadio Azteca, Mexico City',           home:'Uzbekistan',             away:'Colombia',               tv:'FS1 · Telemundo',     pred:[0,2], note:"James-Díaz creative pair. Mexico City altitude (~2,240m) slight equalizer for Tashkent-trained UZB. Colombia's tournament experience decisive."},
+
+  // MD2 — Jun 18–23
+  {id:25, group:'A', date:'2026-06-18', timePT:'09:00', venue:'Mercedes-Benz Stadium, Atlanta',        home:'Czech Republic',         away:'South Africa',           tv:'FS1 · Universo',      pred:[1,1], note:"Both desperate after MD1. Czechia's Šick vs SA's Lyle Foster — heat favours SA's compact 5-3-2."},
+  {id:26, group:'B', date:'2026-06-18', timePT:'12:00', venue:'SoFi Stadium, Inglewood',               home:'Switzerland',            away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], note:"SUI smarter on transitions; Džeko gets one back."},
+  {id:27, group:'B', date:'2026-06-18', timePT:'15:00', venue:'BC Place, Vancouver',                   home:'Canada',                 away:'Qatar',                  tv:'FS1 · Universo',      pred:[2,0], note:"Canadian home + QAT psychologically scarred."},
+  {id:28, group:'A', date:'2026-06-18', timePT:'18:00', venue:'Estadio Akron, Zapopan',                home:'Mexico',                 away:'South Korea',            tv:'FOX · Telemundo',     pred:[1,1], note:"Son problem-child for MEX backline. Altitude (1,560m) less factor than Azteca. Group-deciding draw."},
+  {id:29, group:'D', date:'2026-06-19', timePT:'12:00', venue:'Lumen Field, Seattle',                  home:'United States',          away:'Australia',              tv:'FOX · Telemundo',     pred:[2,0], note:"Pulisic shines on PNW home crowd. AUS pragmatic but low ceiling."},
+  {id:30, group:'C', date:'2026-06-19', timePT:'15:00', venue:'Gillette Stadium, Foxborough',          home:'Scotland',               away:'Morocco',                tv:'FS1 · Universo',      pred:[0,2], note:"Hakimi/Diaz on the front foot. SCO defensively organised but Morocco's wide combinations slice them."},
+  {id:31, group:'C', date:'2026-06-19', timePT:'17:30', venue:'Lincoln Financial Field, Philadelphia', home:'Brazil',                 away:'Haiti',                  tv:'FOX · Telemundo',     pred:[4,0], note:"Bounce-back. Vinícius/Raphinha unleashed; Ancelotti settles forward order."},
+  {id:32, group:'D', date:'2026-06-19', timePT:'20:00', venue:"Levi's Stadium, Santa Clara",           home:'Turkey',                 away:'Paraguay',               tv:'FS1 · Universo',      pred:[1,1], note:"Tactical chess; PAR's compact 4-4-2 frustrates Güler. Both reach final-day knife edge."},
+  {id:33, group:'F', date:'2026-06-20', timePT:'10:00', venue:'NRG Stadium, Houston',                  home:'Netherlands',            away:'Sweden',                 tv:'FOX · Telemundo',     pred:[1,2], note:"🚨 UPSET CALL. Without Simons/Schouten/De Ligt the Dutch midfield-defence transition is brittle. Isak-Gyökeres punish loose Dutch backline."},
+  {id:34, group:'E', date:'2026-06-20', timePT:'13:00', venue:'BMO Field, Toronto',                    home:'Germany',                away:'Ivory Coast',            tv:'FOX · Telemundo',     pred:[2,1], note:"Wirtz-Musiala combinations decisive; CIV's Haller gets one back."},
+  {id:35, group:'E', date:'2026-06-20', timePT:'17:00', venue:'Arrowhead Stadium, Kansas City',        home:'Ecuador',                away:'Curaçao',                tv:'FS1 · Universo',      pred:[2,0], note:"Enner Valencia + Caicedo control."},
+  {id:36, group:'F', date:'2026-06-20', timePT:'21:00', venue:'Estadio BBVA, Guadalupe (Monterrey)',   home:'Tunisia',                away:'Japan',                  tv:'FS1 · Universo',      pred:[0,1], note:"⭐ 1000th WC match. Possession-press Japan grind out narrow win without Mitoma."},
+  {id:37, group:'H', date:'2026-06-21', timePT:'09:00', venue:'Mercedes-Benz Stadium, Atlanta',        home:'Spain',                  away:'Saudi Arabia',           tv:'FOX · Telemundo',     pred:[3,0], note:"Spanish positional play vs KSA mid-block — clinic."},
+  {id:38, group:'G', date:'2026-06-21', timePT:'12:00', venue:'SoFi Stadium, Inglewood',               home:'Belgium',                away:'Iran',                   tv:'FS1 · Universo',      pred:[2,1], note:"De Bruyne dictates; Taremi pulls one back. BEL safe through."},
+  {id:39, group:'H', date:'2026-06-21', timePT:'15:00', venue:'Hard Rock Stadium, Miami Gardens',      home:'Uruguay',                away:'Cape Verde',             tv:'FS1 · Universo',      pred:[3,0], note:"URU through with game to spare."},
+  {id:40, group:'G', date:'2026-06-21', timePT:'18:00', venue:'BC Place, Vancouver',                   home:'New Zealand',            away:'Egypt',                  tv:'FS1 · Universo',      pred:[0,2], note:"Salah masterclass; NZ defend bravely."},
+  {id:41, group:'J', date:'2026-06-22', timePT:'10:00', venue:'AT&T Stadium, Arlington',               home:'Argentina',              away:'Austria',                tv:'FOX · Telemundo',     pred:[2,0], note:"Defending champ's tempo control vs Rangnick-style press; ARG midfield wins duels."},
+  {id:42, group:'I', date:'2026-06-22', timePT:'14:00', venue:'Lincoln Financial Field, Philadelphia', home:'France',                 away:'Iraq',                   tv:'FOX · Telemundo',     pred:[3,0], note:"Rotation possible; bench depth (Olise/Thuram/Barcola) still elite."},
+  {id:43, group:'I', date:'2026-06-22', timePT:'17:00', venue:'MetLife Stadium, East Rutherford',      home:'Norway',                 away:'Senegal',                tv:'FS1 · Universo',      pred:[2,1], note:"Haaland decides. Senegal slip into best-3rd race."},
+  {id:44, group:'J', date:'2026-06-22', timePT:'20:00', venue:"Levi's Stadium, Santa Clara",           home:'Jordan',                 away:'Algeria',                tv:'FS1 · Universo',      pred:[0,2], note:"Mahrez-Bounedjah quality gulf."},
+  {id:45, group:'K', date:'2026-06-23', timePT:'10:00', venue:'NRG Stadium, Houston',                  home:'Portugal',               away:'Uzbekistan',             tv:'FS1 · Universo',      pred:[2,0], note:"POR cruise; B.Fernandes pulls strings."},
+  {id:46, group:'L', date:'2026-06-23', timePT:'13:00', venue:'Gillette Stadium, Foxborough',          home:'England',                away:'Ghana',                  tv:'FOX · Telemundo',     pred:[2,0], note:"Kane finally finds rhythm; Bellingham-Saka unlock GHA's high line."},
+  {id:47, group:'L', date:'2026-06-23', timePT:'16:00', venue:'BMO Field, Toronto',                    home:'Panama',                 away:'Croatia',                tv:'FS1 · Universo',      pred:[0,1], note:"Modrić cameo decisive; CRO grind out 3 vital points."},
+  {id:48, group:'K', date:'2026-06-23', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'Colombia',               away:'DR Congo',               tv:'FS1 · Telemundo',     pred:[2,1], note:"James-Díaz axis vs Chancel Mbemba's organised back-line. COL just clinical."},
+
+  // MD3 — Jun 24–27 (simultaneous pairs)
+  {id:49, group:'B', date:'2026-06-24', timePT:'12:00', venue:'BC Place, Vancouver',                   home:'Switzerland',            away:'Canada',                 tv:'FOX · Telemundo',     pred:[1,1], note:"Both already comfortable; draw seals top-2."},
+  {id:50, group:'B', date:'2026-06-24', timePT:'12:00', venue:'Lumen Field, Seattle',                  home:'Bosnia & Herzegovina',   away:'Qatar',                  tv:'FS1 · Universo',      pred:[2,0], note:"BIH must win for best-3rd lifeline; Pjanić creative spark."},
+  {id:51, group:'C', date:'2026-06-24', timePT:'15:00', venue:'Hard Rock Stadium, Miami Gardens',      home:'Scotland',               away:'Brazil',                 tv:'FOX · Telemundo',     pred:[1,2], note:"BRA rest some starters but Vinícius/Raphinha decisive. SCO goal keeps best-3rd hopes alive."},
+  {id:52, group:'C', date:'2026-06-24', timePT:'15:00', venue:'Mercedes-Benz Stadium, Atlanta',        home:'Morocco',                away:'Haiti',                  tv:'FS1 · Universo',      pred:[3,0], note:"MAR clinches top spot of group; sets up nightmare R32 draw for someone."},
+  {id:53, group:'A', date:'2026-06-24', timePT:'18:00', venue:'Estadio Azteca, Mexico City',           home:'Czech Republic',         away:'Mexico',                 tv:'FOX · Telemundo',     pred:[1,2], note:"Altitude + must-win for MEX. Czechia compact but tired."},
+  {id:54, group:'A', date:'2026-06-24', timePT:'18:00', venue:'Estadio BBVA, Guadalupe (Monterrey)',   home:'South Africa',           away:'South Korea',            tv:'FS1 · Universo',      pred:[1,1], note:"Best-3rd math drives cagey approach; SK secure 2nd."},
+  {id:55, group:'E', date:'2026-06-25', timePT:'13:00', venue:'Lincoln Financial Field, Philadelphia', home:'Curaçao',                away:'Ivory Coast',            tv:'FS1 · Universo',      pred:[0,3], note:"Haller hattrick possible; CIV bank goal-difference for best-3rd."},
+  {id:56, group:'E', date:'2026-06-25', timePT:'13:00', venue:'MetLife Stadium, East Rutherford',      home:'Ecuador',                away:'Germany',                tv:'FOX · Telemundo',     pred:[1,2], note:"Wirtz the difference; Caicedo can't fully shut down GER midfield."},
+  {id:57, group:'F', date:'2026-06-25', timePT:'16:00', venue:'AT&T Stadium, Arlington',               home:'Japan',                  away:'Sweden',                 tv:'FS1 · Universo',      pred:[1,1], note:"Group-decider draw — SWE top on H2H goals if NED beat TUN."},
+  {id:58, group:'F', date:'2026-06-25', timePT:'16:00', venue:'Arrowhead Stadium, Kansas City',        home:'Tunisia',                away:'Netherlands',            tv:'FOX · Telemundo',     pred:[1,1], note:"NED limp through; injury crisis catches up."},
+  {id:59, group:'D', date:'2026-06-25', timePT:'19:00', venue:'SoFi Stadium, Inglewood',               home:'Turkey',                 away:'United States',          tv:'FOX · Telemundo',     pred:[1,1], note:"Home crowd + USA depth force a draw. Tactical equilibrium."},
+  {id:60, group:'D', date:'2026-06-25', timePT:'19:00', venue:"Levi's Stadium, Santa Clara",           home:'Paraguay',               away:'Australia',              tv:'FS1 · Universo',      pred:[1,1], note:"Both chase best-3rd qualification math."},
+  {id:61, group:'I', date:'2026-06-26', timePT:'12:00', venue:'Gillette Stadium, Foxborough',          home:'Norway',                 away:'France',                 tv:'FOX · Telemundo',     pred:[1,1], note:"⚠️ Marquee. Haaland vs Mbappé — top-of-group fight. Deschamps content with draw; both top-2."},
+  {id:62, group:'I', date:'2026-06-26', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Senegal',                away:'Iraq',                   tv:'FS1 · Universo',      pred:[2,0], note:"Senegal must win for best-3rd — Sarr/Mané deliver."},
+  {id:63, group:'H', date:'2026-06-26', timePT:'17:00', venue:'NRG Stadium, Houston',                  home:'Cape Verde',             away:'Saudi Arabia',           tv:'FS1 · Universo',      pred:[1,1], note:"Dead-rubber for top-2."},
+  {id:64, group:'H', date:'2026-06-26', timePT:'17:00', venue:'Estadio Akron, Zapopan',                home:'Uruguay',                away:'Spain',                  tv:'FOX · Telemundo',     pred:[1,1], note:"⚠️ Both through. Both rotate; Bielsa vs De la Fuente tactical respect."},
+  {id:65, group:'G', date:'2026-06-26', timePT:'20:00', venue:'Lumen Field, Seattle',                  home:'Egypt',                  away:'Iran',                   tv:'FS1 · Universo',      pred:[1,1], note:"Knife-edge for 2nd. EGY edge on GD if draw."},
+  {id:66, group:'G', date:'2026-06-26', timePT:'20:00', venue:'BC Place, Vancouver',                   home:'New Zealand',            away:'Belgium',                tv:'FOX · Telemundo',     pred:[0,2], note:"BEL rest stars but quality gulf decisive."},
+  {id:67, group:'L', date:'2026-06-27', timePT:'14:00', venue:'MetLife Stadium, East Rutherford',      home:'Panama',                 away:'England',                tv:'FOX · Telemundo',     pred:[0,2], note:"ENG control; Kane double."},
+  {id:68, group:'L', date:'2026-06-27', timePT:'14:00', venue:'Lincoln Financial Field, Philadelphia', home:'Croatia',                away:'Ghana',                  tv:'FS1 · Universo',      pred:[2,1], note:"Modrić sends Croatia through with style; GHA's Kudus equalises briefly."},
+  {id:69, group:'K', date:'2026-06-27', timePT:'16:30', venue:'Hard Rock Stadium, Miami Gardens',      home:'Colombia',               away:'Portugal',               tv:'FOX · Telemundo',     pred:[1,1], note:"⚠️ Top-of-group decider. Both elite; POR top on H2H goal-difference."},
+  {id:70, group:'K', date:'2026-06-27', timePT:'16:30', venue:'Mercedes-Benz Stadium, Atlanta',        home:'DR Congo',               away:'Uzbekistan',             tv:'FS1 · Universo',      pred:[2,1], note:"DRC's experience tilts it; both miss best-3rd."},
+  {id:71, group:'J', date:'2026-06-27', timePT:'19:00', venue:'Arrowhead Stadium, Kansas City',        home:'Algeria',                away:'Austria',                tv:'FS1 · Universo',      pred:[1,1], note:"Both alive for 2nd; Algeria's H2H goal-share matters."},
+  {id:72, group:'J', date:'2026-06-27', timePT:'19:00', venue:'AT&T Stadium, Arlington',               home:'Jordan',                 away:'Argentina',              tv:'FOX · Telemundo',     pred:[0,3], note:"Messi farewell-tour goal. ARG cruise."}
+];
+
+const STORAGE_KEY = 'wc2026_scores_v1';
+let scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+const flagUrl = (name) => {
+  const c = FLAGS[name];
+  return c ? `https://flagcdn.com/w80/${c}.png` : '';
+};
+
+const fmtDate = (iso) => {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+};
+
+function groupByDate(matches) {
+  const out = {};
+  matches.forEach(m => { (out[m.date] = out[m.date] || []).push(m); });
+  // sort each day's matches by PDT time
+  Object.values(out).forEach(arr => arr.sort((a,b) => a.timePT.localeCompare(b.timePT) || a.id - b.id));
+  return out;
+}
+
+function accuracyForMatch(m, sc) {
+  if (sc == null) return null;
+  const [ph, pa] = m.pred;
+  const [ah, aa] = sc;
+  if (ph === ah && pa === aa) return 'exact';
+  const predOut = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
+  const actOut  = ah > aa ? 'H' : ah < aa ? 'A' : 'D';
+  return predOut === actOut ? 'right' : 'wrong';
+}
+
+function renderMatchCard(m) {
+  const sc = scores[m.id];
+  const acc = accuracyForMatch(m, sc);
+  const scoredClass = sc ? ' scored' : '';
+  const accClass = acc === 'exact' ? ' correct' : acc === 'right' ? ' partial' : acc === 'wrong' ? ' wrong' : '';
+
+  let accPill = '';
+  if (acc === 'exact') accPill = '<span class="accuracy exact">✓ EXACT</span>';
+  else if (acc === 'right') accPill = '<span class="accuracy right">✓ OUTCOME</span>';
+  else if (acc === 'wrong') accPill = '<span class="accuracy wrong">✗ MISS</span>';
+
+  return `
+    <article class="match-card${scoredClass}${accClass}" style="--gcolor: var(--${m.group});" data-match-id="${m.id}" data-group="${m.group}">
+      <div class="match-top">
+        <span class="group-pill">Group ${m.group}</span>
+        <span class="match-id">${m.timePT} PT · #${m.id}</span>
+      </div>
+      <div class="teams-row">
+        <div class="team home">
+          <img src="${flagUrl(m.home)}" alt="${m.home}" loading="lazy">
+          <span>${m.home}</span>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team away">
+          <img src="${flagUrl(m.away)}" alt="${m.away}" loading="lazy">
+          <span>${m.away}</span>
+        </div>
+      </div>
+      <div class="score-inputs">
+        <input type="number" min="0" max="20" inputmode="numeric" value="${sc?sc[0]:''}" data-side="h" data-match="${m.id}" placeholder="—">
+        <span class="dash">–</span>
+        <input type="number" min="0" max="20" inputmode="numeric" value="${sc?sc[1]:''}" data-side="a" data-match="${m.id}" placeholder="—">
+      </div>
+      <div class="prediction">
+        Prediction: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}
+      </div>
+      <div class="info-row">
+        <div><span class="pin">📍</span> ${m.venue}</div>
+        <div><span class="tv">📺</span> <span class="net">${m.tv}</span></div>
+      </div>
+      <button class="expand-btn" data-expand="${m.id}">▾ Show analysis</button>
+      <div class="note">${m.note}</div>
+    </article>
+  `;
+}
+
+function render() {
+  const fGroup = document.getElementById('filter-group').value;
+  const fStatus = document.getElementById('filter-status').value;
+
+  const filtered = MATCHES.filter(m => {
+    if (fGroup && m.group !== fGroup) return false;
+    const has = !!scores[m.id];
+    if (fStatus === 'upcoming' && has) return false;
+    if (fStatus === 'scored' && !has) return false;
+    return true;
+  });
+
+  const byDate = groupByDate(filtered);
+  const dates = Object.keys(byDate).sort();
+  const main = document.getElementById('main');
+
+  if (dates.length === 0) {
+    main.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px;">No matches match your filter.</p>';
+    return;
+  }
+
+  main.innerHTML = dates.map(d => `
+    <section class="day-group">
+      <div class="day-header">
+        <h2>${fmtDate(d)}</h2>
+        <span class="day-meta">· ${byDate[d].length} match${byDate[d].length>1?'es':''}</span>
+      </div>
+      <div class="matches-grid">
+        ${byDate[d].map(renderMatchCard).join('')}
+      </div>
+    </section>
+  `).join('');
+
+  attachCardHandlers();
+  updateStats();
+}
+
+function attachCardHandlers() {
+  document.querySelectorAll('.score-inputs input').forEach(inp => {
+    inp.addEventListener('input', onScoreChange);
+  });
+  document.querySelectorAll('[data-expand]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.dataset.expand;
+      const card = document.querySelector(`[data-match-id="${id}"]`);
+      card.classList.toggle('expanded');
+      btn.textContent = card.classList.contains('expanded') ? '▴ Hide analysis' : '▾ Show analysis';
+    });
+  });
+}
+
+function onScoreChange(e) {
+  const id = +e.target.dataset.match;
+  const card = e.target.closest('.match-card');
+  const hInp = card.querySelector('[data-side="h"]');
+  const aInp = card.querySelector('[data-side="a"]');
+  const h = hInp.value === '' ? null : parseInt(hInp.value, 10);
+  const a = aInp.value === '' ? null : parseInt(aInp.value, 10);
+  if (h == null || a == null || isNaN(h) || isNaN(a)) delete scores[id];
+  else scores[id] = [h, a];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  const m = MATCHES.find(x => x.id === id);
+  card.outerHTML = renderMatchCard(m);
+  attachCardHandlers();
+  updateStats();
+  renderStandings();
+}
+
+function updateStats() {
+  let played = 0, hit = 0, exact = 0;
+  MATCHES.forEach(m => {
+    const sc = scores[m.id]; if (!sc) return;
+    played++;
+    const a = accuracyForMatch(m, sc);
+    if (a === 'exact') { exact++; hit++; }
+    else if (a === 'right') hit++;
+  });
+  document.getElementById('stat-played').textContent = played;
+  document.getElementById('stat-hit').textContent = hit;
+  document.getElementById('stat-exact').textContent = exact;
+}
+
+function computeStandings(group) {
+  const teams = GROUPS[group];
+  const table = {};
+  teams.forEach(t => { table[t] = { team:t, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0 }; });
+  MATCHES.filter(m => m.group === group).forEach(m => {
+    const sc = scores[m.id]; if (!sc) return;
+    const [h, a] = sc;
+    const ht = table[m.home], at = table[m.away];
+    ht.P++; at.P++;
+    ht.GF+=h; ht.GA+=a; ht.GD = ht.GF - ht.GA;
+    at.GF+=a; at.GA+=h; at.GD = at.GF - at.GA;
+    if (h > a) { ht.W++; ht.Pts+=3; at.L++; }
+    else if (h < a) { at.W++; at.Pts+=3; ht.L++; }
+    else { ht.D++; at.D++; ht.Pts++; at.Pts++; }
+  });
+  return Object.values(table).sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
+}
+
+function renderStandings() {
+  const html = Object.keys(GROUPS).map(g => {
+    const rows = computeStandings(g);
+    return `
+      <div class="group-table" style="--gcolor: var(--${g});">
+        <h3>Group ${g}</h3>
+        <table>
+          <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+          <tbody>
+            ${rows.map((r,i) => {
+              const cls = i < 2 ? 'qualified' : i === 2 ? 'third' : 'out';
+              return `<tr class="${cls}"><td>${i+1}</td><td>${r.team}</td><td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td>${r.GD>0?'+':''}${r.GD}</td><td><b>${r.Pts}</b></td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('standings-content').innerHTML = html;
+}
+
+// Init
+const fg = document.getElementById('filter-group');
+Object.keys(GROUPS).forEach(g => {
+  const opt = document.createElement('option');
+  opt.value = g; opt.textContent = `Group ${g}`;
+  fg.appendChild(opt);
+});
+
+fg.addEventListener('change', render);
+document.getElementById('filter-status').addEventListener('change', render);
+document.getElementById('expand-all').addEventListener('click', () => {
+  document.querySelectorAll('.match-card').forEach(c => c.classList.add('expanded'));
+  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▴ Hide analysis');
+});
+document.getElementById('collapse-all').addEventListener('click', () => {
+  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('expanded'));
+  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▾ Show analysis');
+});
+document.getElementById('reset-all').addEventListener('click', () => {
+  if (confirm('Clear ALL entered scores? This cannot be undone.')) {
+    scores = {};
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+    renderStandings();
+  }
+});
+document.getElementById('open-standings').addEventListener('click', () => {
+  document.getElementById('standings-panel').classList.add('open');
+});
+document.getElementById('close-standings').addEventListener('click', () => {
+  document.getElementById('standings-panel').classList.remove('open');
+});
+
+// ============== TABS ==============
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'simulator') renderSimulator();
+  });
+});
+
+// ============== SIMULATOR ==============
+// Team ratings (Elo-style, ~1500 baseline). Drives Poisson goals model.
+const RATINGS = {
+  'Argentina':2050,'France':2030,'Spain':2025,'Brazil':2000,'England':1990,'Portugal':1970,
+  'Germany':1940,'Netherlands':1920,'Belgium':1900,'Colombia':1880,'Croatia':1870,'Uruguay':1865,
+  'Morocco':1850,'United States':1820,'Switzerland':1810,'Japan':1800,'Mexico':1795,'Senegal':1790,
+  'Sweden':1780,'Denmark':1775,'Ecuador':1745,'Ivory Coast':1740,'Norway':1735,'Korea Republic':1730,
+  'South Korea':1730,'Egypt':1725,'Australia':1720,'Iran':1715,'Algeria':1710,'Austria':1705,
+  'Turkey':1700,'Canada':1695,'Paraguay':1680,'Scotland':1670,'Tunisia':1660,'Czech Republic':1655,
+  'Ghana':1650,'Cape Verde':1640,'Saudi Arabia':1620,'Panama':1610,'DR Congo':1605,'Bosnia & Herzegovina':1600,
+  'Uzbekistan':1590,'Iraq':1575,'New Zealand':1560,'South Africa':1555,'Qatar':1545,'Jordan':1535,
+  'Haiti':1520,'Curaçao':1500
+};
+
+function poissonRandom(lambda) {
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > L);
+  return k - 1;
+}
+
+// Returns [homeGoals, awayGoals]; knockout=true bumps variance slightly lower
+function simulateMatch(home, away, knockout = false) {
+  const rh = RATINGS[home] || 1600;
+  const ra = RATINGS[away] || 1600;
+  const diff = (rh - ra) / 100; // ~ each 100 Elo = ~0.3 expected goal swing
+  const base = knockout ? 1.15 : 1.30;
+  let xgH = Math.max(0.15, base + diff * 0.30);
+  let xgA = Math.max(0.15, base - diff * 0.30);
+  let h = poissonRandom(xgH);
+  let a = poissonRandom(xgA);
+  if (knockout && h === a) {
+    // simulate penalty shootout — slight edge to higher rating
+    const pH = 0.5 + diff * 0.04;
+    return [h, a, Math.random() < pH ? 'H' : 'A'];
+  }
+  return [h, a, h > a ? 'H' : a > h ? 'A' : 'D'];
+}
+
+// Holds simulator-only group scores (separate from user's localStorage scores)
+let simGroupScores = null;
+let bracketState = null;
+
+function getActiveGroupScores() {
+  // Priority: simGroupScores > user scores (if any)
+  if (simGroupScores) return simGroupScores;
+  return scores;
+}
+
+function fillFromPredictions() {
+  simGroupScores = {};
+  MATCHES.forEach(m => { simGroupScores[m.id] = [m.pred[0], m.pred[1]]; });
+  bracketState = null;
+  renderSimulator();
+}
+
+function fillFromRandom() {
+  simGroupScores = {};
+  MATCHES.forEach(m => {
+    const r = simulateMatch(m.home, m.away, false);
+    simGroupScores[m.id] = [r[0], r[1]];
+  });
+  bracketState = null;
+  renderSimulator();
+}
+
+function fillFromEntered() {
+  const filled = Object.keys(scores).length;
+  if (filled === 0) {
+    alert("You haven't entered any scores yet. Type some scores in the Match Calendar tab first.");
+    return;
+  }
+  simGroupScores = JSON.parse(JSON.stringify(scores));
+  bracketState = null;
+  renderSimulator();
+}
+
+function clearSim() {
+  simGroupScores = null;
+  bracketState = null;
+  renderSimulator();
+}
+
+function computeSimStandings(group, src) {
+  const teams = GROUPS[group];
+  const table = {};
+  teams.forEach(t => { table[t] = { team:t, group, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0 }; });
+  MATCHES.filter(m => m.group === group).forEach(m => {
+    const sc = src[m.id]; if (!sc) return;
+    const [h, a] = sc;
+    const ht = table[m.home], at = table[m.away];
+    ht.P++; at.P++;
+    ht.GF+=h; ht.GA+=a; ht.GD = ht.GF - ht.GA;
+    at.GF+=a; at.GA+=h; at.GD = at.GF - at.GA;
+    if (h > a) { ht.W++; ht.Pts+=3; at.L++; }
+    else if (h < a) { at.W++; at.Pts+=3; ht.L++; }
+    else { ht.D++; at.D++; ht.Pts++; at.Pts++; }
+  });
+  return Object.values(table).sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
+}
+
+function groupsComplete(src) {
+  return MATCHES.every(m => src[m.id]);
+}
+
+function buildR32(src) {
+  // Get top 2 + 3rd from each group
+  const groupTables = {};
+  const allThirds = [];
+  Object.keys(GROUPS).forEach(g => {
+    const t = computeSimStandings(g, src);
+    groupTables[g] = t;
+    if (t[2]) allThirds.push(t[2]);
+  });
+  // Best 3rds: top 8 by Pts → GD → GF
+  const bestThirds = allThirds.sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF).slice(0, 8);
+  const bestThirdsByGroup = {}; bestThirds.forEach(t => { bestThirdsByGroup[t.group] = t; });
+
+  // Slot resolver
+  const slot = (code) => {
+    const pos = parseInt(code[0], 10);
+    const g = code.slice(1);
+    return groupTables[g][pos - 1];
+  };
+
+  // R32 bracket — 16 matches (32 teams: 12 winners + 12 runners-up + 8 best 3rds)
+  // Pairings designed so each match has a 1st-place team OR runs as 3rd vs 3rd.
+  // Simplified, valid bracket. (Real FIFA bracket pairings differ slightly.)
+  const r32 = [
+    {id:'R32-1',  home:slot('1A'), away:slot('2B')},
+    {id:'R32-2',  home:slot('1C'), away:slot('2D')},
+    {id:'R32-3',  home:slot('1E'), away:slot('2F')},
+    {id:'R32-4',  home:slot('1G'), away:slot('2H')},
+    {id:'R32-5',  home:slot('1I'), away:slot('2J')},
+    {id:'R32-6',  home:slot('1K'), away:slot('2L')},
+    {id:'R32-7',  home:slot('1B'), away:slot('2A')},
+    {id:'R32-8',  home:slot('1D'), away:slot('2C')},
+    {id:'R32-9',  home:slot('1F'), away:slot('2E')},
+    {id:'R32-10', home:slot('1H'), away:slot('2G')},
+    {id:'R32-11', home:slot('1J'), away:slot('2I')},
+    {id:'R32-12', home:slot('1L'), away:slot('2K')}
+  ];
+  // Add 4 third-vs-third matches using whichever 3rds qualified, in order
+  const thirds = bestThirds.slice();
+  while (thirds.length >= 2) {
+    const h = thirds.shift(); const a = thirds.pop();
+    r32.push({id:`R32-${13 + (16 - r32.length - 1)}`, home:h, away:a});
+  }
+  // Ensure 16 matches
+  return r32.slice(0, 16).map((m, i) => ({ ...m, id: `R32-${i+1}` }));
+}
+
+function simulateKO(matches, label) {
+  return matches.map(m => {
+    const r = simulateMatch(m.home.team, m.away.team, true);
+    const winner = r[2] === 'H' ? m.home : m.away;
+    const loser  = r[2] === 'H' ? m.away : m.home;
+    return { ...m, score:[r[0], r[1]], winner, loser, round:label };
+  });
+}
+
+function pairWinners(prevRound, label) {
+  const next = [];
+  for (let i = 0; i < prevRound.length; i += 2) {
+    next.push({ id:`${label}-${i/2+1}`, home: prevRound[i].winner, away: prevRound[i+1].winner });
+  }
+  return next;
+}
+
+function runFullBracket(src) {
+  const r32 = simulateKO(buildR32(src), 'R32');
+  const r16 = simulateKO(pairWinners(r32, 'R16'), 'R16');
+  const qf  = simulateKO(pairWinners(r16, 'QF'),  'QF');
+  const sf  = simulateKO(pairWinners(qf,  'SF'),  'SF');
+  const f   = simulateKO(pairWinners(sf,  'F'),   'F');
+  // 3rd place playoff
+  const third = simulateKO([{id:'3rd-1', home: sf[0].loser, away: sf[1].loser}], '3rd');
+  return { r32, r16, qf, sf, f, third, champion: f[0].winner };
+}
+
+function resimMatch(round, idx) {
+  if (!bracketState) return;
+  // Re-simulate this match
+  const arr = bracketState[round];
+  const m = arr[idx];
+  const r = simulateMatch(m.home.team, m.away.team, true);
+  m.score = [r[0], r[1]];
+  m.winner = r[2] === 'H' ? m.home : m.away;
+  m.loser  = r[2] === 'H' ? m.away : m.home;
+  // Cascade re-build downstream rounds
+  if (round === 'r32') bracketState.r16 = simulateKO(pairWinners(bracketState.r32, 'R16'), 'R16');
+  if (round === 'r32' || round === 'r16') bracketState.qf = simulateKO(pairWinners(bracketState.r16, 'QF'), 'QF');
+  if (['r32','r16','qf'].includes(round)) bracketState.sf = simulateKO(pairWinners(bracketState.qf, 'SF'), 'SF');
+  if (round !== 'f' && round !== 'third') bracketState.f = simulateKO(pairWinners(bracketState.sf, 'F'), 'F');
+  if (round !== 'third') bracketState.third = simulateKO([{id:'3rd-1', home: bracketState.sf[0].loser, away: bracketState.sf[1].loser}], '3rd');
+  bracketState.champion = bracketState.f[0].winner;
+  renderBracket();
+}
+
+function renderSimulator() {
+  // Mini standings
+  const src = getActiveGroupScores();
+  const totalScored = MATCHES.filter(m => src[m.id]).length;
+  const gsStatus = document.getElementById('gs-status');
+  if (totalScored === 72) {
+    gsStatus.textContent = '✓ All 72 matches scored — ready for knockouts';
+    gsStatus.classList.add('ready');
+  } else {
+    gsStatus.textContent = `${totalScored}/72 matches scored`;
+    gsStatus.classList.remove('ready');
+  }
+
+  const ms = document.getElementById('mini-standings');
+  ms.innerHTML = Object.keys(GROUPS).map(g => {
+    const rows = computeSimStandings(g, src);
+    return `
+      <div class="mini-group" style="--gcolor: var(--${g});">
+        <h4>Group ${g}</h4>
+        <table>
+          ${rows.map((r,i) => `<tr class="${i<2?'q':i===2?'b3':''}"><td>${i+1}</td><td>${r.team}</td><td class="pts">${r.Pts}</td></tr>`).join('')}
+        </table>
+      </div>`;
+  }).join('');
+
+  renderBracket();
+}
+
+function renderBracket() {
+  const wrap = document.getElementById('bracket-wrap');
+  const champWrap = document.getElementById('champion-wrap');
+  const koStatus = document.getElementById('ko-status');
+
+  if (!bracketState) {
+    wrap.innerHTML = '<p style="color:var(--muted); padding:20px; text-align:center;">Click <b>Build & Simulate Knockouts</b> above to generate the bracket.</p>';
+    champWrap.innerHTML = '';
+    koStatus.textContent = 'waiting for group stage';
+    koStatus.classList.remove('ready');
+    return;
+  }
+  koStatus.textContent = '✓ Bracket simulated';
+  koStatus.classList.add('ready');
+
+  const renderRound = (matches, label, key) => `
+    <div class="bracket-round">
+      <h3>${label} (${matches.length})</h3>
+      <div class="bracket-matches">
+        ${matches.map((m, i) => renderKO(m, key, i)).join('')}
+      </div>
+    </div>
+  `;
+
+  wrap.innerHTML = `
+    <div class="bracket">
+      ${renderRound(bracketState.r32, 'Round of 32', 'r32')}
+      ${renderRound(bracketState.r16, 'Round of 16', 'r16')}
+      ${renderRound(bracketState.qf,  'Quarterfinals', 'qf')}
+      ${renderRound(bracketState.sf,  'Semifinals',    'sf')}
+      ${renderRound(bracketState.f,   'Final',         'f')}
+      ${renderRound(bracketState.third,'3rd Place',    'third')}
+    </div>
+  `;
+
+  const champ = bracketState.champion.team;
+  champWrap.innerHTML = `
+    <div class="champion-banner">
+      <h2>🏆 Simulated Champion</h2>
+      <div class="winner-row">
+        <img src="${flagUrl(champ)}" alt="${champ}">
+        <span>${champ}</span>
+      </div>
+      <p style="color:var(--muted); margin-top:8px; font-size:13px;">
+        Runner-up: ${bracketState.f[0].loser.team} · 3rd: ${bracketState.third[0].winner.team} · 4th: ${bracketState.third[0].loser.team}
+      </p>
+    </div>
+  `;
+
+  // Wire re-sim buttons
+  document.querySelectorAll('.ko-resim').forEach(btn => {
+    btn.addEventListener('click', () => resimMatch(btn.dataset.round, +btn.dataset.idx));
+  });
+}
+
+function renderKO(m, roundKey, idx) {
+  const isFinal = roundKey === 'f';
+  const completed = m.score != null;
+  const cls = isFinal ? 'final' : completed ? 'completed' : '';
+  const teamRow = (t, otherT, score, isWinner) => {
+    if (!t) return `<div class="ko-team"><span class="placeholder">TBD</span></div>`;
+    const wins = isWinner ? 'winner' : (completed ? 'loser' : '');
+    return `<div class="ko-team ${wins}">
+      <img src="${flagUrl(t.team)}" alt="${t.team}">
+      <span>${t.team}</span>
+      <span class="score">${score ?? ''}</span>
+    </div>`;
+  };
+  return `
+    <div class="ko-match ${cls}">
+      <div class="ko-meta"><span>${m.id}</span></div>
+      ${teamRow(m.home, m.away, m.score?m.score[0]:'', completed && m.winner === m.home)}
+      ${teamRow(m.away, m.home, m.score?m.score[1]:'', completed && m.winner === m.away)}
+      ${completed ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">↻ Re-sim</button>` : ''}
+    </div>
+  `;
+}
+
+// Wire simulator buttons
+document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
+document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
+document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
+document.getElementById('sim-clear').addEventListener('click', clearSim);
+document.getElementById('sim-knockouts').addEventListener('click', () => {
+  const src = getActiveGroupScores();
+  if (!groupsComplete(src)) {
+    alert("Group stage isn't fully scored yet. Pick a 'Step 1' option above first.");
+    return;
+  }
+  bracketState = runFullBracket(src);
+  renderBracket();
+});
+document.getElementById('sim-resim-all').addEventListener('click', () => {
+  const src = getActiveGroupScores();
+  if (!groupsComplete(src)) { alert("Need a complete group stage first."); return; }
+  bracketState = runFullBracket(src);
+  renderBracket();
+});
+
+render();
+renderStandings();
+</script>
+</body>
+</html>
