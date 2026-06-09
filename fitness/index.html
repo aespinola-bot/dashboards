@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fat-Loss Climb · Adaptive Dashboard</title>
+<style>
+  :root{
+    --bg:#F7F4EE; --ink:#141416; --soft:#6A6A6E;
+    --warm:#D45D2E; --peak:#8B2A0E; --cool:#2E5C7E;
+    --hair:#D8D3C8; --card:#FFFFFFAA;
+    --shadow:0 1px 0 rgba(20,20,22,.04), 0 8px 24px rgba(20,20,22,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 32px 56px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+    padding-bottom:16px;border-bottom:1.5px solid var(--ink);margin-bottom:22px}
+  .brand{display:flex;flex-direction:column;gap:4px}
+  .brand .bar{width:34px;height:4px;background:var(--warm);margin-bottom:8px}
+  .brand .tag{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--warm);text-transform:uppercase}
+  .brand h1{margin:2px 0 0;font-size:28px;letter-spacing:-0.01em;font-weight:800;line-height:1.05}
+  .brand .sub{color:var(--soft);font-style:italic;font-size:13px;margin-top:4px}
+  .brand .micro{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-top:6px}
+
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:22px}
+  @media (max-width:880px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--hair);border-radius:8px;
+    padding:18px 18px 16px;box-shadow:var(--shadow)}
+  .section-h{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--warm);
+    text-transform:uppercase;margin:0 0 6px}
+  .section-h + .rule{border-top:1.2px solid var(--ink);margin:0 0 12px}
+
+  /* INPUT PANEL */
+  .panel label{display:block;font-size:11px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--soft);margin:14px 0 6px}
+  .panel input[type=number],.panel select{width:100%;padding:9px 10px;border:1px solid var(--hair);
+    background:#fff;border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink)}
+  .panel input[type=range]{width:100%}
+  .seg{display:flex;border:1px solid var(--hair);border-radius:6px;overflow:hidden;background:#fff}
+  .seg button{flex:1;padding:8px 6px;border:0;background:transparent;cursor:pointer;
+    font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--soft)}
+  .seg button.on{background:var(--ink);color:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .slider-row{display:flex;align-items:center;gap:10px}
+  .slider-val{font-weight:800;font-variant-numeric:tabular-nums;min-width:42px;text-align:right}
+
+  /* KPI strip */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:#fff;border:1px solid var(--hair);border-radius:8px;padding:12px 14px}
+  .kpi .l{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+  .kpi .v{font-size:22px;font-weight:800;color:var(--warm);font-variant-numeric:tabular-nums;line-height:1.15;margin-top:2px}
+  .kpi .u{font-size:11px;color:var(--soft);font-style:italic}
+
+  /* CHART */
+  .chart-wrap{display:flex;gap:6px;margin-top:14px;align-items:stretch}
+  .chart-caption{display:flex;justify-content:space-between;font-size:9px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--soft);
+    padding:0 4px;margin-top:8px}
+  .chart-caption .right{color:#E53935}
+  .y-axis{width:36px;position:relative;flex-shrink:0}
+  .y-axis .yt{position:absolute;right:2px;font-size:9px;font-weight:700;color:var(--soft);
+    transform:translateY(-50%);letter-spacing:.05em;font-variant-numeric:tabular-nums}
+  /* Right-side speed axis */
+  .y-axis-right{width:36px;position:relative;flex-shrink:0}
+  .y-axis-right .yt{position:absolute;left:2px;font-size:9px;font-weight:700;color:#E53935;
+    transform:translateY(-50%);letter-spacing:.05em;font-variant-numeric:tabular-nums}
+  /* Speed step-line in chart */
+  .chart .spd-line{fill:none;stroke:#E53935;stroke-width:2;stroke-dasharray:5 3;opacity:.95}
+  .chart .spd-dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#E53935;
+    transform:translate(-50%,-50%);box-shadow:0 0 0 2px #fff;z-index:5;cursor:help}
+  .chart{position:relative;flex:1;height:220px;overflow:visible}
+  .chart svg.canvas{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .chart .grid-line{stroke:var(--hair);stroke-width:1;stroke-dasharray:2 3}
+  .chart .axis-line{stroke:var(--ink);stroke-width:1}
+  .chart .inc-rect{stroke:#fff;stroke-width:.5;transition:fill .25s ease}
+  .chart .inc-rect.peak{fill:#8B2A0E;fill-opacity:.75}
+  .chart .inc-rect.warm{fill:#D45D2E;fill-opacity:.7}
+  .chart .inc-rect.mid {fill:#C9A06A;fill-opacity:.65}
+  .chart .inc-rect.cool{fill:#2E5C7E;fill-opacity:.55}
+  .chart .inc-top{stroke:var(--ink);stroke-width:1.5;fill:none;stroke-linejoin:round}
+  .chart .hr-line{fill:none;stroke:#fff;stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+  .chart .hr-line-core{fill:none;stroke:var(--ink);stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round}
+  .chart .phase-divider{stroke:rgba(255,255,255,.4);stroke-width:1}
+  .chart .inc-pct{position:absolute;font-size:10px;font-weight:800;color:#fff;
+    transform:translate(-50%,0);padding:2px 6px;border-radius:4px;
+    font-variant-numeric:tabular-nums;pointer-events:none;
+    background:#141416;letter-spacing:.02em;
+    white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);
+    text-shadow:0 1px 1px rgba(0,0,0,.5);z-index:3}
+  .chart .zone-chip{position:absolute;bottom:4px;transform:translateX(-50%);
+    font-size:10px;font-weight:800;letter-spacing:.02em;cursor:help;z-index:4;
+    font-variant-numeric:tabular-nums;white-space:nowrap;text-align:center;
+    line-height:1.15;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+  .chart .zone-chip .row1{display:block}
+  .chart .zone-chip .row2{display:block;font-size:9.5px;letter-spacing:.08em;opacity:.9}
+  .chart .zone-chip .heart{font-size:11px;line-height:1}
+  .chart .hr-dot{position:absolute;width:13px;height:13px;border-radius:50%;
+    border:2.5px solid #fff;transform:translate(-50%,-50%);cursor:help;
+    box-shadow:0 1px 3px rgba(0,0,0,.35);z-index:5}
+  .chart .hr-pill{position:absolute;transform:translate(-50%,-100%);
+    color:#fff;border-radius:11px;padding:2px 8px 2px 7px;
+    font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;
+    white-space:nowrap;display:inline-flex;align-items:center;gap:4px;cursor:help;
+    box-shadow:0 2px 5px rgba(0,0,0,.18);z-index:6}
+  .chart .hr-pill .heart{color:#fff;font-size:11px;line-height:1;opacity:.9}
+  .xticks{display:flex;justify-content:space-between;font-size:10px;color:var(--soft);
+    margin:8px 0 0 40px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+
+  /* GLOBAL TOOLTIP */
+  [data-tip]{cursor:help}
+  #tooltip{position:fixed;z-index:99999;pointer-events:none;
+    background:rgba(20,20,22,.96);color:#fff;padding:9px 12px;border-radius:6px;
+    font-size:11.5px;font-weight:500;letter-spacing:.02em;line-height:1.5;
+    max-width:280px;box-shadow:0 6px 20px rgba(0,0,0,.3);
+    opacity:0;transition:opacity .1s ease;left:-9999px;top:-9999px}
+  #tooltip b{color:#FFB48A;font-weight:800;letter-spacing:.04em}
+  #tooltip i{color:#D8D3C8;font-style:italic}
+  .xticks{display:flex;justify-content:space-between;font-size:10px;color:var(--soft);margin-top:6px;
+    font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  /* HR ZONE STRIP — horizontal bar under chart, aligned to phases */
+  .hr-strip{position:relative;height:22px;margin-top:8px;display:flex;border-radius:3px;overflow:hidden;
+    border:1px solid var(--hair)}
+  .hr-strip .seg{height:100%;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;color:#fff;letter-spacing:.06em;
+    text-shadow:0 1px 1px rgba(0,0,0,.25);border-right:1px solid rgba(255,255,255,.3)}
+  .hr-strip .seg:last-child{border-right:none}
+  .hr-strip-label{font-size:9px;font-weight:800;letter-spacing:.16em;color:var(--soft);
+    text-transform:uppercase;margin-top:6px;text-align:center}
+  .zone-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:10px;color:var(--soft);
+    letter-spacing:.06em;text-transform:uppercase;font-weight:700;justify-content:center}
+  .zone-legend .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;
+    vertical-align:middle}
+
+  /* PROFILE BADGE + SELECTOR */
+  .profile-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;
+    border:1.5px solid var(--ink);border-radius:999px;background:#fff;font-weight:800;
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);
+    cursor:pointer;transition:background .15s,box-shadow .15s;position:relative}
+  .profile-badge:hover{background:#FAF6EF;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .profile-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--warm)}
+  .profile-badge .sub{font-weight:600;letter-spacing:.04em;text-transform:none;color:var(--soft);
+    font-size:11px;font-style:italic;margin-left:6px}
+  .profile-badge .caret{font-size:10px;color:var(--soft);margin-left:4px}
+  .profile-menu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;
+    border:1.5px solid var(--ink);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+    min-width:280px;z-index:50;display:none;overflow:hidden}
+  .profile-menu.open{display:block}
+  .profile-menu .opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;cursor:pointer;
+    border-bottom:1px solid var(--hair);font-size:13px}
+  .profile-menu .opt:last-child{border-bottom:none}
+  .profile-menu .opt:hover{background:#FAF6EF}
+  .profile-menu .opt.active{background:#F2EADC}
+  .profile-menu .opt .ic{font-size:18px;line-height:1}
+  .profile-menu .opt .nm{font-weight:800;color:var(--ink);text-transform:none;letter-spacing:0}
+  .profile-menu .opt .ds{font-size:11px;color:var(--soft);font-style:italic}
+  .profile-menu .opt .mode{font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 6px;
+    border-radius:4px;text-transform:uppercase;margin-left:auto;align-self:center}
+  .profile-menu .opt .mode.walk{background:#E6EEF5;color:#2E5C7E}
+  .profile-menu .opt .mode.run{background:#F5E1D3;color:#8B2A0E}
+  .profile-menu .opt .mode.auto{background:#EDE4D0;color:#7B6A45}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+  th{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);
+    text-align:left;padding:8px 6px 6px;border-bottom:1px solid var(--ink);font-weight:800}
+  td{padding:7px 6px;border-bottom:1px solid var(--hair);font-variant-numeric:tabular-nums}
+  td.phase{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:12px}
+  td.miss{color:var(--soft);font-style:italic;font-variant-numeric:normal}
+  td input.cell{width:64px;padding:5px 7px;border:1px solid var(--hair);background:#fff;
+    border-radius:4px;font-family:inherit;font-size:13px;font-variant-numeric:tabular-nums;
+    color:var(--ink);font-weight:700;text-align:right}
+  td input.cell:focus{outline:none;border-color:var(--warm);box-shadow:0 0 0 2px rgba(212,93,46,.15)}
+  td input.cell.edited{background:#FFF3E8;border-color:var(--warm)}
+  .table-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap}
+  .table-actions .hint{font-size:11px;color:var(--soft);font-style:italic}
+  .btn{border:1px solid var(--ink);background:#fff;color:var(--ink);padding:7px 14px;border-radius:6px;
+    font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;font-family:inherit}
+  .btn:hover{background:var(--ink);color:#fff}
+  .btn.warm{border-color:var(--warm);color:var(--warm)}
+  .btn.warm:hover{background:var(--warm);color:#fff}
+
+  .note{background:#FFF3E8;border-left:3px solid var(--warm);padding:10px 12px;
+    border-radius:4px;font-size:12.5px;color:var(--ink);margin-top:14px}
+  .note b{color:var(--peak)}
+  .note.cool{background:#EBF1F6;border-color:var(--cool)}
+
+  footer{margin-top:26px;padding-top:12px;border-top:1.2px solid var(--ink);
+    display:flex;justify-content:space-between;font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;font-weight:700;color:var(--soft)}
+  footer .hash{color:var(--warm)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="bar"></div>
+      <div class="tag">Fat-Loss Protocol · Adaptive</div>
+      <h1>The Fat-Loss Climb</h1>
+      <div class="sub">Personalized to your treadmill, your age, your gender — recalculated live.</div>
+      <div class="micro" id="hdr-spec">30 MIN · 3.5 MPH · ADJUSTING…</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+      <div class="profile-badge" id="profile-badge" data-tip="<b>Workout profile</b> — click to pick. <b>Auto-detect</b> classifies from your inputs; preset profiles rebuild the chart instantly. Per-row inc/speed remain editable after selection.">
+        <span class="dot"></span>
+        <span id="profile-name">Computing…</span>
+        <span class="sub" id="profile-sub"></span>
+        <span class="caret">▾</span>
+        <div class="profile-menu" id="profile-menu"></div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.1em;text-transform:uppercase">
+        Page 1 of 1<br>v1.2
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- LEFT: INPUT PANEL -->
+    <aside class="card panel">
+      <div class="section-h">Your profile</div>
+      <div class="rule"></div>
+
+      <label>Gender</label>
+      <div class="seg" id="seg-gender">
+        <button data-v="male" class="on">Male</button>
+        <button data-v="female">Female</button>
+      </div>
+
+      <label>Age</label>
+      <input type="number" id="age" min="14" max="90" value="51">
+
+      <label>Weight</label>
+      <div class="row2">
+        <input type="number" id="weight" min="60" max="500" step="0.1" value="184">
+        <div class="seg" id="seg-units">
+          <button data-v="lb" class="on">lb</button>
+          <button data-v="kg">kg</button>
+        </div>
+      </div>
+
+      <label>Max treadmill incline available
+        <span style="float:right;font-weight:800;color:var(--ink);font-size:13px"><span id="incVal">15</span>%</span>
+      </label>
+      <input type="range" id="maxInc" min="6" max="20" step="1" value="15">
+
+      <label><span id="speedLabel">Walk speed</span>
+        <span style="float:right;font-weight:800;color:var(--ink);font-size:13px"><span id="spdVal">3.5</span> mph</span>
+      </label>
+      <input type="range" id="speed" min="2.0" max="7.5" step="0.1" value="3.5">
+
+      <label>Session duration
+        <span style="float:right;font-weight:800;color:var(--ink);font-size:13px" id="durHint">Auto · 30 min</span>
+      </label>
+      <div class="seg" id="seg-dur">
+        <button data-v="auto" class="on">Auto</button>
+        <button data-v="custom">Custom</button>
+      </div>
+      <input type="number" id="customMin" min="15" max="90" step="1" value="30"
+             style="margin-top:8px">
+      <div style="font-size:11px;color:var(--soft);font-style:italic;margin-top:4px" id="durNote">
+        Auto = 30 min protocol. Edit minutes here to switch to Custom — all phases scale proportionally.
+      </div>
+
+      <label>Fitness level (HR target)</label>
+      <div class="seg" id="seg-fit">
+        <button data-v="rebuild">Rebuild</button>
+        <button data-v="standard" class="on">Standard</button>
+        <button data-v="trained">Trained</button>
+      </div>
+
+      <div class="note cool" style="margin-top:18px;font-size:12px">
+        💡 <b style="color:var(--cool)">Tip:</b> Lower max incline = the program auto-adds <b style="color:var(--cool)">speed</b> and <b style="color:var(--cool)">duration</b> to keep fat-burn intensity equivalent.
+      </div>
+    </aside>
+
+    <!-- RIGHT: OUTPUT -->
+    <main>
+      <!-- KPI strip -->
+      <div class="kpis">
+        <div class="kpi" data-tip="<b>Max Heart Rate</b><br>The highest beats-per-minute your heart can safely reach. Calculated from <b>Tanaka</b> (men: 208 − 0.7×age) or <b>Gulati</b> (women: 206 − 0.88×age). Used as the 100% reference for all HR zones."><div class="l">Max HR</div><div class="v" id="kpi-mhr">—</div><div class="u" id="kpi-mhr-u">bpm</div></div>
+        <div class="kpi" data-tip="<b>Fat-burn target zone</b><br>The bpm window where your body burns the highest <i>percentage</i> of fat as fuel. Adjusted by your fitness level: rebuild 65–72%, standard 70–78%, trained 75–82% of MaxHR."><div class="l">Target zone</div><div class="v" id="kpi-zone">—</div><div class="u">70–78% MaxHR · fat-burn</div></div>
+        <div class="kpi" data-tip="<b>Net calories burned</b> for the full session (excludes what you'd burn just sitting).<br>This matches what <b>Precor, Matrix, Life Fitness</b> and most gym treadmills display. Calculated with the <b>ACSM walking VO₂ formula</b> minus resting metabolism (1 MET), using your weight + each phase's incline and speed. Gross calories would be ~15% higher."><div class="l">Calories / session</div><div class="v" id="kpi-cal">—</div><div class="u" id="kpi-cal-u">kcal · net</div></div>
+        <div class="kpi" data-tip="<b>Total session length</b><br>In Auto mode the engine extends the peak phase if needed to hit the reference workload at your max incline. In Custom mode all 8 phases scale proportionally to your chosen duration."><div class="l">Total session</div><div class="v" id="kpi-dur">—</div><div class="u">minutes</div></div>
+      </div>
+
+      <!-- CHART -->
+      <div class="card">
+        <div class="section-h">Adapted incline profile</div>
+        <div class="rule"></div>
+        <div class="chart-wrap">
+          <div class="y-axis" id="y-axis"></div>
+          <div class="chart" id="chart"></div>
+          <div class="y-axis-right" id="y-axis-right"></div>
+        </div>
+        <div class="chart-caption">
+          <span>◆ Incline %</span>
+          <span class="right">◆ Speed mph</span>
+        </div>
+        <div class="xticks" id="xticks"><span>0</span><span>10</span><span>20</span><span id="xend">30</span></div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--soft);text-align:center;margin-top:6px;text-transform:uppercase">Minutes</div>
+        <div class="zone-legend" id="zone-legend"></div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="card" style="margin-top:14px">
+        <div class="section-h">Phase breakdown · click any incline or speed to override</div>
+        <div class="rule"></div>
+        <table>
+          <thead><tr><th>Time</th><th>Incline %</th><th>Speed (mph)</th><th>Phase</th><th>HR target</th><th>Mission</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="table-actions">
+          <span class="hint" id="edit-hint">Auto-adapting from your settings. Edit any cell to take manual control.</span>
+          <button class="btn warm" id="btn-reset">Reset to auto</button>
+        </div>
+      </div>
+
+      <!-- ADAPTATION NOTE -->
+      <div class="note" id="adapt-note"></div>
+
+      <footer>
+        <span>Fat-Loss Climb · Adaptive Dashboard</span>
+        <span class="hash">#THEFATLOSSCLIMB</span>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PROFILE LIBRARY — 10 selectable workout templates
+   Picking one rebuilds the protocol; rows remain user-editable.
+   "auto" lets the classifier label whatever the user builds.
+============================================================ */
+const PROFILES = [
+  { id:"auto", name:"Auto-detect", icon:"🧭", sub:"classify from inputs", mode:"walk", auto:true },
+  { id:"fat-loss", name:"Fat-loss climb", icon:"🔥", sub:"max fat oxidation", mode:"walk", speed:3.5, phases:[
+    {a:0,b:3,inc:6,phase:"Warm-up",mission:"Aerobic warm-up"},
+    {a:3,b:5,inc:9,phase:"Build",mission:"Fat oxidation begins"},
+    {a:5,b:10,inc:13,phase:"First peak",mission:"Sustainable aerobic"},
+    {a:10,b:12,inc:9,phase:"Recover",mission:"Active recovery"},
+    {a:12,b:15,inc:11,phase:"Climb back",mission:"Re-engage engine"},
+    {a:15,b:20,inc:13,phase:"Sustained",mission:"Glute & calf burn"},
+    {a:20,b:27,inc:15,phase:"Peak",mission:"Hardest 7 minutes"},
+    {a:27,b:30,inc:3,phase:"Cool down",mission:"Drop heart rate"},
+  ]},
+  { id:"recovery", name:"Recovery walk", icon:"🛋️", sub:"low-intensity restorative", mode:"walk", speed:2.8, phases:[
+    {a:0,b:3,inc:1,phase:"Easy start",mission:"Wake legs up"},
+    {a:3,b:7,inc:2,phase:"Stroll",mission:"Light circulation"},
+    {a:7,b:13,inc:3,phase:"Mild incline",mission:"Gentle posterior chain"},
+    {a:13,b:16,inc:2,phase:"Hold",mission:"Conversation pace"},
+    {a:16,b:22,inc:3,phase:"Mild incline",mission:"Sustain low effort"},
+    {a:22,b:25,inc:2,phase:"Ease off",mission:"Active recovery"},
+    {a:25,b:28,inc:1,phase:"Wind down",mission:"Bring HR down"},
+    {a:28,b:30,inc:0,phase:"Cool down",mission:"Flush legs"},
+  ]},
+  { id:"leg-climb", name:"Leg / glute climb", icon:"💪", sub:"strength-biased incline", mode:"walk", speed:2.5, phases:[
+    {a:0,b:3,inc:5,phase:"Warm-up",mission:"Prime glutes"},
+    {a:3,b:6,inc:10,phase:"Build",mission:"Engage posterior chain"},
+    {a:6,b:12,inc:13,phase:"Sustained climb",mission:"Glute burn"},
+    {a:12,b:15,inc:10,phase:"Brief ease",mission:"Recover legs"},
+    {a:15,b:22,inc:15,phase:"Peak climb",mission:"Max strength stimulus"},
+    {a:22,b:26,inc:12,phase:"Hold",mission:"Sustain load"},
+    {a:26,b:28,inc:8,phase:"Step down",mission:"Decompress"},
+    {a:28,b:30,inc:3,phase:"Cool down",mission:"Drop HR"},
+  ]},
+  { id:"threshold", name:"Threshold / Tempo", icon:"🎯", sub:"sustained hard effort", mode:"walk", speed:4.0, phases:[
+    {a:0,b:3,inc:4,phase:"Warm-up",mission:"Build to threshold"},
+    {a:3,b:5,inc:7,phase:"Build",mission:"Approach LT"},
+    {a:5,b:12,inc:10,phase:"Tempo",mission:"Comfortably hard"},
+    {a:12,b:14,inc:9,phase:"Brief ease",mission:"Reset breathing"},
+    {a:14,b:22,inc:11,phase:"Tempo +",mission:"Just above LT"},
+    {a:22,b:25,inc:9,phase:"Hold",mission:"Sustained effort"},
+    {a:25,b:28,inc:5,phase:"Step down",mission:"Active recovery"},
+    {a:28,b:30,inc:3,phase:"Cool down",mission:"Drop HR"},
+  ]},
+  { id:"endurance", name:"Endurance base", icon:"🏃", sub:"long aerobic build", mode:"walk", speed:3.5, phases:[
+    {a:0,b:3,inc:3,phase:"Warm-up",mission:"Easy start"},
+    {a:3,b:6,inc:5,phase:"Build",mission:"Aerobic on-ramp"},
+    {a:6,b:12,inc:6,phase:"Steady",mission:"Z2 zone"},
+    {a:12,b:15,inc:5,phase:"Hold",mission:"Conversation pace"},
+    {a:15,b:22,inc:7,phase:"Steady +",mission:"Sustained Z2"},
+    {a:22,b:25,inc:5,phase:"Hold",mission:"Aerobic base"},
+    {a:25,b:28,inc:3,phase:"Ease",mission:"Wind down"},
+    {a:28,b:30,inc:2,phase:"Cool down",mission:"Recovery"},
+  ]},
+  { id:"hiit", name:"HIIT intervals", icon:"⚡", sub:"sprint bursts + walk recovery", mode:"run", speed:6.5, phases:[
+    {a:0,b:3,inc:3,phase:"Warm-up",mission:"Brisk walk prime",spd:3.5},
+    {a:3,b:5,inc:6,phase:"Build",mission:"Easy jog",spd:5.0},
+    {a:5,b:5.5,inc:8,phase:"Sprint 1",mission:"All-out push",spd:7.0},
+    {a:5.5,b:7,inc:2,phase:"Recover 1",mission:"Walk recovery",spd:3.3},
+    {a:7,b:7.5,inc:8,phase:"Sprint 2",mission:"All-out push",spd:7.0},
+    {a:7.5,b:9,inc:2,phase:"Recover 2",mission:"Walk recovery",spd:3.3},
+    {a:9,b:9.5,inc:8,phase:"Sprint 3",mission:"All-out push",spd:7.0},
+    {a:9.5,b:11,inc:2,phase:"Recover 3",mission:"Walk recovery",spd:3.3},
+    {a:11,b:11.5,inc:8,phase:"Sprint 4",mission:"All-out push",spd:7.0},
+    {a:11.5,b:13,inc:2,phase:"Recover 4",mission:"Walk recovery",spd:3.3},
+    {a:13,b:27,inc:5,phase:"Aerobic finish",mission:"Steady jog",spd:5.0},
+    {a:27,b:30,inc:2,phase:"Cool down",mission:"Walk down",spd:3.0},
+  ]},
+  { id:"pyramid", name:"Pyramid climb", icon:"🔺", sub:"ramp up & ramp down", mode:"walk", speed:3.3, phases:[
+    {a:0,b:3,inc:4,phase:"Warm-up",mission:"Easy"},
+    {a:3,b:6,inc:7,phase:"Step 1",mission:"Ramp up"},
+    {a:6,b:10,inc:10,phase:"Step 2",mission:"Keep climbing"},
+    {a:10,b:14,inc:13,phase:"Approach peak",mission:"Build to top"},
+    {a:14,b:18,inc:15,phase:"Peak",mission:"Summit"},
+    {a:18,b:22,inc:11,phase:"Descend 1",mission:"Step down"},
+    {a:22,b:26,inc:7,phase:"Descend 2",mission:"Continue down"},
+    {a:26,b:30,inc:3,phase:"Cool down",mission:"Recovery"},
+  ]},
+  { id:"vo2-4x4", name:"VO₂max 4×4 run", icon:"🚀", sub:"Norwegian 4×4 intervals", mode:"run", speed:5.5, phases:[
+    {a:0,b:4,inc:1,phase:"Warm-up jog",mission:"Build HR gradually",spd:4.5},
+    {a:4,b:8,inc:2,phase:"Interval 1",mission:"4 min @ 90-95% MaxHR",spd:6.5},
+    {a:8,b:11,inc:1,phase:"Recovery 1",mission:"3 min easy jog",spd:4.5},
+    {a:11,b:15,inc:2,phase:"Interval 2",mission:"4 min @ 90-95% MaxHR",spd:6.5},
+    {a:15,b:18,inc:1,phase:"Recovery 2",mission:"3 min easy jog",spd:4.5},
+    {a:18,b:22,inc:2,phase:"Interval 3",mission:"4 min @ 90-95% MaxHR",spd:6.5},
+    {a:22,b:25,inc:1,phase:"Recovery 3",mission:"3 min easy jog",spd:4.5},
+    {a:25,b:30,inc:1,phase:"Cool-down jog",mission:"Drop HR",spd:4.0},
+  ]},
+  { id:"easy-run", name:"Easy aerobic run", icon:"🏃‍♂️", sub:"steady Z2 run", mode:"run", speed:5.0, phases:[
+    {a:0,b:3,inc:0,phase:"Walk warm-up",mission:"Loosen legs",spd:3.5},
+    {a:3,b:5,inc:1,phase:"Transition",mission:"Ease into running",spd:4.5},
+    {a:5,b:12,inc:1,phase:"Steady run",mission:"Z2 aerobic",spd:5.0},
+    {a:12,b:15,inc:2,phase:"Slight grade",mission:"Mild challenge",spd:5.0},
+    {a:15,b:22,inc:1,phase:"Steady run",mission:"Hold Z2",spd:5.0},
+    {a:22,b:25,inc:1,phase:"Final push",mission:"Edge of Z3",spd:5.2},
+    {a:25,b:28,inc:0,phase:"Cool-down jog",mission:"Drop pace",spd:4.0},
+    {a:28,b:30,inc:0,phase:"Walk",mission:"Recovery walk",spd:3.0},
+  ]},
+];
+
+function getProfile(id){ return PROFILES.find(p=>p.id===id) || PROFILES[1]; }
+
+/* ============================================================
+   Reference protocol — kept for "auto" mode (fat-loss default)
+============================================================ */
+const PROTOCOL = getProfile("fat-loss").phases.map(o=>({...o}));
+
+// ACTIVE_PROTOCOL is what buildAdapted reads; it gets replaced when user picks a preset.
+let ACTIVE_PROTOCOL = PROTOCOL.map(o=>({...o}));
+
+/* ============================================================
+   STATE
+============================================================ */
+const S = { gender:"male", units:"lb", fit:"standard", age:51, weight:184, maxInc:15, speed:3.5, durMode:"auto", customMin:30, profileId:"auto", mode:"walk" };
+
+// Per-phase manual overrides keyed by phase index. Rebuilt whenever the active protocol changes.
+let OVR = ACTIVE_PROTOCOL.map(_ => ({ inc:null, spd:null }));
+function rebuildOVR(){ OVR = ACTIVE_PROTOCOL.map(_ => ({ inc:null, spd:null })); }
+function hasOverrides(){ return OVR.some(o => o.inc !== null || o.spd !== null); }
+
+/* ============================================================
+   PHYSIOLOGY HELPERS
+============================================================ */
+// Tanaka formula: more accurate than 220-age across ages
+function maxHR(age, gender){
+  // baseline Tanaka 208 - 0.7 * age
+  let mhr = 208 - 0.7 * age;
+  // women trend ~3-5 bpm lower at same age (Gulati 206-0.88*age)
+  if(gender === "female") mhr = 206 - 0.88 * age;
+  return Math.round(mhr);
+}
+
+function fatBurnZone(mhr, fit){
+  // 70-78% standard; trained may push 75-82; rebuild 65-72
+  const ranges = { rebuild:[0.65,0.72], standard:[0.70,0.78], trained:[0.75,0.82] };
+  const [lo,hi] = ranges[fit];
+  return [Math.round(mhr*lo), Math.round(mhr*hi)];
+}
+
+// HR per phase scales with effort (incline+speed contribution).
+// Approximate target at peak ~ upper zone, recovery ~ low end of zone.
+function phaseHR(intensityFrac, mhr, fit){
+  // intensityFrac is normalized 0..1 effort within the session
+  const ranges = { rebuild:[0.62,0.78], standard:[0.65,0.84], trained:[0.70,0.88] };
+  const [lo,hi] = ranges[fit];
+  const f = lo + (hi-lo) * intensityFrac;
+  return Math.round(mhr * f);
+}
+
+// ACSM walking VO2 (ml/kg/min): 3.5 + 0.1*v + 1.8*v*g  ; v in m/min, g fraction
+// ACSM running VO2 (ml/kg/min): 3.5 + 0.2*v + 0.9*v*g  — auto-applied when speed > 5 mph or run mode
+function vo2For(speedMph, gradePct){
+  const vMin = speedMph * 26.8224;
+  const g = (gradePct||0) / 100;
+  const isRun = speedMph > 5 || S.mode === "run";
+  return isRun
+    ? 3.5 + 0.2*vMin + 0.9*vMin*g
+    : 3.5 + 0.1*vMin + 1.8*vMin*g;
+}
+function metFor(speedMph, gradePct){
+  return vo2For(speedMph, gradePct) / 3.5;
+}
+
+function kcalForPhase(weightKg, speedMph, gradePct, durMin){
+  const met = metFor(speedMph, gradePct);
+  // NET calories (excludes resting metabolism) — matches what Precor / Matrix / Life Fitness display.
+  // Gross would be: met * weightKg * 3.5/200 * durMin
+  const netMet = Math.max(0, met - 1);
+  return netMet * weightKg * 3.5 / 200 * durMin;
+}
+
+/* ============================================================
+   ADAPTATION ENGINE
+   Speed slider is the single source of truth for base walking speed.
+   The adapter only:
+     (1) clamps incline to your treadmill max
+     (2) extends peak duration if needed to preserve total VO2
+   It computes a SUGGESTED speed bump (shown in the note) but never
+   silently overrides what you chose on the slider.
+============================================================ */
+function buildAdapted(state){
+  const { maxInc, speed: baseSpd } = state;
+
+  // Reference VO2 of the active protocol at default 3.5 mph
+  const refVO2 = ACTIVE_PROTOCOL.reduce((acc,p)=>{
+    const v = p.b - p.a;
+    return acc + v * vo2For(3.5, p.inc);
+  }, 0);
+
+  // Build clamped profile — incline only; speed comes from slider or per-phase preset
+  const clamped = ACTIVE_PROTOCOL.map(p=>({...p, incOrig:p.inc, inc: Math.min(p.inc, maxInc)}));
+  const peakIdx = clamped.findIndex(p => p.phase === "Peak");
+
+  function totalVO2(profile, spd){
+    return profile.reduce((acc,p)=>{
+      const v = p.b - p.a;
+      const useSpd = (typeof p.spd === "number") ? p.spd : spd;
+      return acc + v * vo2For(useSpd, p.inc);
+    }, 0);
+  }
+
+  // SPEED stays at user's slider value
+  const spd = baseSpd;
+
+  // Suggested speed (informational only) — what we'd recommend to hit refVO2 without extending time
+  let suggestedSpd = baseSpd;
+  let safety = 0;
+  while(totalVO2(clamped, suggestedSpd) < refVO2 && suggestedSpd < 6 && safety < 40){
+    suggestedSpd = Math.round((suggestedSpd + 0.1) * 10) / 10;
+    safety++;
+  }
+
+  // Auto duration mode: always 30 minutes flat — no peak extension.
+  // (Auto-extension preserved as code path for future opt-in but disabled here.)
+  let extension = 0;
+
+  // CUSTOM duration: scale all phase boundaries proportionally to user's target minutes
+  if(state.durMode === "custom"){
+    const targetMin = Math.max(5, Math.min(180, state.customMin || 30));
+    const currentTotal = clamped[clamped.length-1].b;  // = 30
+    const k = targetMin / currentTotal;
+    let acc = 0;
+    clamped.forEach(p=>{
+      const dur = (p.b - p.a) * k;
+      p.a = +acc.toFixed(2);
+      acc += dur;
+      p.b = +acc.toFixed(2);
+    });
+  }
+
+  // Default per-phase speed: preset speed (if defined) wins; otherwise slider; cool-down still slower.
+  clamped.forEach(p=>{
+    const presetSpd = (typeof p.spd === "number") ? p.spd : null;
+    const base = presetSpd !== null ? presetSpd : spd;
+    p.spd = (p.phase === "Cool down" || /cool/i.test(p.phase)) ? Math.max(2.0, base - 0.6) : base;
+  });
+
+  // Apply per-phase manual overrides on top of auto values
+  clamped.forEach((p,i)=>{
+    if(OVR[i] && OVR[i].inc !== null) p.inc = OVR[i].inc;
+    if(OVR[i] && OVR[i].spd !== null) p.spd = OVR[i].spd;
+  });
+
+  // Per-phase intensity fraction for HR mapping (using final inc + spd per phase)
+  const vo2s = clamped.map(p => vo2For(p.spd, p.inc));
+  const minV = Math.min(...vo2s), maxV = Math.max(...vo2s);
+  clamped.forEach((p,i)=>{
+    p.intensity = (vo2s[i] - minV) / (maxV - minV || 1);
+  });
+
+  // Recompute achieved VO2 using FINAL per-phase inc + spd (after overrides)
+  const finalVO2 = clamped.reduce((acc,p)=>{
+    const v = p.b - p.a;
+    return acc + v * vo2For(p.spd, p.inc);
+  }, 0);
+
+  return {
+    profile: clamped,
+    speed: spd,
+    suggestedSpd,
+    extension,
+    totalMin: clamped[clamped.length-1].b,
+    refVO2,
+    achievedVO2: finalVO2,
+  };
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+const $ = sel => document.querySelector(sel);
+const fmt = (n,d=0) => Number(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+
+function classifyBar(inc, maxInc){
+  if(inc >= Math.min(15, maxInc)) return "peak";
+  if(inc >= Math.max(11, maxInc - 2)) return "warm";
+  if(inc <= 4) return "cool";
+  return "mid";
+}
+
+/* ============================================================
+   HR ZONES (5-zone model, % of MaxHR)
+============================================================ */
+const HR_ZONES = [
+  { id:1, name:"Z1", full:"Recovery",  lo:0.50, hi:0.60, fill:"#5B8AA8", text:"Active recovery" },
+  { id:2, name:"Z2", full:"Fat-burn",  lo:0.60, hi:0.70, fill:"#6BA98A", text:"Endurance base" },
+  { id:3, name:"Z3", full:"Aerobic",   lo:0.70, hi:0.80, fill:"#E0A93B", text:"Tempo / fat-loss" },
+  { id:4, name:"Z4", full:"Threshold", lo:0.80, hi:0.90, fill:"#D45D2E", text:"Lactate threshold" },
+  { id:5, name:"Z5", full:"VO2max",    lo:0.90, hi:1.00, fill:"#8B2A0E", text:"HIIT / max effort" },
+];
+function zoneFor(hrPct){
+  for(const z of HR_ZONES){ if(hrPct >= z.lo && hrPct < z.hi) return z; }
+  return hrPct >= 1 ? HR_ZONES[4] : HR_ZONES[0];
+}
+
+/* ============================================================
+   PROFILE CLASSIFIER
+   Reads phase HRs, durations, inclines; returns {name, sub, color, icon}
+============================================================ */
+function classifyProfile(profile, mhr, totalMin){
+  const hrs = profile.map(p => p.hr);                       // bpm per phase
+  const durs = profile.map(p => p.b - p.a);
+  const sumDur = durs.reduce((a,b)=>a+b,0);
+  const wAvg = arr => arr.reduce((a,h,i)=>a + h*durs[i], 0) / sumDur;
+  const avgHR = wAvg(hrs);
+  const peakHR = Math.max(...hrs);
+  const minHR = Math.min(...hrs);
+  const avgPct = avgHR / mhr;
+  const peakPct = peakHR / mhr;
+  const swing = peakHR - minHR;
+  const avgInc = profile.reduce((a,p)=>a + p.inc*(p.b-p.a),0) / sumDur;
+  const avgSpd = profile.reduce((a,p)=>a + p.spd*(p.b-p.a),0) / sumDur;
+
+  // Order matters — most specific first
+  if(peakPct >= 0.88 && swing >= 30){
+    return { name:"HIIT", sub:"high-intensity intervals", icon:"⚡", dotColor:"var(--peak)" };
+  }
+  if(avgPct < 0.58){
+    return { name:"Recovery walk", sub:"low-intensity restorative", icon:"🛋️", dotColor:"var(--cool)" };
+  }
+  if(avgInc >= 11.5 && avgSpd < 3.2){
+    return { name:"Leg / glute climb", sub:"strength-biased incline", icon:"💪", dotColor:"var(--peak)" };
+  }
+  if(avgPct >= 0.80 && peakPct < 0.88){
+    return { name:"Threshold / Tempo", sub:"sustained hard effort", icon:"🎯", dotColor:"var(--peak)" };
+  }
+  if(avgPct >= 0.60 && avgPct < 0.70 && totalMin >= 40){
+    return { name:"Endurance base", sub:"long aerobic build", icon:"🏃", dotColor:"var(--cool)" };
+  }
+  if(avgPct >= 0.70 && avgPct <= 0.80){
+    return { name:"Fat-loss climb", sub:"max fat oxidation", icon:"🔥", dotColor:"var(--warm)" };
+  }
+  return { name:"Mixed aerobic", sub:"moderate intensity", icon:"🌀", dotColor:"var(--soft)" };
+}
+
+function render(){
+  const adapt = buildAdapted(S);
+  const weightKg = S.units === "lb" ? S.weight / 2.20462 : S.weight;
+  const mhr = maxHR(S.age, S.gender);
+  const [zLo, zHi] = fatBurnZone(mhr, S.fit);
+
+  // KPIs
+  const totalKcal = adapt.profile.reduce((acc,p)=>acc + kcalForPhase(weightKg, p.spd, p.inc, p.b - p.a), 0);
+  $("#kpi-mhr").textContent = mhr;
+  $("#kpi-mhr-u").textContent = `${S.gender === "female" ? "Gulati" : "Tanaka"} formula · bpm`;
+  $("#kpi-zone").textContent = `${zLo}–${zHi}`;
+  $("#kpi-cal").textContent = fmt(totalKcal, 0);
+  $("#kpi-cal-u").textContent = `kcal · net · ${S.weight}${S.units}`;
+  const totalMinDisplay = Number.isInteger(adapt.totalMin) ? adapt.totalMin : +adapt.totalMin.toFixed(1);
+  $("#kpi-dur").textContent = totalMinDisplay;
+  $("#hdr-spec").textContent = `${totalMinDisplay} MIN · ${adapt.speed.toFixed(1)} MPH · UP TO ${S.maxInc}% INCLINE`;
+  // Rebuild X-axis tick labels dynamically (4 evenly-spaced labels: 0, 1/3, 2/3, total)
+  const xticks = document.getElementById("xticks");
+  if(xticks){
+    const tm = adapt.totalMin;
+    const stops = [0, tm/3, 2*tm/3, tm].map(v =>
+      Number.isInteger(v) ? String(v) : (Math.round(v*10)/10).toString()
+    );
+    xticks.innerHTML = stops.map((s,i)=>
+      i === stops.length-1 ? `<span id="xend">${s}</span>` : `<span>${s}</span>`
+    ).join("");
+  }
+  $("#durHint").textContent = (S.durMode === "custom")
+    ? `Custom · ${totalMinDisplay} min`
+    : `Auto · ${totalMinDisplay} min${adapt.extension>0?` (+${adapt.extension})`:""}`;
+
+  // Dynamic speed-input label: walk vs jog vs run based on current speed (and forced "Run pace" in run mode).
+  const lbl = document.getElementById("speedLabel");
+  if(lbl){
+    const s = S.speed;
+    if(S.mode === "run" || s > 5)      lbl.textContent = "Run pace";
+    else if(s > 4)                     lbl.textContent = "Brisk walk / jog";
+    else                                lbl.textContent = "Walk speed";
+  }
+
+  // Per-phase HR is needed for both chart overlay and classifier — compute once
+  adapt.profile.forEach(p => { p.hr = phaseHR(p.intensity, mhr, S.fit); });
+
+  // Profile classification — auto-detect when profileId === "auto"; otherwise reflect the chosen preset.
+  let profType;
+  if(S.profileId === "auto"){
+    profType = classifyProfile(adapt.profile, mhr, adapt.totalMin);
+  } else {
+    const preset = getProfile(S.profileId);
+    profType = { name:preset.name, sub:preset.sub, icon:preset.icon, dotColor:"var(--warm)" };
+  }
+  $("#profile-name").textContent = `${profType.icon} ${profType.name}`;
+  $("#profile-sub").textContent = profType.sub;
+  document.querySelector("#profile-badge .dot").style.background = profType.dotColor;
+
+  // Chart -- SVG-based, stepped incline area + smooth HR overlay
+  const chart = $("#chart");
+  chart.innerHTML = "";
+  const yax = $("#y-axis");
+  yax.querySelectorAll(".yt").forEach(n=>n.remove());
+  const yaxR = $("#y-axis-right");
+  if(yaxR) yaxR.querySelectorAll(".yt").forEach(n=>n.remove());
+
+  const totalMin = adapt.totalMin;
+  // Dynamic chart scaling: float the y-axis to fit the active profile (no hard 12% floor).
+  // Run profiles often have inclines 0–2%, walking profiles up to 15%.
+  const inclines = adapt.profile.map(p=>p.inc);
+  const maxBarInc = Math.max(...inclines, 3);                 // ensure at least 3 so bars render
+  const incTop = Math.max(3, Math.ceil(maxBarInc / 3) * 3);   // round up to nearest tick of 3
+  // Speed scale for right axis — pad ±0.5 for breathing room, snap to halves
+  const speeds = adapt.profile.map(p=>p.spd);
+  const spdMinRaw = Math.min(...speeds), spdMaxRaw = Math.max(...speeds);
+  const spdBot = Math.max(0, Math.floor((spdMinRaw - 0.5) * 2) / 2);
+  const spdTop = Math.max(spdBot + 1, Math.ceil((spdMaxRaw + 0.5) * 2) / 2);
+  const W = 1000, H = 220;
+  const xPx = t => (t/totalMin) * W;
+  const yIncPx = inc => H - (inc / incTop) * H;
+  const ySpdPx = s => H - ((s - spdBot) / (spdTop - spdBot)) * H;
+  const hrMinPct = 0.50, hrMaxPct = 1.00;
+  const yHrPx = hr => H - ((hr/mhr - hrMinPct)/(hrMaxPct - hrMinPct)) * H;
+
+  // Y-axis tick labels (incline %)
+  const ticks = [0, incTop*0.25, incTop*0.5, incTop*0.75, incTop].map(v => Math.round(v));
+  ticks.forEach(v=>{
+    const yt = document.createElement("div");
+    yt.className = "yt";
+    yt.style.top = ((1 - v/incTop) * 100) + "%";
+    yt.textContent = v + "%";
+    yax.appendChild(yt);
+  });
+  // Right-axis tick labels (speed mph)
+  if(yaxR){
+    const spdSteps = 4;
+    for(let i=0;i<=spdSteps;i++){
+      const v = spdBot + (spdTop - spdBot) * (i/spdSteps);
+      const yt = document.createElement("div");
+      yt.className = "yt";
+      yt.style.top = ((1 - (v - spdBot)/(spdTop - spdBot)) * 100) + "%";
+      yt.textContent = (Math.round(v*10)/10).toFixed(1);
+      yaxR.appendChild(yt);
+    }
+  }
+
+  // Build stepped area path for incline
+  let incPath = `M 0 ${H} `;
+  adapt.profile.forEach(p=>{
+    incPath += `L ${xPx(p.a)} ${yIncPx(p.inc)} L ${xPx(p.b)} ${yIncPx(p.inc)} `;
+  });
+  incPath += `L ${W} ${H} Z`;
+
+  // Build smooth HR path using midpoints (Catmull-Rom-ish via quadratic curves)
+  const hrPts = adapt.profile.map(p => [xPx((p.a + p.b)/2), yHrPx(p.hr)]);
+  // Prepend start point and append end point at chart edges
+  hrPts.unshift([0, hrPts[0][1]]);
+  hrPts.push([W, hrPts[hrPts.length-1][1]]);
+  let hrPath = `M ${hrPts[0][0]} ${hrPts[0][1]} `;
+  for(let i=1; i<hrPts.length; i++){
+    const prev = hrPts[i-1], cur = hrPts[i];
+    const cx = (prev[0] + cur[0]) / 2;
+    hrPath += `Q ${cx} ${prev[1]} ${cx} ${(prev[1]+cur[1])/2} T ${cur[0]} ${cur[1]} `;
+  }
+
+  // Build SVG
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("class", "canvas");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  // grid lines
+  ticks.forEach(v=>{
+    const y = yIncPx(v);
+    const ln = document.createElementNS(svgNS, "line");
+    ln.setAttribute("class", "grid-line");
+    ln.setAttribute("x1", 0); ln.setAttribute("x2", W);
+    ln.setAttribute("y1", y); ln.setAttribute("y2", y);
+    ln.setAttribute("vector-effect", "non-scaling-stroke");
+    svg.appendChild(ln);
+  });
+  // per-phase colored rects — continuous color scale so each incline value is unique
+  // Scale: 0% → cool teal, mid → warm gold, max → deep red
+  function colorForInc(inc, maxInc){
+    const t = Math.min(1, Math.max(0, inc / Math.max(1, maxInc)));
+    const stops = [
+      {t:0.00, h:200, s:42, l:38}, // cool teal-blue
+      {t:0.35, h:160, s:34, l:44}, // muted green
+      {t:0.60, h:38,  s:62, l:54}, // gold
+      {t:0.80, h:20,  s:72, l:48}, // orange
+      {t:1.00, h:8,   s:78, l:34}  // deep brick red
+    ];
+    let a = stops[0], b = stops[stops.length-1];
+    for(let i=0;i<stops.length-1;i++){
+      if(t >= stops[i].t && t <= stops[i+1].t){ a = stops[i]; b = stops[i+1]; break; }
+    }
+    const tt = (t - a.t) / ((b.t - a.t) || 1);
+    const h = a.h + (b.h - a.h) * tt;
+    const s = a.s + (b.s - a.s) * tt;
+    const l = a.l + (b.l - a.l) * tt;
+    return `hsl(${h.toFixed(0)} ${s.toFixed(0)}% ${l.toFixed(0)}%)`;
+  }
+  adapt.profile.forEach(p=>{
+    const x = xPx(p.a), w = xPx(p.b) - xPx(p.a);
+    // Guarantee a minimum visible bar height (~6px) even at inc:0 so the column
+    // and its ♥/zone chip remain visually anchored to a phase.
+    const MIN_BAR_H = 6;
+    let h = (p.inc / incTop) * H;
+    if(h < MIN_BAR_H) h = MIN_BAR_H;
+    const y = H - h;
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("class", "inc-rect");
+    rect.setAttribute("x", x); rect.setAttribute("y", y);
+    rect.setAttribute("width", w); rect.setAttribute("height", h);
+    rect.setAttribute("fill", colorForInc(p.inc, S.maxInc));
+    rect.setAttribute("fill-opacity", "0.78");
+    svg.appendChild(rect);
+  });
+  // top outline of stepped profile
+  let topPath = "";
+  adapt.profile.forEach((p,i)=>{
+    topPath += (i===0 ? "M" : "L") + ` ${xPx(p.a)} ${yIncPx(p.inc)} L ${xPx(p.b)} ${yIncPx(p.inc)} `;
+  });
+  const topLine = document.createElementNS(svgNS, "path");
+  topLine.setAttribute("class", "inc-top");
+  topLine.setAttribute("d", topPath);
+  topLine.setAttribute("vector-effect", "non-scaling-stroke");
+  svg.appendChild(topLine);
+  // baseline
+  const base = document.createElementNS(svgNS, "line");
+  base.setAttribute("class", "axis-line");
+  base.setAttribute("x1", 0); base.setAttribute("x2", W);
+  base.setAttribute("y1", H); base.setAttribute("y2", H);
+  base.setAttribute("vector-effect", "non-scaling-stroke");
+  svg.appendChild(base);
+  // (HR line removed — HR data is conveyed by the bottom ♥/Z chip per column)
+  // Speed step-line: horizontal segment per phase, vertical connector between phases
+  let spdPath = "";
+  adapt.profile.forEach((p,i)=>{
+    const x0 = xPx(p.a), x1 = xPx(p.b), y = ySpdPx(p.spd);
+    spdPath += (i === 0 ? `M ${x0} ${y} ` : `L ${x0} ${y} `) + `L ${x1} ${y} `;
+  });
+  const spdLine = document.createElementNS(svgNS, "path");
+  spdLine.setAttribute("class", "spd-line");
+  spdLine.setAttribute("d", spdPath);
+  spdLine.setAttribute("vector-effect", "non-scaling-stroke");
+  svg.appendChild(spdLine);
+  chart.appendChild(svg);
+
+  // Speed dots removed — line only
+
+  // Overlay HTML: incline % chip + HR dots + staggered HR pills (♥ bpm only)
+  adapt.profile.forEach((p,i)=>{
+    const cx = ((p.a + p.b)/2 / totalMin) * 100;
+    const z = zoneFor(p.hr / mhr);
+    const yIncPct = (1 - p.inc/incTop) * 100;
+    const yHrPct  = (1 - (p.hr/mhr - hrMinPct)/(hrMaxPct - hrMinPct)) * 100;
+    // incline % chip — place ABOVE the bar whenever the bar can't fit the chip
+    // safely without colliding with the bottom ♥/Z chip (~30px tall).
+    // Chip (~26px) + bottom chip clearance (~34px) → bar must be ≥ ~60px to keep chip inside.
+    const incLbl = document.createElement("div");
+    incLbl.className = "inc-pct";
+    incLbl.style.left = cx + "%";
+    const barHeightPx = (p.inc / incTop) * 220;
+    // For inc=0 (flat warm-up/cool-down) the chip adds no info and the
+    // forced placement was floating high over the speed line. Hide it.
+    if(p.inc <= 0){
+      incLbl.style.display = "none";
+    } else if(barHeightPx >= 60){
+      // Inside the top of the bar with a small inset (~6px below bar top)
+      incLbl.style.top = `calc(${yIncPct}% + 6px)`;
+      incLbl.style.transform = "translate(-50%, 0)";
+    } else {
+      // Short bar — float chip just above the bar top
+      incLbl.style.top = yIncPct + "%";
+      incLbl.style.transform = "translate(-50%, calc(-100% - 4px))";
+    }
+    incLbl.textContent = p.inc + "%";
+    chart.appendChild(incLbl);
+    // Zone chip at bottom of column — two-line text "♥ bpm" / "Z3" colored by zone
+    const zChip = document.createElement("div");
+    zChip.className = "zone-chip";
+    zChip.style.left = cx + "%";
+    zChip.style.color = "#fff";
+    zChip.innerHTML = `<span class="row1"><span class="heart">♥</span> ${p.hr}</span><span class="row2">${z.name}</span>`;
+    zChip.dataset.tip = `<b>${p.phase}</b> · ${(p.b-p.a)} min<br>HR <b>${p.hr} bpm</b> · ${z.name} ${z.full}<br><i>${z.text}</i>`;
+    chart.appendChild(zChip);
+    // (HR dot removed alongside HR curve — HR lives in the bottom chip)
+  });
+
+  // Zone legend — bpm ranges from current MaxHR
+  const legend = $("#zone-legend");
+  legend.innerHTML = HR_ZONES.map(z=>{
+    const lo = Math.round(z.lo * mhr), hi = Math.round(z.hi * mhr);
+    return `<span data-tip="<b>${z.name} ${z.full}</b><br>${z.text}<br>${lo}–${hi} bpm (${Math.round(z.lo*100)}–${Math.round(z.hi*100)}% MaxHR)"><span class="swatch" style="background:${z.fill}"></span>${z.name} ${z.full} ${lo}–${hi} bpm</span>`;
+  }).join("");
+
+  // Table — editable incline and speed per phase
+  const tb = $("#tbody");
+  tb.innerHTML = "";
+  adapt.profile.forEach((p,i)=>{
+    const hr = p.hr;
+    const incEdited = OVR[i].inc !== null;
+    const spdEdited = OVR[i].spd !== null;
+    const wasNote = (!incEdited && p.incOrig !== p.inc)
+      ? ` <span style="color:var(--soft);font-size:11px">(was ${p.incOrig}%)</span>` : "";
+    const fa = Number.isInteger(p.a) ? p.a : p.a.toFixed(1);
+    const fb = Number.isInteger(p.b) ? p.b : p.b.toFixed(1);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fa}–${fb}</td>
+      <td><input class="cell ${incEdited?'edited':''}" data-i="${i}" data-k="inc"
+                 type="number" min="0" max="20" step="0.5" value="${p.inc}">${wasNote}</td>
+      <td><input class="cell ${spdEdited?'edited':''}" data-i="${i}" data-k="spd"
+                 type="number" min="1.5" max="6" step="0.1" value="${p.spd.toFixed(1)}"></td>
+      <td class="phase">${p.phase}</td>
+      <td>~${hr} bpm</td>
+      <td class="miss">${p.mission}</td>`;
+    tb.appendChild(tr);
+  });
+
+  // Wire up cell edits — live update on every keystroke
+  tb.querySelectorAll("input.cell").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const idx = +e.target.dataset.i;
+      const key = e.target.dataset.k;
+      const raw = e.target.value;
+      const val = parseFloat(raw);
+      OVR[idx][key] = (raw === "" || isNaN(val)) ? null : val;
+      render();
+    });
+  });
+
+  // Edit-state hint
+  $("#edit-hint").textContent = hasOverrides()
+    ? "✏️ Manual overrides active on highlighted cells. Other phases still auto-adapt."
+    : "Auto-adapting from your settings. Edit any cell to take manual control.";
+
+  // Adaptation note
+  const note = $("#adapt-note");
+  const losses = ACTIVE_PROTOCOL.filter(p => p.inc > S.maxInc).length;
+  const achievedPct = (adapt.achievedVO2 / adapt.refVO2 * 100);
+  const sugg = adapt.suggestedSpd;
+  const ext = adapt.extension;
+
+  let parts = [];
+  if(S.maxInc < 15){
+    parts.push(`⚙️ <b>Adapted to ${S.maxInc}% max incline.</b> ${losses} phase${losses>1?"s":""} clamped from the original 13–15% range.`);
+  } else {
+    parts.push(`✅ <b>Full protocol available</b> — your treadmill supports the original 15% peak.`);
+  }
+  if(sugg > S.speed + 0.05){
+    parts.push(`💡 To match the original 15% intensity at your current ${S.speed.toFixed(1)} mph, bump speed to <b>~${sugg.toFixed(1)} mph</b> (or use the per-phase speed cells).`);
+  }
+  if(ext > 0){
+    parts.push(`⏱ Peak extended <b>+${ext} min</b> at your chosen speed to preserve total fat-oxidation work.`);
+  }
+  parts.push(`<span style="color:var(--soft);font-style:italic">Achieved intensity vs. ideal protocol: <b style="color:${achievedPct>=98?'var(--warm)':'var(--peak)'}">${achievedPct.toFixed(0)}%</b></span>`);
+
+  note.innerHTML = parts.join(" &nbsp;·&nbsp; ");
+}
+
+/* ============================================================
+   EVENTS
+============================================================ */
+function bindSeg(id, key, after){
+  const el = document.getElementById(id);
+  el.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      S[key] = b.dataset.v;
+      if(after) after();
+      render();
+    });
+  });
+}
+
+bindSeg("seg-gender", "gender");
+bindSeg("seg-units", "units", () => {
+  // convert weight when switching units
+  if(S.units === "kg") $("#weight").value = (S.weight/2.20462).toFixed(1);
+  else $("#weight").value = (S.weight*2.20462).toFixed(1);
+  S.weight = parseFloat($("#weight").value);
+});
+bindSeg("seg-fit", "fit");
+
+// Debounce helper — coalesces rapid-fire keystrokes into a single render after Nms idle
+function debounce(fn, ms){
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+const debouncedRender = debounce(render, 250);
+
+["age","weight"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", e=>{
+    S[id] = parseFloat(e.target.value) || 0;
+    debouncedRender();
+  });
+});
+document.getElementById("maxInc").addEventListener("input", e=>{
+  S.maxInc = parseInt(e.target.value);
+  document.getElementById("incVal").textContent = S.maxInc;
+  render();
+});
+document.getElementById("speed").addEventListener("input", e=>{
+  S.speed = parseFloat(e.target.value);
+  document.getElementById("spdVal").textContent = S.speed.toFixed(1);
+  render();
+});
+
+document.getElementById("btn-reset").addEventListener("click", ()=>{
+  OVR.forEach(o => { o.inc = null; o.spd = null; });
+  render();
+});
+
+// Duration mode + custom input
+bindSeg("seg-dur", "durMode", () => {
+  document.getElementById("durNote").textContent = (S.durMode === "custom")
+    ? "Custom: all 8 phases scale proportionally to your target time."
+    : "Auto = 30 min protocol. Edit minutes here to switch to Custom — all phases scale proportionally.";
+});
+document.getElementById("customMin").addEventListener("input", e=>{
+  S.customMin = parseInt(e.target.value) || 30;
+  // Auto-switch to Custom mode so the new minute value actually takes effect.
+  if(S.durMode !== "custom"){
+    S.durMode = "custom";
+    const seg = document.getElementById("seg-dur");
+    seg.querySelectorAll("button").forEach(b=>{
+      b.classList.toggle("on", b.dataset.v === "custom");
+    });
+    document.getElementById("durNote").textContent =
+      "Custom: all 8 phases scale proportionally to your target time.";
+  }
+  debouncedRender();
+});
+
+/* ============================================================
+   PROFILE SELECTOR — populate menu, handle clicks, switch protocol
+============================================================ */
+function setProfile(id){
+  const preset = getProfile(id);
+  S.profileId = id;
+  S.mode = preset.mode || "walk";
+  if(preset.auto){
+    // Auto-detect: keep current ACTIVE_PROTOCOL untouched (lets user keep edits).
+  } else {
+    ACTIVE_PROTOCOL = preset.phases.map(o=>({...o}));
+    rebuildOVR();
+    if(typeof preset.speed === "number"){
+      S.speed = preset.speed;
+      const spdEl = document.getElementById("speed");
+      const spdValEl = document.getElementById("spdVal");
+      if(spdEl) spdEl.value = preset.speed;
+      if(spdValEl) spdValEl.textContent = Number(preset.speed).toFixed(1);
+    }
+  }
+  // Refresh menu active state
+  document.querySelectorAll("#profile-menu .opt").forEach(el=>{
+    el.classList.toggle("active", el.dataset.id === id);
+  });
+  document.getElementById("profile-menu").classList.remove("open");
+  render();
+}
+
+(function initProfileMenu(){
+  const menu = document.getElementById("profile-menu");
+  const badge = document.getElementById("profile-badge");
+  if(!menu || !badge) return;
+  menu.innerHTML = PROFILES.map(p=>{
+    const modeClass = p.auto ? "auto" : (p.mode === "run" ? "run" : "walk");
+    const modeLabel = p.auto ? "AUTO" : (p.mode === "run" ? "RUN" : "WALK");
+    const active = (p.id === S.profileId) ? " active" : "";
+    return `<div class="opt${active}" data-id="${p.id}">
+      <span class="ic">${p.icon}</span>
+      <span>
+        <div class="nm">${p.name}</div>
+        <div class="ds">${p.sub}</div>
+      </span>
+      <span class="mode ${modeClass}">${modeLabel}</span>
+    </div>`;
+  }).join("");
+  // Click on a badge toggles menu (ignore clicks inside the menu itself)
+  badge.addEventListener("click", e=>{
+    if(e.target.closest("#profile-menu")) return;
+    menu.classList.toggle("open");
+    e.stopPropagation();
+  });
+  menu.addEventListener("click", e=>{
+    const opt = e.target.closest(".opt");
+    if(!opt) return;
+    e.stopPropagation();
+    setProfile(opt.dataset.id);
+  });
+  document.addEventListener("click", e=>{
+    if(!badge.contains(e.target)) menu.classList.remove("open");
+  });
+})();
+
+render();
+// Re-render once on next frame so pixel-based "narrow" detection uses the chart's
+// actual measured width (it can be 0 on first synchronous render before layout).
+requestAnimationFrame(() => render());
+
+/* ============================================================
+   GLOBAL TOOLTIP — cursor-follow, fires on every mousemove
+============================================================ */
+function initTooltip(){
+  // Create tooltip element if not present
+  let tip = document.getElementById("tooltip");
+  if(!tip){
+    tip = document.createElement("div");
+    tip.id = "tooltip";
+    document.body.appendChild(tip);
+  }
+  let current = null;
+  document.addEventListener("mousemove", (e)=>{
+    const t = e.target.closest("[data-tip]");
+    if(!t){
+      if(current){ tip.style.opacity = "0"; current = null; }
+      return;
+    }
+    if(t !== current){
+      tip.innerHTML = t.dataset.tip;
+      current = t;
+    }
+    let x = e.clientX + 14;
+    let y = e.clientY + 16;
+    const w = tip.offsetWidth || 260, h = tip.offsetHeight || 80;
+    if(x + w + 8 > window.innerWidth)  x = e.clientX - w - 14;
+    if(y + h + 8 > window.innerHeight) y = e.clientY - h - 14;
+    tip.style.left = x + "px";
+    tip.style.top  = y + "px";
+    tip.style.opacity = "1";
+  }, {passive:true});
+  document.addEventListener("mouseleave", ()=>{ tip.style.opacity = "0"; current = null; });
+}
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", initTooltip);
+} else { initTooltip(); }window.addEventListener("resize", debounce(render, 150));
+
+</script>
+</body>
+</html>
