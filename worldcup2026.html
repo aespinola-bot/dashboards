@@ -831,46 +831,48 @@ function renderStandings() {
 }
 
 // Init
-const fg = document.getElementById('filter-group');
-Object.keys(GROUPS).forEach(g => {
-  const opt = document.createElement('option');
-  opt.value = g; opt.textContent = `Group ${g}`;
-  fg.appendChild(opt);
-});
+document.addEventListener('DOMContentLoaded', () => {
+  const fg = document.getElementById('filter-group');
+  Object.keys(GROUPS).forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = `Group ${g}`;
+    fg.appendChild(opt);
+  });
 
-fg.addEventListener('change', render);
-document.getElementById('filter-status').addEventListener('change', render);
-document.getElementById('expand-all').addEventListener('click', () => {
-  document.querySelectorAll('.match-card').forEach(c => c.classList.add('expanded'));
-  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▴ Hide analysis');
-});
-document.getElementById('collapse-all').addEventListener('click', () => {
-  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('expanded'));
-  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▾ Show analysis');
-});
-document.getElementById('reset-all').addEventListener('click', () => {
-  if (confirm('Clear ALL entered scores? This cannot be undone.')) {
-    scores = {};
-    localStorage.removeItem(STORAGE_KEY);
-    render();
-    renderStandings();
-  }
-});
-document.getElementById('open-standings').addEventListener('click', () => {
-  document.getElementById('standings-panel').classList.add('open');
-});
-document.getElementById('close-standings').addEventListener('click', () => {
-  document.getElementById('standings-panel').classList.remove('open');
-});
+  fg.addEventListener('change', render);
+  document.getElementById('filter-status').addEventListener('change', render);
+  document.getElementById('expand-all').addEventListener('click', () => {
+    document.querySelectorAll('.match-card').forEach(c => c.classList.add('expanded'));
+    document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▴ Hide analysis');
+  });
+  document.getElementById('collapse-all').addEventListener('click', () => {
+    document.querySelectorAll('.match-card').forEach(c => c.classList.remove('expanded'));
+    document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▾ Show analysis');
+  });
+  document.getElementById('reset-all').addEventListener('click', () => {
+    if (confirm('Clear ALL entered scores? This cannot be undone.')) {
+      scores = {};
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+      renderStandings();
+    }
+  });
+  document.getElementById('open-standings').addEventListener('click', () => {
+    document.getElementById('standings-panel').classList.add('open');
+  });
+  document.getElementById('close-standings').addEventListener('click', () => {
+    document.getElementById('standings-panel').classList.remove('open');
+  });
 
-// ============== TABS ==============
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'simulator') renderSimulator();
+  // ============== TABS ==============
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'simulator') renderSimulator();
+    });
   });
 });
 
@@ -1180,28 +1182,30 @@ function renderKO(m, roundKey, idx) {
 }
 
 // Wire simulator buttons
-document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
-document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
-document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
-document.getElementById('sim-clear').addEventListener('click', clearSim);
-document.getElementById('sim-knockouts').addEventListener('click', () => {
-  const src = getActiveGroupScores();
-  if (!groupsComplete(src)) {
-    alert("Group stage isn't fully scored yet. Pick a 'Step 1' option above first.");
-    return;
-  }
-  bracketState = runFullBracket(src);
-  renderBracket();
-});
-document.getElementById('sim-resim-all').addEventListener('click', () => {
-  const src = getActiveGroupScores();
-  if (!groupsComplete(src)) { alert("Need a complete group stage first."); return; }
-  bracketState = runFullBracket(src);
-  renderBracket();
-});
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
+  document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
+  document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
+  document.getElementById('sim-clear').addEventListener('click', clearSim);
+  document.getElementById('sim-knockouts').addEventListener('click', () => {
+    const src = getActiveGroupScores();
+    if (!groupsComplete(src)) {
+      alert("Group stage isn't fully scored yet. Pick a 'Step 1' option above first.");
+      return;
+    }
+    bracketState = runFullBracket(src);
+    renderBracket();
+  });
+  document.getElementById('sim-resim-all').addEventListener('click', () => {
+    const src = getActiveGroupScores();
+    if (!groupsComplete(src)) { alert("Need a complete group stage first."); return; }
+    bracketState = runFullBracket(src);
+    renderBracket();
+  });
 
-render();
-renderStandings();
+  render();
+  renderStandings();
+});
 </script>
 </body>
 </html>
