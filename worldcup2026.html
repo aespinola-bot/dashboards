@@ -770,9 +770,15 @@ function onScoreChange(e) {
   if (h == null || a == null || isNaN(h) || isNaN(a)) delete scores[id];
   else scores[id] = [h, a];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  
+  // Update prediction text without destroying the card
   const m = MATCHES.find(x => x.id === id);
-  card.outerHTML = renderMatchCard(m);
-  attachCardHandlers();
+  const pred = getPrediction(scores[m.id]);
+  const acc = accuracyForMatch(m, scores[m.id]);
+  const accPill = acc === 'exact' ? '<span class="acc-pill exact">✓✓</span>' : acc === 'right' ? '<span class="acc-pill">✓</span>' : '';
+  const predEl = card.querySelector('.prediction');
+  predEl.innerHTML = `Prediction: <b>${pred[0]}–${pred[1]}</b> ${accPill}`;
+  
   updateStats();
   renderStandings();
 }
