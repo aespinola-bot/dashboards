@@ -771,13 +771,12 @@ function onScoreChange(e) {
   else scores[id] = [h, a];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
   
-  // Update prediction text without destroying the card
+  // Update accuracy pill without destroying the card
   const m = MATCHES.find(x => x.id === id);
-  const pred = getPrediction(scores[m.id]);
   const acc = accuracyForMatch(m, scores[m.id]);
-  const accPill = acc === 'exact' ? '<span class="acc-pill exact">✓✓</span>' : acc === 'right' ? '<span class="acc-pill">✓</span>' : '';
+  const accPill = acc === 'exact' ? '<span class="accuracy exact">✓ EXACT</span>' : acc === 'right' ? '<span class="accuracy right">✓ OUTCOME</span>' : acc === 'wrong' ? '<span class="accuracy wrong">✗ MISS</span>' : '';
   const predEl = card.querySelector('.prediction');
-  predEl.innerHTML = `Prediction: <b>${pred[0]}–${pred[1]}</b> ${accPill}`;
+  predEl.innerHTML = `Prediction: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}`;
   
   updateStats();
   renderStandings();
