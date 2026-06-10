@@ -447,24 +447,40 @@
 <body>
 
 <header>
-  <h1>🏆 2026 FIFA World Cup — Group Stage Match Calendar</h1>
-  <div class="sub">72 matches · All times <b>Pacific (PDT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · Scores save in your browser as you type</div>
+  <h1 id="page-title">🏆 2026 FIFA World Cup — Group Stage Match Calendar</h1>
+  <div class="sub" id="page-sub">72 matches · All times <b id="tz-label">Pacific (PT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · Scores save in your browser as you type</div>
   <div class="controls">
-    <select id="filter-group">
+    <select id="filter-group" aria-label="Filter by group">
       <option value="">All Groups</option>
     </select>
-    <select id="filter-status">
+    <select id="filter-status" aria-label="Filter by status">
       <option value="">All Matches</option>
       <option value="upcoming">Upcoming Only</option>
       <option value="scored">Scored Only</option>
     </select>
+    <select id="tz-select" aria-label="Time zone" title="Time zone">
+      <option value="PT">🌐 Pacific (PT)</option>
+      <option value="MT">🌐 Mountain (MT)</option>
+      <option value="CT">🌐 Central (CT)</option>
+      <option value="ET">🌐 Eastern (ET)</option>
+      <option value="CDMX">🇲🇽 CDMX</option>
+      <option value="MAD">🇪🇸 Madrid</option>
+      <option value="LON">🇬🇧 London</option>
+      <option value="UTC">🌍 UTC</option>
+    </select>
+    <select id="lang-select" aria-label="Language" title="Language">
+      <option value="en">🇺🇸 English</option>
+      <option value="es">🇪🇸 Español</option>
+    </select>
     <button class="btn" id="expand-all">Expand All Notes</button>
     <button class="btn" id="collapse-all">Collapse All</button>
+    <button class="btn" id="export-data" title="Download your scores as JSON">💾 Export Data</button>
+    <button class="btn" id="import-data" title="Upload previously exported JSON">📂 Import Data</button>
     <button class="btn danger" id="reset-all">Reset All Scores</button>
     <div class="stats">
-      <span>Played: <b id="stat-played">0</b>/72</span>
-      <span>Pred. Hit: <b id="stat-hit">0</b></span>
-      <span>Exact: <b id="stat-exact">0</b></span>
+      <span id="lbl-played">Played: <b id="stat-played">0</b>/72</span>
+      <span id="lbl-hit">Pred. Hit: <b id="stat-hit">0</b></span>
+      <span id="lbl-exact">Exact: <b id="stat-exact">0</b></span>
     </div>
   </div>
 </header>
@@ -481,8 +497,8 @@
 <div class="tab-pane" id="tab-simulator">
 <div class="sim-wrap">
   <div class="sim-panel">
-    <h2>🎲 Step 1 — Group Stage Source <span id="gs-status" class="sim-status">12/12 groups need scores</span></h2>
-    <p class="lead">Choose where group-stage scores come from. Then the bracket builds automatically.</p>
+    <h2><span id="sim-step1-title">🎲 Step 1 — Group Stage Source</span> <span id="gs-status" class="sim-status">12/12 groups need scores</span></h2>
+    <p class="lead" id="sim-step1-lead">Choose where group-stage scores come from. Then the bracket builds automatically.</p>
     <div class="sim-actions">
       <button class="btn primary" id="sim-fill-predictions">Use My Predictions</button>
       <button class="btn" id="sim-random-groups">🎲 Random Simulation</button>
@@ -493,8 +509,8 @@
   </div>
 
   <div class="sim-panel">
-    <h2>🏆 Step 2 — Knockout Bracket <span id="ko-status" class="sim-status">waiting for group stage</span></h2>
-    <p class="lead">Top 2 from each group + 8 best 3rd-place teams advance to the Round of 32. Goals modelled via Poisson with team-strength ratings + light random variance. Click <em>↻ Re-sim</em> on any match to re-roll.</p>
+    <h2><span id="sim-step2-title">🏆 Step 2 — Knockout Bracket</span> <span id="ko-status" class="sim-status">waiting for group stage</span></h2>
+    <p class="lead" id="sim-step2-lead">Top 2 from each group + 8 best 3rd-place teams advance to the Round of 32. Goals modelled via Poisson with team-strength ratings + light random variance. Click <em>↻ Re-sim</em> on any match to re-roll.</p>
     <div class="sim-actions">
       <button class="btn primary" id="sim-knockouts">🏆 Build & Simulate Knockouts</button>
       <button class="btn" id="sim-resim-all">🎲 Re-roll All Knockouts</button>
@@ -510,8 +526,8 @@
 
 <aside class="standings-panel" id="standings-panel">
   <button class="close" id="close-standings">×</button>
-  <h2>📊 Live Group Standings</h2>
-  <p style="color:var(--muted); font-size:12px; margin-top:-8px;">
+  <h2 id="standings-panel-h2">📊 Live Group Standings</h2>
+  <p id="standings-panel-sub" style="color:var(--muted); font-size:12px; margin-top:-8px;">
     Standings update from the scores you enter. Top 2 = qualified (green). 3rd = best-third race (orange).
   </p>
   <div id="standings-content"></div>
@@ -547,6 +563,183 @@ const GROUPS = {
   'K':['Portugal','DR Congo','Uzbekistan','Colombia'],
   'L':['England','Croatia','Ghana','Panama']
 };
+
+// ============== i18n + TIMEZONE CONFIG ==============
+const COUNTRY_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Czech Republic':'República Checa',
+  'Canada':'Canadá','Bosnia & Herzegovina':'Bosnia y Herzegovina','Qatar':'Catar','Switzerland':'Suiza',
+  'Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haití','Scotland':'Escocia',
+  'United States':'Estados Unidos','Paraguay':'Paraguay','Australia':'Australia','Turkey':'Turquía',
+  'Germany':'Alemania','Curaçao':'Curazao','Ivory Coast':'Costa de Marfil','Ecuador':'Ecuador',
+  'Netherlands':'Países Bajos','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Saudi Arabia':'Arabia Saudí','Cape Verde':'Cabo Verde','Uruguay':'Uruguay',
+  'France':'Francia','Senegal':'Senegal','Iraq':'Irak','Norway':'Noruega',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'RD Congo','Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
+  'Denmark':'Dinamarca','Korea Republic':'Corea del Sur'
+};
+
+const TZ_OPTIONS = {
+  'PT':   { iana: 'America/Los_Angeles', abbr_en: 'PT',    abbr_es: 'PT',     name_en: 'Pacific',          name_es: 'Pacífico' },
+  'MT':   { iana: 'America/Denver',      abbr_en: 'MT',    abbr_es: 'MT',     name_en: 'Mountain',         name_es: 'Montaña' },
+  'CT':   { iana: 'America/Chicago',     abbr_en: 'CT',    abbr_es: 'CT',     name_en: 'Central',          name_es: 'Central' },
+  'ET':   { iana: 'America/New_York',    abbr_en: 'ET',    abbr_es: 'ET',     name_en: 'Eastern',          name_es: 'Este' },
+  'CDMX': { iana: 'America/Mexico_City', abbr_en: 'CDMX',  abbr_es: 'CDMX',   name_en: 'Mexico City',      name_es: 'Ciudad de México' },
+  'MAD':  { iana: 'Europe/Madrid',       abbr_en: 'Madrid',abbr_es: 'Madrid', name_en: 'Madrid',           name_es: 'Madrid' },
+  'LON':  { iana: 'Europe/London',       abbr_en: 'London',abbr_es: 'Londres',name_en: 'London',           name_es: 'Londres' },
+  'UTC':  { iana: 'UTC',                 abbr_en: 'UTC',   abbr_es: 'UTC',    name_en: 'UTC',              name_es: 'UTC' }
+};
+
+const I18N = {
+  en: {
+    page_title: '🏆 World Cup 2026 — Match Calendar',
+    h1: '🏆 2026 FIFA World Cup — Group Stage Match Calendar',
+    sub_template: (tzName, tzAbbr) => `72 matches · All times <b id="tz-label">${tzName} (${tzAbbr})</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · Scores save in your browser as you type`,
+    all_groups: 'All Groups',
+    all_matches: 'All Matches', upcoming: 'Upcoming Only', scored_only: 'Scored Only',
+    expand_all: 'Expand All Notes', collapse_all: 'Collapse All', reset_all: 'Reset All Scores',
+    played: 'Played', pred_hit: 'Pred. Hit', exact_lbl: 'Exact',
+    tab_cal: '📅 Match Calendar', tab_sim: '🎲 Tournament Simulator',
+    match_one: 'match', match_many: 'matches',
+    show_an: '▾ Show analysis', hide_an: '▴ Hide analysis',
+    prediction: 'Prediction', exact_pill: '✓ EXACT', outcome_pill: '✓ OUTCOME', miss_pill: '✗ MISS',
+    no_matches: 'No matches match your filter.',
+    confirm_reset: 'Clear ALL entered scores? This cannot be undone.',
+    standings_btn: '📊 Standings',
+    group_word: 'Group',
+    // Simulator
+    sim_step1: '🎲 Step 1 — Group Stage Source',
+    sim_step1_lead: 'Choose where group-stage scores come from. Then the bracket builds automatically.',
+    sim_use_pred: 'Use My Predictions',
+    sim_random: '🎲 Random Simulation',
+    sim_use_entered: 'Use Scores I Entered',
+    sim_clear: 'Clear Sim',
+    sim_step2: '🏆 Step 2 — Knockout Bracket',
+    sim_step2_lead: 'Top 2 from each group + 8 best 3rd-place teams advance to the Round of 32. Goals modelled via Poisson with team-strength ratings + light random variance. Click <em>↻ Re-sim</em> on any match to re-roll.',
+    sim_build: '🏆 Build & Simulate Knockouts',
+    sim_reroll: '🎲 Re-roll All Knockouts',
+    sim_gs_ready: '✓ All 72 matches scored — ready for knockouts',
+    sim_gs_progress: (n) => `${n}/72 matches scored`,
+    sim_ko_waiting: 'waiting for group stage',
+    sim_ko_ready: '✓ Bracket simulated',
+    sim_no_bracket: 'Click <b>Build & Simulate Knockouts</b> above to generate the bracket.',
+    sim_alert_incomplete: "Group stage isn't fully scored yet. Pick a 'Step 1' option above first.",
+    sim_alert_need_complete: 'Need a complete group stage first.',
+    sim_alert_no_user_scores: "You haven't entered any scores yet. Type some scores in the Match Calendar tab first.",
+    round_r32: 'Round of 32', round_r16: 'Round of 16', round_qf: 'Quarterfinals', round_sf: 'Semifinals', round_f: 'Final', round_3rd: '3rd Place',
+    sim_champion: '🏆 Simulated Champion', sim_runner_up: 'Runner-up', sim_3rd: '3rd', sim_4th: '4th',
+    ko_resim: '↻ Re-sim', ko_tbd: 'TBD',
+    standings_panel_h2: '📊 Live Group Standings',
+    standings_panel_sub: 'Standings update from the scores you enter. Top 2 = qualified (green). 3rd = best-third race (orange).'
+  },
+  es: {
+    page_title: '🏆 Mundial 2026 — Calendario de partidos',
+    h1: '🏆 Copa Mundial FIFA 2026 — Calendario de la Fase de Grupos',
+    sub_template: (tzName, tzAbbr) => `72 partidos · Todas las horas <b id="tz-label">${tzName} (${tzAbbr})</b> · TV: 🇺🇸 FOX/FS1 (inglés), Telemundo/Universo (español) · Los resultados se guardan en tu navegador al escribir`,
+    all_groups: 'Todos los grupos',
+    all_matches: 'Todos los partidos', upcoming: 'Solo próximos', scored_only: 'Solo con resultado',
+    expand_all: 'Expandir notas', collapse_all: 'Contraer todo', reset_all: 'Reiniciar resultados',
+    played: 'Jugados', pred_hit: 'Pred. acertadas', exact_lbl: 'Exactas',
+    tab_cal: '📅 Calendario', tab_sim: '🎲 Simulador del torneo',
+    match_one: 'partido', match_many: 'partidos',
+    show_an: '▾ Mostrar análisis', hide_an: '▴ Ocultar análisis',
+    prediction: 'Predicción', exact_pill: '✓ EXACTO', outcome_pill: '✓ RESULTADO', miss_pill: '✗ FALLO',
+    no_matches: 'Ningún partido coincide con tu filtro.',
+    confirm_reset: '¿Borrar TODOS los resultados? Esta acción no se puede deshacer.',
+    standings_btn: '📊 Posiciones',
+    group_word: 'Grupo',
+    // Simulator
+    sim_step1: '🎲 Paso 1 — Origen de la fase de grupos',
+    sim_step1_lead: 'Elige de dónde vienen los resultados de la fase de grupos. El cuadro se construye automáticamente.',
+    sim_use_pred: 'Usar mis predicciones',
+    sim_random: '🎲 Simulación aleatoria',
+    sim_use_entered: 'Usar los resultados que ingresé',
+    sim_clear: 'Borrar simulación',
+    sim_step2: '🏆 Paso 2 — Cuadro de eliminación',
+    sim_step2_lead: 'Los 2 primeros de cada grupo + los 8 mejores terceros avanzan a Dieciseisavos. Los goles se modelan con Poisson, usando ratings de fuerza de equipo + variación aleatoria leve. Pulsa <em>↻ Re-simular</em> en cualquier partido para volver a sortearlo.',
+    sim_build: '🏆 Construir y simular eliminatorias',
+    sim_reroll: '🎲 Volver a simular todo',
+    sim_gs_ready: '✓ 72 partidos completos — listos para eliminatorias',
+    sim_gs_progress: (n) => `${n}/72 partidos completados`,
+    sim_ko_waiting: 'esperando la fase de grupos',
+    sim_ko_ready: '✓ Cuadro simulado',
+    sim_no_bracket: 'Pulsa <b>Construir y simular eliminatorias</b> arriba para generar el cuadro.',
+    sim_alert_incomplete: 'La fase de grupos aún no está completa. Elige primero una opción del Paso 1.',
+    sim_alert_need_complete: 'Se necesita la fase de grupos completa primero.',
+    sim_alert_no_user_scores: 'Aún no has ingresado resultados. Escribe algunos en la pestaña Calendario primero.',
+    round_r32: 'Dieciseisavos', round_r16: 'Octavos', round_qf: 'Cuartos', round_sf: 'Semifinales', round_f: 'Final', round_3rd: 'Tercer puesto',
+    sim_champion: '🏆 Campeón simulado', sim_runner_up: 'Subcampeón', sim_3rd: '3º', sim_4th: '4º',
+    ko_resim: '↻ Re-simular', ko_tbd: 'POR DEFINIR',
+    standings_panel_h2: '📊 Posiciones en vivo',
+    standings_panel_sub: 'Las posiciones se actualizan con los resultados que ingreses. Top 2 = clasificados (verde). 3º = carrera por mejor tercero (naranja).'
+  }
+};
+
+// ============== USER DATA PERSISTENCE (localStorage) ==============
+const PREFS_KEY = 'wc2026_prefs_v1';
+const SCORES_KEY = 'wc2026_scores_v1';
+const SIMSTATE_KEY = 'wc2026_simstate_v1';
+
+// Prefs (timezone, language)
+let prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch(e) { return {}; } })();
+let TZ   = (prefs.tz   && TZ_OPTIONS[prefs.tz]) ? prefs.tz   : 'PT';
+let LANG = (prefs.lang === 'es') ? 'es' : 'en';
+const savePrefs = () => localStorage.setItem(PREFS_KEY, JSON.stringify({ tz: TZ, lang: LANG }));
+
+// User scores (match ID → [home_score, away_score])
+let userScores = (() => { try { return JSON.parse(localStorage.getItem(SCORES_KEY)) || {}; } catch(e) { return {}; } })();
+const saveUserScores = () => localStorage.setItem(SCORES_KEY, JSON.stringify(userScores));
+const saveMatchScore = (matchId, homeScore, awayScore) => {
+  userScores[matchId] = { home: parseInt(homeScore) || 0, away: parseInt(awayScore) || 0, savedAt: new Date().toISOString() };
+  saveUserScores();
+};
+const getMatchScore = (matchId) => userScores[matchId] || null;
+const clearAllScores = () => { userScores = {}; saveUserScores(); };
+
+// Sim state (knockout bracket state)
+let simState = (() => { try { return JSON.parse(localStorage.getItem(SIMSTATE_KEY)) || {}; } catch(e) { return {}; } })();
+const saveSimState = () => localStorage.setItem(SIMSTATE_KEY, JSON.stringify(simState));
+
+// Export/Import for backup
+const exportData = () => {
+  const data = {
+    version: '2026-06-09',
+    exportedAt: new Date().toISOString(),
+    prefs,
+    userScores,
+    simState
+  };
+  return JSON.stringify(data, null, 2);
+};
+
+const importData = (jsonStr) => {
+  try {
+    const data = JSON.parse(jsonStr);
+    if (data.version && data.exportedAt) {
+      if (data.prefs) prefs = data.prefs;
+      if (data.userScores) userScores = data.userScores;
+      if (data.simState) simState = data.simState;
+      savePrefs();
+      saveUserScores();
+      saveSimState();
+      return true;
+    }
+  } catch(e) { return false; }
+};
+
+const t = (key) => I18N[LANG][key];
+const tName = (country) => (LANG === 'es' && COUNTRY_ES[country]) ? COUNTRY_ES[country] : country;
+
+// All match times are in Pacific Daylight Time (UTC-7); WC 2026 (Jun 11–Jul 19) is fully within DST.
+const matchInstant = (m) => new Date(`${m.date}T${m.timePT}:00-07:00`);
+const _datePartsFmt = (tz) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ_OPTIONS[tz].iana, year:'numeric', month:'2-digit', day:'2-digit' });
+const _timeFmt = (tz) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ_OPTIONS[tz].iana, hour:'2-digit', minute:'2-digit', hour12:false });
+const matchDateKey = (m) => _datePartsFmt(TZ).format(matchInstant(m));    // "YYYY-MM-DD" in selected TZ
+const matchTimeStr = (m) => _timeFmt(TZ).format(matchInstant(m));         // "HH:MM" 24h in selected TZ
+const tzAbbr = () => TZ_OPTIONS[TZ][LANG === 'es' ? 'abbr_es' : 'abbr_en'];
+const tzName = () => TZ_OPTIONS[TZ][LANG === 'es' ? 'name_es' : 'name_en'];
 
 // All 72 matches — times converted to Pacific (PDT, UTC-7)
 // TV: US English (FOX or FS1) + Spanish (Telemundo or Universo)
@@ -632,8 +825,8 @@ const MATCHES = [
   {id:72, group:'J', date:'2026-06-27', timePT:'19:00', venue:'AT&T Stadium, Arlington',               home:'Jordan',                 away:'Argentina',              tv:'FOX · Telemundo',     pred:[0,3], note:"Messi farewell-tour goal. ARG cruise."}
 ];
 
-const STORAGE_KEY = 'wc2026_scores_v1';
-let scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+// Load user scores from localStorage (will be populated by persistence system above)
+let scores = userScores;
 
 const flagUrl = (name) => {
   const c = FLAGS[name];
@@ -642,14 +835,17 @@ const flagUrl = (name) => {
 
 const fmtDate = (iso) => {
   const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  return d.toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-US', { weekday:'long', month:'long', day:'numeric' });
 };
 
 function groupByDate(matches) {
   const out = {};
-  matches.forEach(m => { (out[m.date] = out[m.date] || []).push(m); });
-  // sort each day's matches by PDT time
-  Object.values(out).forEach(arr => arr.sort((a,b) => a.timePT.localeCompare(b.timePT) || a.id - b.id));
+  matches.forEach(m => {
+    const key = matchDateKey(m);
+    (out[key] = out[key] || []).push(m);
+  });
+  // sort each day's matches by local time in selected TZ
+  Object.values(out).forEach(arr => arr.sort((a,b) => matchTimeStr(a).localeCompare(matchTimeStr(b)) || a.id - b.id));
   return out;
 }
 
@@ -670,25 +866,25 @@ function renderMatchCard(m) {
   const accClass = acc === 'exact' ? ' correct' : acc === 'right' ? ' partial' : acc === 'wrong' ? ' wrong' : '';
 
   let accPill = '';
-  if (acc === 'exact') accPill = '<span class="accuracy exact">✓ EXACT</span>';
-  else if (acc === 'right') accPill = '<span class="accuracy right">✓ OUTCOME</span>';
-  else if (acc === 'wrong') accPill = '<span class="accuracy wrong">✗ MISS</span>';
+  if (acc === 'exact') accPill = `<span class="accuracy exact">${t('exact_pill')}</span>`;
+  else if (acc === 'right') accPill = `<span class="accuracy right">${t('outcome_pill')}</span>`;
+  else if (acc === 'wrong') accPill = `<span class="accuracy wrong">${t('miss_pill')}</span>`;
 
   return `
     <article class="match-card${scoredClass}${accClass}" style="--gcolor: var(--${m.group});" data-match-id="${m.id}" data-group="${m.group}">
       <div class="match-top">
-        <span class="group-pill">Group ${m.group}</span>
-        <span class="match-id">${m.timePT} PT · #${m.id}</span>
+        <span class="group-pill">${t('group_word')} ${m.group}</span>
+        <span class="match-id">${matchTimeStr(m)} ${tzAbbr()} · #${m.id}</span>
       </div>
       <div class="teams-row">
         <div class="team home">
-          <img src="${flagUrl(m.home)}" alt="${m.home}" loading="lazy">
-          <span>${m.home}</span>
+          <img src="${flagUrl(m.home)}" alt="${tName(m.home)}" loading="lazy">
+          <span>${tName(m.home)}</span>
         </div>
         <div class="vs">VS</div>
         <div class="team away">
-          <img src="${flagUrl(m.away)}" alt="${m.away}" loading="lazy">
-          <span>${m.away}</span>
+          <img src="${flagUrl(m.away)}" alt="${tName(m.away)}" loading="lazy">
+          <span>${tName(m.away)}</span>
         </div>
       </div>
       <div class="score-inputs">
@@ -697,13 +893,13 @@ function renderMatchCard(m) {
         <input type="number" min="0" max="20" inputmode="numeric" value="${sc?sc[1]:''}" data-side="a" data-match="${m.id}" placeholder="—">
       </div>
       <div class="prediction">
-        Prediction: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}
+        ${t('prediction')}: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}
       </div>
       <div class="info-row">
         <div><span class="pin">📍</span> ${m.venue}</div>
         <div><span class="tv">📺</span> <span class="net">${m.tv}</span></div>
       </div>
-      <button class="expand-btn" data-expand="${m.id}">▾ Show analysis</button>
+      <button class="expand-btn" data-expand="${m.id}">${t('show_an')}</button>
       <div class="note">${m.note}</div>
     </article>
   `;
@@ -726,7 +922,7 @@ function render() {
   const main = document.getElementById('main');
 
   if (dates.length === 0) {
-    main.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px;">No matches match your filter.</p>';
+    main.innerHTML = `<p style="color:var(--muted); text-align:center; padding:40px;">${t('no_matches')}</p>`;
     return;
   }
 
@@ -734,7 +930,7 @@ function render() {
     <section class="day-group">
       <div class="day-header">
         <h2>${fmtDate(d)}</h2>
-        <span class="day-meta">· ${byDate[d].length} match${byDate[d].length>1?'es':''}</span>
+        <span class="day-meta">· ${byDate[d].length} ${byDate[d].length>1?t('match_many'):t('match_one')}</span>
       </div>
       <div class="matches-grid">
         ${byDate[d].map(renderMatchCard).join('')}
@@ -755,7 +951,7 @@ function attachCardHandlers() {
       const id = e.target.dataset.expand;
       const card = document.querySelector(`[data-match-id="${id}"]`);
       card.classList.toggle('expanded');
-      btn.textContent = card.classList.contains('expanded') ? '▴ Hide analysis' : '▾ Show analysis';
+      btn.textContent = card.classList.contains('expanded') ? t('hide_an') : t('show_an');
     });
   });
 }
@@ -767,12 +963,29 @@ function onScoreChange(e) {
   const aInp = card.querySelector('[data-side="a"]');
   const h = hInp.value === '' ? null : parseInt(hInp.value, 10);
   const a = aInp.value === '' ? null : parseInt(aInp.value, 10);
-  if (h == null || a == null || isNaN(h) || isNaN(a)) delete scores[id];
-  else scores[id] = [h, a];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  
+  // Save to localStorage via persistence system
+  if (h == null || a == null || isNaN(h) || isNaN(a)) delete userScores[id];
+  else saveMatchScore(id, h, a);
+  
+  // Sync local scores reference
+  scores = userScores;
+  
   const m = MATCHES.find(x => x.id === id);
-  card.outerHTML = renderMatchCard(m);
-  attachCardHandlers();
+  const sc = scores[id];
+  const acc = accuracyForMatch(m, sc);
+  card.classList.toggle('scored', !!sc);
+  card.classList.toggle('correct', acc === 'exact');
+  card.classList.toggle('partial',  acc === 'right');
+  card.classList.toggle('wrong',    acc === 'wrong');
+  const predEl = card.querySelector('.prediction');
+  if (predEl) {
+    let accPill = '';
+    if (acc === 'exact')      accPill = `<span class="accuracy exact">${t('exact_pill')}</span>`;
+    else if (acc === 'right') accPill = `<span class="accuracy right">${t('outcome_pill')}</span>`;
+    else if (acc === 'wrong') accPill = `<span class="accuracy wrong">${t('miss_pill')}</span>`;
+    predEl.innerHTML = `${t('prediction')}: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}`;
+  }
   updateStats();
   renderStandings();
 }
@@ -814,13 +1027,13 @@ function renderStandings() {
     const rows = computeStandings(g);
     return `
       <div class="group-table" style="--gcolor: var(--${g});">
-        <h3>Group ${g}</h3>
+        <h3>${t('group_word')} ${g}</h3>
         <table>
           <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
           <tbody>
             ${rows.map((r,i) => {
               const cls = i < 2 ? 'qualified' : i === 2 ? 'third' : 'out';
-              return `<tr class="${cls}"><td>${i+1}</td><td>${r.team}</td><td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td>${r.GD>0?'+':''}${r.GD}</td><td><b>${r.Pts}</b></td></tr>`;
+              return `<tr class="${cls}"><td>${i+1}</td><td>${tName(r.team)}</td><td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td><td>${r.GD>0?'+':''}${r.GD}</td><td><b>${r.Pts}</b></td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -831,48 +1044,175 @@ function renderStandings() {
 }
 
 // Init
-const fg = document.getElementById('filter-group');
-Object.keys(GROUPS).forEach(g => {
-  const opt = document.createElement('option');
-  opt.value = g; opt.textContent = `Group ${g}`;
-  fg.appendChild(opt);
-});
+function initDashboard() {
+  const fg = document.getElementById('filter-group');
+  Object.keys(GROUPS).forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = `${t('group_word')} ${g}`;
+    fg.appendChild(opt);
+  });
 
-fg.addEventListener('change', render);
-document.getElementById('filter-status').addEventListener('change', render);
-document.getElementById('expand-all').addEventListener('click', () => {
-  document.querySelectorAll('.match-card').forEach(c => c.classList.add('expanded'));
-  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▴ Hide analysis');
-});
-document.getElementById('collapse-all').addEventListener('click', () => {
-  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('expanded'));
-  document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▾ Show analysis');
-});
-document.getElementById('reset-all').addEventListener('click', () => {
-  if (confirm('Clear ALL entered scores? This cannot be undone.')) {
-    scores = {};
-    localStorage.removeItem(STORAGE_KEY);
-    render();
-    renderStandings();
-  }
-});
-document.getElementById('open-standings').addEventListener('click', () => {
-  document.getElementById('standings-panel').classList.add('open');
-});
-document.getElementById('close-standings').addEventListener('click', () => {
-  document.getElementById('standings-panel').classList.remove('open');
-});
+  fg.addEventListener('change', render);
+  document.getElementById('filter-status').addEventListener('change', render);
+  document.getElementById('expand-all').addEventListener('click', () => {
+    document.querySelectorAll('.match-card').forEach(c => c.classList.add('expanded'));
+    document.querySelectorAll('.expand-btn').forEach(b => b.textContent = t('hide_an'));
+  });
+  document.getElementById('collapse-all').addEventListener('click', () => {
+    document.querySelectorAll('.match-card').forEach(c => c.classList.remove('expanded'));
+    document.querySelectorAll('.expand-btn').forEach(b => b.textContent = t('show_an'));
+  });
+  document.getElementById('reset-all').addEventListener('click', () => {
+    if (confirm(t('confirm_reset'))) {
+      clearAllScores();
+      scores = userScores;
+      render();
+      renderStandings();
+    }
+  });
+  document.getElementById('open-standings').addEventListener('click', () => {
+    document.getElementById('standings-panel').classList.add('open');
+  });
+  document.getElementById('close-standings').addEventListener('click', () => {
+    document.getElementById('standings-panel').classList.remove('open');
+  });
+
+  // ============== EXPORT / IMPORT DATA ==============
+  document.getElementById('export-data').addEventListener('click', () => {
+    const data = exportData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wc2026-predictions-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('import-data').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        if (importData(evt.target.result)) {
+          scores = userScores;
+          render();
+          renderStandings();
+          updateStats();
+          alert('✓ Data imported successfully!');
+        } else {
+          alert('✗ Invalid file format. Please use a file exported from this dashboard.');
+        }
+      };
+      reader.readAsText(file);
+    });
+    input.click();
+  });
+
+  // ============== i18n / TZ wiring ==============
+  applyI18n();
+  wireTabsAndSelectors();
+  wireSimulatorButtons();
+
+  // Initial render
+  render();
+  renderStandings();
+  updateStats();
+}
+
+// ============== i18n / TZ wiring ==============
+function applyI18n() {
+  document.documentElement.lang = LANG;
+  document.title = t('page_title');
+  document.getElementById('page-title').textContent = t('h1');
+  document.getElementById('page-sub').innerHTML = I18N[LANG].sub_template(tzName(), tzAbbr());
+  // Filter dropdowns
+  document.querySelector('#filter-group option[value=""]').textContent = t('all_groups');
+  Array.from(document.querySelectorAll('#filter-group option')).forEach(opt => {
+    if (opt.value) opt.textContent = `${t('group_word')} ${opt.value}`;
+  });
+  const fsOpts = document.querySelectorAll('#filter-status option');
+  fsOpts[0].textContent = t('all_matches');
+  fsOpts[1].textContent = t('upcoming');
+  fsOpts[2].textContent = t('scored_only');
+  // Buttons
+  document.getElementById('expand-all').textContent = t('expand_all');
+  document.getElementById('collapse-all').textContent = t('collapse_all');
+  document.getElementById('export-data').textContent = '💾 Export Data';
+  document.getElementById('import-data').textContent = '📂 Import Data';
+  document.getElementById('reset-all').textContent = t('reset_all');
+  // Stats labels
+  document.getElementById('lbl-played').innerHTML = `${t('played')}: <b id="stat-played">0</b>/72`;
+  document.getElementById('lbl-hit').innerHTML    = `${t('pred_hit')}: <b id="stat-hit">0</b>`;
+  document.getElementById('lbl-exact').innerHTML  = `${t('exact_lbl')}: <b id="stat-exact">0</b>`;
+  // Tabs
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  if (tabBtns[0]) tabBtns[0].textContent = t('tab_cal');
+  if (tabBtns[1]) tabBtns[1].textContent = t('tab_sim');
+  // Standings floating button
+  const sb = document.getElementById('open-standings');
+  if (sb) sb.textContent = t('standings_btn');
+  // Standings side-panel
+  const sph = document.getElementById('standings-panel-h2');
+  if (sph) sph.textContent = t('standings_panel_h2');
+  const sps = document.getElementById('standings-panel-sub');
+  if (sps) sps.textContent = t('standings_panel_sub');
+  // Simulator static texts
+  const e = (id) => document.getElementById(id);
+  if (e('sim-step1-title')) e('sim-step1-title').textContent = t('sim_step1');
+  if (e('sim-step1-lead'))  e('sim-step1-lead').textContent  = t('sim_step1_lead');
+  if (e('sim-step2-title')) e('sim-step2-title').textContent = t('sim_step2');
+  if (e('sim-step2-lead'))  e('sim-step2-lead').innerHTML    = t('sim_step2_lead');
+  if (e('sim-fill-predictions')) e('sim-fill-predictions').textContent = t('sim_use_pred');
+  if (e('sim-random-groups'))    e('sim-random-groups').textContent    = t('sim_random');
+  if (e('sim-use-entered'))      e('sim-use-entered').textContent      = t('sim_use_entered');
+  if (e('sim-clear'))            e('sim-clear').textContent            = t('sim_clear');
+  if (e('sim-knockouts'))        e('sim-knockouts').textContent        = t('sim_build');
+  if (e('sim-resim-all'))        e('sim-resim-all').textContent        = t('sim_reroll');
+  // If simulator tab is currently visible, re-render its dynamic content
+  const simTab = document.getElementById('tab-simulator');
+  if (simTab && simTab.classList.contains('active')) renderSimulator();
+}
 
 // ============== TABS ==============
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'simulator') renderSimulator();
+function wireTabsAndSelectors() {
+  const tzSel = document.getElementById('tz-select');
+  const langSel = document.getElementById('lang-select');
+  if (tzSel) tzSel.value = TZ;
+  if (langSel) langSel.value = LANG;
+  if (tzSel) tzSel.addEventListener('change', () => {
+    TZ = tzSel.value;
+    savePrefs();
+    applyI18n();
+    render();
+    renderStandings();
+    updateStats();
   });
-});
+  if (langSel) langSel.addEventListener('change', () => {
+    LANG = langSel.value;
+    savePrefs();
+    applyI18n();
+    render();
+    renderStandings();
+    updateStats();
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'simulator') renderSimulator();
+    });
+  });
+}
 
 // ============== SIMULATOR ==============
 // Team ratings (Elo-style, ~1500 baseline). Drives Poisson goals model.
@@ -943,7 +1283,7 @@ function fillFromRandom() {
 function fillFromEntered() {
   const filled = Object.keys(scores).length;
   if (filled === 0) {
-    alert("You haven't entered any scores yet. Type some scores in the Match Calendar tab first.");
+    alert(t('sim_alert_no_user_scores'));
     return;
   }
   simGroupScores = JSON.parse(JSON.stringify(scores));
@@ -1079,10 +1419,10 @@ function renderSimulator() {
   const totalScored = MATCHES.filter(m => src[m.id]).length;
   const gsStatus = document.getElementById('gs-status');
   if (totalScored === 72) {
-    gsStatus.textContent = '✓ All 72 matches scored — ready for knockouts';
+    gsStatus.textContent = t('sim_gs_ready');
     gsStatus.classList.add('ready');
   } else {
-    gsStatus.textContent = `${totalScored}/72 matches scored`;
+    gsStatus.textContent = I18N[LANG].sim_gs_progress(totalScored);
     gsStatus.classList.remove('ready');
   }
 
@@ -1091,9 +1431,9 @@ function renderSimulator() {
     const rows = computeSimStandings(g, src);
     return `
       <div class="mini-group" style="--gcolor: var(--${g});">
-        <h4>Group ${g}</h4>
+        <h4>${t('group_word')} ${g}</h4>
         <table>
-          ${rows.map((r,i) => `<tr class="${i<2?'q':i===2?'b3':''}"><td>${i+1}</td><td>${r.team}</td><td class="pts">${r.Pts}</td></tr>`).join('')}
+          ${rows.map((r,i) => `<tr class="${i<2?'q':i===2?'b3':''}"><td>${i+1}</td><td>${tName(r.team)}</td><td class="pts">${r.Pts}</td></tr>`).join('')}
         </table>
       </div>`;
   }).join('');
@@ -1107,13 +1447,13 @@ function renderBracket() {
   const koStatus = document.getElementById('ko-status');
 
   if (!bracketState) {
-    wrap.innerHTML = '<p style="color:var(--muted); padding:20px; text-align:center;">Click <b>Build & Simulate Knockouts</b> above to generate the bracket.</p>';
+    wrap.innerHTML = `<p style="color:var(--muted); padding:20px; text-align:center;">${t('sim_no_bracket')}</p>`;
     champWrap.innerHTML = '';
-    koStatus.textContent = 'waiting for group stage';
+    koStatus.textContent = t('sim_ko_waiting');
     koStatus.classList.remove('ready');
     return;
   }
-  koStatus.textContent = '✓ Bracket simulated';
+  koStatus.textContent = t('sim_ko_ready');
   koStatus.classList.add('ready');
 
   const renderRound = (matches, label, key) => `
@@ -1127,25 +1467,25 @@ function renderBracket() {
 
   wrap.innerHTML = `
     <div class="bracket">
-      ${renderRound(bracketState.r32, 'Round of 32', 'r32')}
-      ${renderRound(bracketState.r16, 'Round of 16', 'r16')}
-      ${renderRound(bracketState.qf,  'Quarterfinals', 'qf')}
-      ${renderRound(bracketState.sf,  'Semifinals',    'sf')}
-      ${renderRound(bracketState.f,   'Final',         'f')}
-      ${renderRound(bracketState.third,'3rd Place',    'third')}
+      ${renderRound(bracketState.r32, t('round_r32'), 'r32')}
+      ${renderRound(bracketState.r16, t('round_r16'), 'r16')}
+      ${renderRound(bracketState.qf,  t('round_qf'),  'qf')}
+      ${renderRound(bracketState.sf,  t('round_sf'),  'sf')}
+      ${renderRound(bracketState.f,   t('round_f'),   'f')}
+      ${renderRound(bracketState.third, t('round_3rd'),'third')}
     </div>
   `;
 
   const champ = bracketState.champion.team;
   champWrap.innerHTML = `
     <div class="champion-banner">
-      <h2>🏆 Simulated Champion</h2>
+      <h2>${t('sim_champion')}</h2>
       <div class="winner-row">
-        <img src="${flagUrl(champ)}" alt="${champ}">
-        <span>${champ}</span>
+        <img src="${flagUrl(champ)}" alt="${tName(champ)}">
+        <span>${tName(champ)}</span>
       </div>
       <p style="color:var(--muted); margin-top:8px; font-size:13px;">
-        Runner-up: ${bracketState.f[0].loser.team} · 3rd: ${bracketState.third[0].winner.team} · 4th: ${bracketState.third[0].loser.team}
+        ${t('sim_runner_up')}: ${tName(bracketState.f[0].loser.team)} · ${t('sim_3rd')}: ${tName(bracketState.third[0].winner.team)} · ${t('sim_4th')}: ${tName(bracketState.third[0].loser.team)}
       </p>
     </div>
   `;
@@ -1160,12 +1500,12 @@ function renderKO(m, roundKey, idx) {
   const isFinal = roundKey === 'f';
   const completed = m.score != null;
   const cls = isFinal ? 'final' : completed ? 'completed' : '';
-  const teamRow = (t, otherT, score, isWinner) => {
-    if (!t) return `<div class="ko-team"><span class="placeholder">TBD</span></div>`;
+  const teamRow = (tm, otherT, score, isWinner) => {
+    if (!tm) return `<div class="ko-team"><span class="placeholder">${t('ko_tbd')}</span></div>`;
     const wins = isWinner ? 'winner' : (completed ? 'loser' : '');
     return `<div class="ko-team ${wins}">
-      <img src="${flagUrl(t.team)}" alt="${t.team}">
-      <span>${t.team}</span>
+      <img src="${flagUrl(tm.team)}" alt="${tName(tm.team)}">
+      <span>${tName(tm.team)}</span>
       <span class="score">${score ?? ''}</span>
     </div>`;
   };
@@ -1174,34 +1514,39 @@ function renderKO(m, roundKey, idx) {
       <div class="ko-meta"><span>${m.id}</span></div>
       ${teamRow(m.home, m.away, m.score?m.score[0]:'', completed && m.winner === m.home)}
       ${teamRow(m.away, m.home, m.score?m.score[1]:'', completed && m.winner === m.away)}
-      ${completed ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">↻ Re-sim</button>` : ''}
+      ${completed ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">${t('ko_resim')}</button>` : ''}
     </div>
   `;
 }
 
 // Wire simulator buttons
-document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
-document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
-document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
-document.getElementById('sim-clear').addEventListener('click', clearSim);
-document.getElementById('sim-knockouts').addEventListener('click', () => {
-  const src = getActiveGroupScores();
-  if (!groupsComplete(src)) {
-    alert("Group stage isn't fully scored yet. Pick a 'Step 1' option above first.");
-    return;
-  }
-  bracketState = runFullBracket(src);
-  renderBracket();
-});
-document.getElementById('sim-resim-all').addEventListener('click', () => {
-  const src = getActiveGroupScores();
-  if (!groupsComplete(src)) { alert("Need a complete group stage first."); return; }
-  bracketState = runFullBracket(src);
-  renderBracket();
-});
+function wireSimulatorButtons() {
+  document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
+  document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
+  document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
+  document.getElementById('sim-clear').addEventListener('click', clearSim);
+  document.getElementById('sim-knockouts').addEventListener('click', () => {
+    const src = getActiveGroupScores();
+    if (!groupsComplete(src)) {
+      alert(t('sim_alert_incomplete'));
+      return;
+    }
+    bracketState = runFullBracket(src);
+    renderBracket();
+  });
+  document.getElementById('sim-resim-all').addEventListener('click', () => {
+    const src = getActiveGroupScores();
+    if (!groupsComplete(src)) { alert(t('sim_alert_need_complete')); return; }
+    bracketState = runFullBracket(src);
+    renderBracket();
+  });
+}
 
-render();
-renderStandings();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
 </script>
 </body>
 </html>
