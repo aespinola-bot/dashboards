@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Elite Breakfast Report — Tomas Espinola</title>
+<style>
+  :root{
+    --bg:#F7F4EE; --ink:#141416; --soft:#6A6A6E;
+    --card:#FFFFFF; --line:#E6E0D4;
+    --good:#2E7D32; --warn:#C77800; --bad:#C62828;
+    --accent:#2E5C7E; --accent-2:#8B5E3C;
+    --protein:#1976D2; --carbs:#F9A825; --fat:#7B1FA2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.45}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+  h1{font-size:24px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--soft);font-size:13px}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px;
+    letter-spacing:.04em;text-transform:uppercase}
+  .grade{font-size:14px;padding:6px 12px}
+  .g-A{background:#E6F4EA;color:var(--good)}
+  .g-B{background:#FFF3E0;color:var(--warn)}
+  .g-C{background:#FFEBEE;color:var(--bad)}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:16px 0 20px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .kpi .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);font-weight:700}
+  .kpi .val{font-size:24px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .kpi .unit{font-size:12px;color:var(--soft);font-weight:600;margin-left:2px}
+  .kpi .target{font-size:11px;color:var(--soft);margin-top:4px}
+  .kpi .status{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .s-good{background:var(--good)}
+  .s-warn{background:var(--warn)}
+  .s-bad{background:var(--bad)}
+
+  .split-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  @media(max-width:760px){.split-row{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card h2{font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}
+
+  .macro-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;margin:8px 0 6px;border:1px solid var(--line)}
+  .macro-bar > div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;
+    transition:width .25s ease;min-width:0;overflow:hidden;white-space:nowrap}
+  .mb-p{background:var(--protein)}
+  .mb-c{background:var(--carbs);color:#5b3d00}
+  .mb-f{background:var(--fat)}
+  .macro-legend{display:flex;gap:14px;font-size:12px;color:var(--soft);flex-wrap:wrap}
+  .macro-legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .lg-p::before{background:var(--protein)}
+  .lg-c::before{background:var(--carbs)}
+  .lg-f::before{background:var(--fat)}
+
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:13px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;
+    border-bottom:2px solid var(--line);background:#FAF7F1}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td input[type="text"],td input[type="number"]{width:100%;border:1px solid transparent;background:transparent;
+    padding:4px 6px;border-radius:4px;font:inherit;color:inherit}
+  td input[type="number"]{text-align:right;font-variant-numeric:tabular-nums}
+  td input:hover{border-color:var(--line);background:#FFFDF8}
+  td input:focus{outline:none;border-color:var(--accent);background:#FFFDF8;box-shadow:0 0 0 2px rgba(46,92,126,.12)}
+  td.name input{font-weight:600}
+  tfoot td{font-weight:800;border-top:2px solid var(--line);border-bottom:none;background:#FAF7F1;
+    font-variant-numeric:tabular-nums}
+  .del-btn{background:none;border:none;color:var(--soft);cursor:pointer;font-size:16px;padding:0 4px;line-height:1}
+  .del-btn:hover{color:var(--bad)}
+
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  button.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;
+    font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.02em}
+  button.btn:hover{background:#244b69}
+  button.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  button.btn.ghost:hover{background:rgba(46,92,126,.08);color:var(--accent)}
+
+  .verdict{padding:16px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);margin-top:4px}
+  .verdict .v-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .verdict h3{margin:0;font-size:18px}
+  .verdict .reasons{margin:8px 0 0;padding:0;list-style:none}
+  .verdict .reasons li{padding:4px 0;font-size:13px;color:var(--ink)}
+  .verdict .reasons li::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;
+    margin-right:8px;vertical-align:middle;background:var(--soft)}
+  .verdict .reasons li.ok::before{background:var(--good)}
+  .verdict .reasons li.warn::before{background:var(--warn)}
+  .verdict .reasons li.bad::before{background:var(--bad)}
+
+  .profile{display:flex;gap:18px;font-size:12px;color:var(--soft);flex-wrap:wrap;margin-top:4px}
+  .profile label{display:flex;align-items:center;gap:6px}
+  .profile input[type="number"]{width:60px;border:1px solid var(--line);border-radius:4px;
+    padding:3px 6px;font:inherit;text-align:right}
+
+  footer{margin-top:24px;text-align:center;color:var(--soft);font-size:11px}
+  footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🍳 Elite Breakfast Report</h1>
+      <div class="sub">Personalized macro &amp; quality analysis · live-editable</div>
+    </div>
+    <div id="gradeBadge" class="badge grade g-A">A+ · Elite</div>
+  </header>
+
+  <div class="profile">
+    <label>Age <input type="number" id="age" value="51" min="18" max="90"></label>
+    <label>Weight (lb) <input type="number" id="weight" value="184" min="80" max="400"></label>
+    <label>Meals/day <input type="number" id="meals" value="2" min="1" max="6"></label>
+    <label>Daily kcal target <input type="number" id="dayKcal" value="2000" min="1000" max="5000"></label>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="kpis" id="kpis"></div>
+
+  <div class="split-row">
+    <!-- Foods table -->
+    <div class="card" style="grid-column:1 / -1">
+      <h2>Foods (edit any cell — totals recalculate live)</h2>
+      <table id="foodTable">
+        <thead>
+          <tr>
+            <th style="width:32%">Food</th>
+            <th style="width:22%">Portion</th>
+            <th class="num">kcal</th>
+            <th class="num">Protein (g)</th>
+            <th class="num">Carbs (g)</th>
+            <th class="num">Fat (g)</th>
+            <th style="width:30px"></th>
+          </tr>
+        </thead>
+        <tbody id="foodBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">TOTAL</td>
+            <td class="num" id="totKcal">0</td>
+            <td class="num" id="totP">0</td>
+            <td class="num" id="totC">0</td>
+            <td class="num" id="totF">0</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button class="btn ghost" id="addRow">+ Add Food</button>
+        <button class="btn ghost" id="resetBtn">↺ Reset to Default</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="split-row">
+    <!-- Macro split -->
+    <div class="card">
+      <h2>Macro Split (% of calories)</h2>
+      <div class="macro-bar" id="macroBar"></div>
+      <div class="macro-legend">
+        <span class="lg-p" id="lgP">Protein —</span>
+        <span class="lg-c" id="lgC">Carbs —</span>
+        <span class="lg-f" id="lgF">Fat —</span>
+      </div>
+      <div class="sub" style="margin-top:10px" id="splitNote"></div>
+    </div>
+    <!-- Verdict -->
+    <div class="verdict">
+      <div class="v-head">
+        <h3 id="verdictTitle">Verdict</h3>
+        <span id="verdictBadge" class="badge grade g-A">—</span>
+      </div>
+      <div class="sub" id="verdictSummary"></div>
+      <ul class="reasons" id="verdictReasons"></ul>
+    </div>
+  </div>
+
+  <footer>
+    Built for Tomas Espinola · 51M · 184 lb · 2 meals/day ·
+    Values are estimates; cross-check with food labels for precision.
+  </footer>
+</div>
+
+<script>
+// ---------- Default meal (the "locked in" Elite breakfast) ----------
+const DEFAULT_FOODS = [
+  {name:'2 whole eggs',                portion:'2 large',         kcal:140, p:12, c:1, f:10},
+  {name:'2 extra yolks',               portion:'2 yolks',         kcal:110, p:5,  c:1, f:9 },
+  {name:'Avocado (½ medium)',          portion:'½ medium',        kcal:120, p:1,  c:6, f:11},
+  {name:'Kirkland nonfat Greek yogurt',portion:'½ cup (~115 g)',  kcal:65,  p:12, c:5, f:0 },
+  {name:'Strawberries (small)',        portion:'4–5 berries',     kcal:12,  p:0,  c:3, f:0 },
+  {name:'Wild Planet sardines',        portion:'1 tin (~125 g)',  kcal:150, p:18, c:0, f:9 },
+];
+
+// ---------- State ----------
+let foods = JSON.parse(JSON.stringify(DEFAULT_FOODS));
+
+// ---------- DOM ----------
+const $ = id => document.getElementById(id);
+const foodBody = $('foodBody');
+
+// ---------- Render foods table ----------
+function renderFoods(){
+  foodBody.innerHTML = '';
+  foods.forEach((f, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name"><input type="text" value="${escapeHtml(f.name)}" data-i="${i}" data-k="name"></td>
+      <td><input type="text" value="${escapeHtml(f.portion)}" data-i="${i}" data-k="portion"></td>
+      <td class="num"><input type="number" step="1" value="${f.kcal}" data-i="${i}" data-k="kcal"></td>
+      <td class="num"><input type="number" step="0.5" value="${f.p}" data-i="${i}" data-k="p"></td>
+      <td class="num"><input type="number" step="0.5" value="${f.c}" data-i="${i}" data-k="c"></td>
+      <td class="num"><input type="number" step="0.5" value="${f.f}" data-i="${i}" data-k="f"></td>
+      <td><button class="del-btn" data-del="${i}" title="Remove">✕</button></td>
+    `;
+    foodBody.appendChild(tr);
+  });
+}
+
+// ---------- Compute totals ----------
+function totals(){
+  return foods.reduce((a,f) => ({
+    kcal:a.kcal + (+f.kcal||0),
+    p:a.p + (+f.p||0),
+    c:a.c + (+f.c||0),
+    f:a.f + (+f.f||0),
+  }), {kcal:0,p:0,c:0,f:0});
+}
+
+// ---------- KPI cards ----------
+function renderKPIs(t){
+  const dayKcal = +$('dayKcal').value || 2000;
+  const meals = +$('meals').value || 2;
+  const weight = +$('weight').value || 184;
+  const age = +$('age').value || 51;
+
+  // Targets per meal
+  const targetKcal = dayKcal / meals;
+  // Protein: 0.7-1.0 g/lb for age 50+ active. Per meal target = (0.8 * weight) / meals
+  const targetProteinDay = Math.round(0.8 * weight);
+  const targetProteinMeal = Math.round(targetProteinDay / meals);
+  // Fat & carb targets less strict; show meaningful ones.
+
+  const pStat = t.p >= targetProteinMeal ? 'good' : (t.p >= targetProteinMeal*0.85 ? 'warn' : 'bad');
+  const kStat = (t.kcal >= targetKcal*0.6 && t.kcal <= targetKcal*1.4) ? 'good'
+              : (t.kcal >= targetKcal*0.4 && t.kcal <= targetKcal*1.6) ? 'warn' : 'bad';
+
+  const cards = [
+    {lbl:'Calories', val:Math.round(t.kcal), unit:'kcal',
+      target:`Target ~${Math.round(targetKcal)} / meal`, stat:kStat},
+    {lbl:'Protein', val:Math.round(t.p), unit:'g',
+      target:`Target ≥${targetProteinMeal} g / meal`, stat:pStat},
+    {lbl:'Carbs', val:Math.round(t.c), unit:'g',
+      target:t.c<30?'Low glycemic load':'Moderate', stat:t.c<60?'good':'warn'},
+    {lbl:'Fat', val:Math.round(t.f), unit:'g',
+      target:`${Math.round((t.f*9/t.kcal)*100||0)}% of calories`, stat:t.f<70?'good':'warn'},
+    {lbl:'Day share', val:Math.round((t.kcal/dayKcal)*100), unit:'%',
+      target:`of ${dayKcal} kcal/day`, stat:'good'},
+    {lbl:'Protein density', val:(t.p/(t.kcal/100)).toFixed(1), unit:'g/100kcal',
+      target:'≥6 = high-quality', stat:(t.p/(t.kcal/100))>=6?'good':'warn'},
+  ];
+
+  $('kpis').innerHTML = cards.map(k => `
+    <div class="kpi">
+      <div class="lbl">${k.lbl}</div>
+      <div class="val">${k.val}<span class="unit"> ${k.unit}</span></div>
+      <div class="target"><span class="status s-${k.stat}"></span>${k.target}</div>
+    </div>
+  `).join('');
+}
+
+// ---------- Macro split ----------
+function renderSplit(t){
+  const pKcal = t.p * 4;
+  const cKcal = t.c * 4;
+  const fKcal = t.f * 9;
+  const totK = pKcal + cKcal + fKcal || 1;
+  const pp = (pKcal/totK)*100;
+  const cp = (cKcal/totK)*100;
+  const fp = (fKcal/totK)*100;
+
+  $('macroBar').innerHTML = `
+    <div class="mb-p" style="width:${pp}%">${pp>8?Math.round(pp)+'%':''}</div>
+    <div class="mb-c" style="width:${cp}%">${cp>8?Math.round(cp)+'%':''}</div>
+    <div class="mb-f" style="width:${fp}%">${fp>8?Math.round(fp)+'%':''}</div>
+  `;
+  $('lgP').textContent = `Protein ${Math.round(pp)}%`;
+  $('lgC').textContent = `Carbs ${Math.round(cp)}%`;
+  $('lgF').textContent = `Fat ${Math.round(fp)}%`;
+
+  let note = '';
+  if(pp>=30 && cp<=20 && fp>=45) note = '✅ High-protein, low-carb, healthy-fat profile — ideal for fat loss & longevity.';
+  else if(pp>=30) note = '✅ Protein-dominant — good for muscle preservation.';
+  else if(cp>50) note = '⚠️ Carb-heavy — consider rebalancing for stable blood sugar.';
+  else if(fp>70) note = '⚠️ Very fat-dominant — fine if intentional (e.g. keto).';
+  else note = 'Balanced macro distribution.';
+  $('splitNote').textContent = note;
+}
+
+// ---------- Verdict ----------
+function renderVerdict(t){
+  const dayKcal = +$('dayKcal').value || 2000;
+  const meals = +$('meals').value || 2;
+  const weight = +$('weight').value || 184;
+  const targetProtein = Math.round((0.8 * weight) / meals);
+  const targetKcal = dayKcal / meals;
+  const reasons = [];
+  let score = 0; // out of ~10
+
+  // Protein check
+  if(t.p >= targetProtein){
+    reasons.push({k:'ok', t:`Protein ${Math.round(t.p)} g — meets/exceeds ${targetProtein} g per-meal target.`});
+    score += 3;
+  } else if(t.p >= targetProtein*0.85){
+    reasons.push({k:'warn', t:`Protein ${Math.round(t.p)} g — slightly under ${targetProtein} g target.`});
+    score += 1.5;
+  } else {
+    reasons.push({k:'bad', t:`Protein ${Math.round(t.p)} g — below ${targetProtein} g target; risk to muscle preservation.`});
+  }
+
+  // Calorie check
+  if(t.kcal >= targetKcal*0.7 && t.kcal <= targetKcal*1.3){
+    reasons.push({k:'ok', t:`Calories ${Math.round(t.kcal)} — fits the ~${Math.round(targetKcal)} kcal per-meal target.`});
+    score += 2;
+  } else if(t.kcal < targetKcal*0.7){
+    reasons.push({k:'warn', t:`Calories ${Math.round(t.kcal)} — light vs. ${Math.round(targetKcal)} target; check daily total.`});
+    score += 1;
+  } else {
+    reasons.push({k:'warn', t:`Calories ${Math.round(t.kcal)} — heavy vs. ${Math.round(targetKcal)} target.`});
+    score += 1;
+  }
+
+  // Carb load
+  if(t.c < 30){ reasons.push({k:'ok', t:`Carbs ${Math.round(t.c)} g — low glycemic load, stable blood sugar.`}); score += 2; }
+  else if(t.c < 60){ reasons.push({k:'ok', t:`Carbs ${Math.round(t.c)} g — moderate, sustained energy.`}); score += 1.5; }
+  else { reasons.push({k:'warn', t:`Carbs ${Math.round(t.c)} g — high; may spike blood sugar.`}); }
+
+  // Fat quality (heuristic: if not extreme either way, assume quality fats from listed foods)
+  if(t.f >= 20 && t.f <= 60){ reasons.push({k:'ok', t:`Fat ${Math.round(t.f)} g — in healthy range; quality depends on sources.`}); score += 1.5; }
+  else if(t.f < 20){ reasons.push({k:'warn', t:`Fat ${Math.round(t.f)} g — low; may impact satiety & fat-soluble vitamin absorption.`}); }
+  else { reasons.push({k:'warn', t:`Fat ${Math.round(t.f)} g — very high; watch saturated-fat sources.`}); }
+
+  // Protein density (g per 100 kcal)
+  const pd = t.p / (t.kcal/100);
+  if(pd >= 7){ reasons.push({k:'ok', t:`Protein density ${pd.toFixed(1)} g/100kcal — elite; high-quality food choices.`}); score += 1.5; }
+  else if(pd >= 5){ reasons.push({k:'ok', t:`Protein density ${pd.toFixed(1)} g/100kcal — solid.`}); score += 1; }
+  else { reasons.push({k:'warn', t:`Protein density ${pd.toFixed(1)} g/100kcal — meal is calorie-heavy vs. its protein contribution.`}); }
+
+  // Final grade
+  let grade, badge, title;
+  if(score >= 9){ grade='A+'; title='Elite-Tier Longevity Breakfast 🥇'; badge='g-A'; }
+  else if(score >= 7.5){ grade='A'; title='Excellent Breakfast'; badge='g-A'; }
+  else if(score >= 6){ grade='B+'; title='Very Good Breakfast'; badge='g-A'; }
+  else if(score >= 4.5){ grade='B'; title='Decent Breakfast'; badge='g-B'; }
+  else if(score >= 3){ grade='C'; title='Sub-optimal — Consider Adjustments'; badge='g-B'; }
+  else { grade='D'; title='Poor — Needs Rebalancing'; badge='g-C'; }
+
+  $('verdictTitle').textContent = title;
+  const vb = $('verdictBadge');
+  vb.textContent = `${grade} · ${score.toFixed(1)}/10`;
+  vb.className = `badge grade ${badge}`;
+  const gb = $('gradeBadge');
+  gb.textContent = `${grade} · ${title.split(' ')[0]}`;
+  gb.className = `badge grade ${badge}`;
+
+  // Summary line
+  const dayShare = Math.round((t.kcal/dayKcal)*100);
+  $('verdictSummary').textContent =
+    `${Math.round(t.kcal)} kcal · ${Math.round(t.p)} g P · ${Math.round(t.c)} g C · ${Math.round(t.f)} g F — ` +
+    `~${dayShare}% of your ${dayKcal} kcal/day, leaving ~${dayKcal - Math.round(t.kcal)} kcal for the rest of the day.`;
+
+  $('verdictReasons').innerHTML = reasons.map(r => `<li class="${r.k}">${r.t}</li>`).join('');
+}
+
+// ---------- Main render ----------
+function render(){
+  const t = totals();
+  $('totKcal').textContent = Math.round(t.kcal);
+  $('totP').textContent = t.p.toFixed(1).replace(/\.0$/,'');
+  $('totC').textContent = t.c.toFixed(1).replace(/\.0$/,'');
+  $('totF').textContent = t.f.toFixed(1).replace(/\.0$/,'');
+  renderKPIs(t);
+  renderSplit(t);
+  renderVerdict(t);
+}
+
+// ---------- Events ----------
+foodBody.addEventListener('input', e => {
+  const i = e.target.dataset.i;
+  const k = e.target.dataset.k;
+  if(i === undefined || !k) return;
+  let v = e.target.value;
+  if(['kcal','p','c','f'].includes(k)) v = parseFloat(v)||0;
+  foods[i][k] = v;
+  render();
+});
+foodBody.addEventListener('click', e => {
+  if(e.target.dataset.del !== undefined){
+    foods.splice(+e.target.dataset.del, 1);
+    renderFoods(); render();
+  }
+});
+$('addRow').addEventListener('click', () => {
+  foods.push({name:'New food', portion:'', kcal:0, p:0, c:0, f:0});
+  renderFoods(); render();
+});
+$('resetBtn').addEventListener('click', () => {
+  if(confirm('Reset all foods to the default Elite Breakfast?')){
+    foods = JSON.parse(JSON.stringify(DEFAULT_FOODS));
+    renderFoods(); render();
+  }
+});
+['age','weight','meals','dayKcal'].forEach(id =>
+  $(id).addEventListener('input', render));
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- Boot ----------
+renderFoods();
+render();
+</script>
+</body>
+</html>
