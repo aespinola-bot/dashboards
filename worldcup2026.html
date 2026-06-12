@@ -192,6 +192,53 @@
   .accuracy.right   { background: var(--blue-bg); color: var(--blue); }
   .accuracy.wrong   { background: var(--red-bg); color: var(--red); }
 
+  /* FINAL locked score box */
+  .final-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: 12px 0 10px 0;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #fff4e0 0%, #ffe4b8 100%);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    font-weight: 800;
+    color: #6b3a02;
+    position: relative;
+  }
+  .final-score .final-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: #b56a06;
+    text-transform: uppercase;
+  }
+  .final-score .final-numbers {
+    font-size: 26px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: 2px;
+  }
+  .final-score .lock {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+
+  /* Two prediction rows under score */
+  .pred-row {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 3px;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .pred-row.you  { background: rgba(37, 99, 235, 0.06); }
+  .pred-row.ai   { background: rgba(212, 129, 11, 0.06); }
+  .pred-row .label { font-weight: 700; }
+  .pred-row.you  .label { color: var(--blue); }
+  .pred-row.ai   .label { color: var(--accent); }
+  .pred-row b { color: var(--text); }
+
   .info-row {
     font-size: 11px;
     color: var(--muted);
@@ -458,7 +505,7 @@
 
 <header>
   <h1>🏆 2026 FIFA World Cup — Group Stage Match Calendar</h1>
-  <div class="sub">72 matches · All times <b>Pacific (PDT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · Scores save in your browser as you type</div>
+  <div class="sub">72 matches · All times <b>Pacific (PDT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · 🔒 Final scores locked · 👤 Your predictions save in this browser</div>
   <div class="controls">
     <select id="filter-group">
       <option value="">All Groups</option>
@@ -466,15 +513,15 @@
     <select id="filter-status">
       <option value="">All Matches</option>
       <option value="upcoming">Upcoming Only</option>
-      <option value="scored">Scored Only</option>
+      <option value="scored">Finished Only</option>
     </select>
     <button class="btn" id="expand-all">Expand All Notes</button>
     <button class="btn" id="collapse-all">Collapse All</button>
-    <button class="btn danger" id="reset-all">Reset All Scores</button>
+    <button class="btn danger" id="reset-all">Reset My Predictions</button>
     <div class="stats">
       <span>Played: <b id="stat-played">0</b>/72</span>
-      <span>Pred. Hit: <b id="stat-hit">0</b></span>
-      <span>Exact: <b id="stat-exact">0</b></span>
+      <span title="AI prediction accuracy on finished matches">🤖 AI: <b id="stat-ai-hit">0</b> hits (<b id="stat-ai-exact">0</b> exact)</span>
+      <span title="Your prediction accuracy on finished matches">👤 You: <b id="stat-my-hit">0</b> hits (<b id="stat-my-exact">0</b> exact)</span>
     </div>
   </div>
 </header>
@@ -494,7 +541,7 @@
     <h2>🎲 Step 1 — Group Stage Source <span id="gs-status" class="sim-status">12/12 groups need scores</span></h2>
     <p class="lead">Choose where group-stage scores come from. Then the bracket builds automatically.</p>
     <div class="sim-actions">
-      <button class="btn primary" id="sim-fill-predictions">Use My Predictions</button>
+      <button class="btn primary" id="sim-fill-predictions">Use AI Predictions</button>
       <button class="btn" id="sim-random-groups">🎲 Random Simulation</button>
       <button class="btn" id="sim-use-entered">Use Scores I Entered</button>
       <button class="btn danger" id="sim-clear">Clear Sim</button>
@@ -564,9 +611,9 @@ const GROUPS = {
 // Telemundo gets marquees in Spanish; Universo handles overflow.
 const MATCHES = [
   // MD1 — Jun 11–17 (Pacific)
-  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175."},
-  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220."},
-  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins."},
+  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], actual:[2,0], note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175. FINAL: Quiñones 9', Jiménez 67' — SA had 2 red cards (Sithole, Zwane) + MEX captain Montes red 92'."},
+  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], actual:[2,1], note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220. FINAL: Krejčí 59' (CZE), Hwang In-beom 67', Oh Hyeon-gyu 80' — comeback win for Korea."},
+  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], actual:[1,1], note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins. FINAL: Lukić 21' (BIH), Larin 78' — Canada's first-ever WC point (ended 6-loss streak)."},
   {id:4,  group:'D', date:'2026-06-12', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'United States',          away:'Paraguay',               tv:'FOX · Telemundo',     pred:[2,1], note:"USA 5W-1D-1L H2H. Pochettino's compact 4-3-3 (Pulisic/Reyna/Balogun). Home crowd decisive."},
   {id:5,  group:'B', date:'2026-06-13', timePT:'12:00', venue:"Levi's Stadium, Santa Clara",           home:'Qatar',                  away:'Switzerland',            tv:'FS1 · Universo',      pred:[0,2], note:"Xhaka-Embolo dictate tempo. Qatar's '22 collapse foretells; SUI control xG."},
   {id:6,  group:'C', date:'2026-06-13', timePT:'15:00', venue:'MetLife Stadium, East Rutherford',      home:'Brazil',                 away:'Morocco',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ H2H: MAR won 2-1 friendly Mar 2023. Final-squad update: Rodrygo IS in the squad. Hakimi-Diaz-Ounahi vs Brazil. Ancelotti's first WC. Books drifted BRA −180→−135."},
@@ -664,25 +711,63 @@ function groupByDate(matches) {
 }
 
 function accuracyForMatch(m, sc) {
-  if (sc == null) return null;
-  const [ph, pa] = m.pred;
-  const [ah, aa] = sc;
+  // Legacy helper — kept for compatibility. Compares an entered score against AI pred.
+  return accuracyOf(m.pred, sc);
+}
+
+// Compare a prediction [h,a] against an actual [h,a]
+function accuracyOf(pred, actual) {
+  if (!pred || !actual) return null;
+  const [ph, pa] = pred;
+  const [ah, aa] = actual;
   if (ph === ah && pa === aa) return 'exact';
   const predOut = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
   const actOut  = ah > aa ? 'H' : ah < aa ? 'A' : 'D';
   return predOut === actOut ? 'right' : 'wrong';
 }
+function pillFor(acc) {
+  if (acc === 'exact') return '<span class="accuracy exact">✓ EXACT</span>';
+  if (acc === 'right') return '<span class="accuracy right">✓ OUTCOME</span>';
+  if (acc === 'wrong') return '<span class="accuracy wrong">✗ MISS</span>';
+  return '';
+}
 
 function renderMatchCard(m) {
-  const sc = scores[m.id];
-  const acc = accuracyForMatch(m, sc);
-  const scoredClass = sc ? ' scored' : '';
-  const accClass = acc === 'exact' ? ' correct' : acc === 'right' ? ' partial' : acc === 'wrong' ? ' wrong' : '';
+  const myPred = scores[m.id];          // user's prediction (stored in localStorage)
+  const actual = m.actual || null;      // real score, locked when present
+  const hasFinal = !!actual;
 
-  let accPill = '';
-  if (acc === 'exact') accPill = '<span class="accuracy exact">✓ EXACT</span>';
-  else if (acc === 'right') accPill = '<span class="accuracy right">✓ OUTCOME</span>';
-  else if (acc === 'wrong') accPill = '<span class="accuracy wrong">✗ MISS</span>';
+  const aiAcc = hasFinal ? accuracyOf(m.pred, actual) : null;
+  const myAcc = hasFinal && myPred ? accuracyOf(myPred, actual) : null;
+
+  const scoredClass = hasFinal ? ' scored' : '';
+  const accClass = aiAcc === 'exact' ? ' correct' : aiAcc === 'right' ? ' partial' : aiAcc === 'wrong' ? ' wrong' : '';
+
+  // Score area — either FINAL locked box or editable My Prediction inputs
+  const scoreArea = hasFinal
+    ? `<div class="final-score">
+         <span class="final-label">Final</span>
+         <span class="final-numbers">${actual[0]} – ${actual[1]}</span>
+         <span class="lock" title="Result locked">🔒</span>
+       </div>`
+    : `<div class="score-inputs" title="Enter your prediction">
+         <input type="number" min="0" max="20" inputmode="numeric" value="${myPred?myPred[0]:''}" data-side="h" data-match="${m.id}" placeholder="—">
+         <span class="dash">–</span>
+         <input type="number" min="0" max="20" inputmode="numeric" value="${myPred?myPred[1]:''}" data-side="a" data-match="${m.id}" placeholder="—">
+       </div>`;
+
+  // Two prediction rows: My (only if user entered) + AI (always)
+  const myRow = myPred
+    ? `<div class="pred-row you">
+         <span class="label">👤 My Prediction:</span> <b>${myPred[0]}–${myPred[1]}</b> ${hasFinal ? pillFor(myAcc) : ''}
+       </div>`
+    : (hasFinal
+        ? `<div class="pred-row you" style="opacity:.55;"><span class="label">👤 My Prediction:</span> <i>not entered</i></div>`
+        : '');
+
+  const aiRow = `<div class="pred-row ai">
+       <span class="label">🤖 AI Prediction:</span> <b>${m.pred[0]}–${m.pred[1]}</b> ${hasFinal ? pillFor(aiAcc) : ''}
+     </div>`;
 
   return `
     <article class="match-card${scoredClass}${accClass}" style="--gcolor: var(--${m.group});" data-match-id="${m.id}" data-group="${m.group}">
@@ -701,14 +786,9 @@ function renderMatchCard(m) {
           <span>${m.away}</span>
         </div>
       </div>
-      <div class="score-inputs">
-        <input type="number" min="0" max="20" inputmode="numeric" value="${sc?sc[0]:''}" data-side="h" data-match="${m.id}" placeholder="—">
-        <span class="dash">–</span>
-        <input type="number" min="0" max="20" inputmode="numeric" value="${sc?sc[1]:''}" data-side="a" data-match="${m.id}" placeholder="—">
-      </div>
-      <div class="prediction">
-        Prediction: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}
-      </div>
+      ${scoreArea}
+      ${myRow}
+      ${aiRow}
       <div class="info-row">
         <div><span class="pin">📍</span> ${m.venue}</div>
         <div><span class="tv">📺</span> <span class="net">${m.tv}</span></div>
@@ -725,9 +805,9 @@ function render() {
 
   const filtered = MATCHES.filter(m => {
     if (fGroup && m.group !== fGroup) return false;
-    const has = !!scores[m.id];
-    if (fStatus === 'upcoming' && has) return false;
-    if (fStatus === 'scored' && !has) return false;
+    const finished = !!m.actual;
+    if (fStatus === 'upcoming' && finished) return false;
+    if (fStatus === 'scored' && !finished) return false;
     return true;
   });
 
@@ -773,6 +853,9 @@ function attachCardHandlers() {
 function onScoreChange(e) {
   const id = +e.target.dataset.match;
   const card = e.target.closest('.match-card');
+  const m = MATCHES.find(x => x.id === id);
+  // Safety: if the match has an actual final, never accept input changes
+  if (m && m.actual) return;
   const hInp = card.querySelector('[data-side="h"]');
   const aInp = card.querySelector('[data-side="a"]');
   const h = hInp.value === '' ? null : parseInt(hInp.value, 10);
@@ -780,30 +863,41 @@ function onScoreChange(e) {
   if (h == null || a == null || isNaN(h) || isNaN(a)) delete scores[id];
   else scores[id] = [h, a];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
-  
-  // Update accuracy pill without destroying the card
-  const m = MATCHES.find(x => x.id === id);
-  const acc = accuracyForMatch(m, scores[m.id]);
-  const accPill = acc === 'exact' ? '<span class="accuracy exact">✓ EXACT</span>' : acc === 'right' ? '<span class="accuracy right">✓ OUTCOME</span>' : acc === 'wrong' ? '<span class="accuracy wrong">✗ MISS</span>' : '';
-  const predEl = card.querySelector('.prediction');
-  predEl.innerHTML = `Prediction: <b>${m.pred[0]}–${m.pred[1]}</b> ${accPill}`;
-  
+
+  // Re-render this card so the My Prediction row appears/updates
+  const newHtml = renderMatchCard(m);
+  const wrap = document.createElement('div');
+  wrap.innerHTML = newHtml.trim();
+  const fresh = wrap.firstChild;
+  card.replaceWith(fresh);
+  attachCardHandlers();
+
   updateStats();
   renderStandings();
 }
 
 function updateStats() {
-  let played = 0, hit = 0, exact = 0;
+  let played = 0;
+  let aiHit = 0, aiExact = 0;
+  let myHit = 0, myExact = 0;
   MATCHES.forEach(m => {
-    const sc = scores[m.id]; if (!sc) return;
+    if (!m.actual) return;
     played++;
-    const a = accuracyForMatch(m, sc);
-    if (a === 'exact') { exact++; hit++; }
-    else if (a === 'right') hit++;
+    const aiAcc = accuracyOf(m.pred, m.actual);
+    if (aiAcc === 'exact') { aiExact++; aiHit++; }
+    else if (aiAcc === 'right') aiHit++;
+    const myPred = scores[m.id];
+    if (myPred) {
+      const myAcc = accuracyOf(myPred, m.actual);
+      if (myAcc === 'exact') { myExact++; myHit++; }
+      else if (myAcc === 'right') myHit++;
+    }
   });
   document.getElementById('stat-played').textContent = played;
-  document.getElementById('stat-hit').textContent = hit;
-  document.getElementById('stat-exact').textContent = exact;
+  document.getElementById('stat-ai-hit').textContent = aiHit;
+  document.getElementById('stat-ai-exact').textContent = aiExact;
+  document.getElementById('stat-my-hit').textContent = myHit;
+  document.getElementById('stat-my-exact').textContent = myExact;
 }
 
 function computeStandings(group) {
@@ -811,7 +905,7 @@ function computeStandings(group) {
   const table = {};
   teams.forEach(t => { table[t] = { team:t, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0 }; });
   MATCHES.filter(m => m.group === group).forEach(m => {
-    const sc = scores[m.id]; if (!sc) return;
+    const sc = m.actual; if (!sc) return;
     const [h, a] = sc;
     const ht = table[m.home], at = table[m.away];
     ht.P++; at.P++;
@@ -865,7 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.expand-btn').forEach(b => b.textContent = '▾ Show analysis');
   });
   document.getElementById('reset-all').addEventListener('click', () => {
-    if (confirm('Clear ALL entered scores? This cannot be undone.')) {
+    if (confirm('Clear all of YOUR predictions? (Real final scores stay locked.) This cannot be undone.')) {
       scores = {};
       localStorage.removeItem(STORAGE_KEY);
       render();
@@ -935,9 +1029,14 @@ let simGroupScores = null;
 let bracketState = null;
 
 function getActiveGroupScores() {
-  // Priority: simGroupScores > user scores (if any)
+  // Priority: explicit simulator state > (actuals + user predictions merged, actuals win)
   if (simGroupScores) return simGroupScores;
-  return scores;
+  const merged = {};
+  MATCHES.forEach(m => {
+    if (m.actual) merged[m.id] = m.actual;
+    else if (scores[m.id]) merged[m.id] = scores[m.id];
+  });
+  return merged;
 }
 
 function fillFromPredictions() {
