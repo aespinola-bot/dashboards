@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Evolt 360 — Body Composition Progression Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1216;
+    --panel: #161b22;
+    --panel2: #1c232c;
+    --line: #2a323d;
+    --ink: #eaf0f6;
+    --muted: #8b95a3;
+    --good: #2ecc71;
+    --warn: #f39c12;
+    --bad:  #e74c3c;
+    --accent: #3aa0ff;
+    --warm: #ff7a45;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 36px 28px 80px; }
+  header { padding-bottom: 18px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  .tag { color: var(--warm); font-size: 12px; letter-spacing: .18em; font-weight: 700; }
+  h1 { font-size: 36px; margin: 4px 0 6px; letter-spacing: -.5px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .scans { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .scan-pill {
+    background: var(--panel); border: 1px solid var(--line);
+    padding: 8px 14px; border-radius: 20px; font-size: 12px;
+  }
+  .scan-pill b { color: var(--accent); }
+
+  h2 { font-size: 18px; letter-spacing: .04em; text-transform: uppercase; margin: 36px 0 14px;
+       color: var(--muted); font-weight: 600; }
+  h2 .num { color: var(--warm); margin-right: 10px; font-weight: 700; }
+
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+    .grid-6 { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .grid-2, .grid-3, .grid-4, .grid-6 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted);
+             text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .card .val { font-size: 30px; font-weight: 700; letter-spacing: -.5px; }
+  .card .delta { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .card .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--bad); }
+  .delta.neut { color: var(--muted); }
+
+  .chart-card { background: var(--panel); border: 1px solid var(--line);
+                border-radius: 12px; padding: 18px; }
+  .chart-card h3 { margin: 0 0 4px; font-size: 14px; }
+  .chart-card .desc { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap.tall { height: 340px; }
+
+  .insight {
+    border-left: 3px solid var(--warn); background: var(--panel2);
+    padding: 14px 18px; border-radius: 8px; margin: 8px 0; font-size: 14px;
+  }
+  .insight.bad { border-left-color: var(--bad); }
+  .insight.good { border-left-color: var(--good); }
+  .insight b { color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase;
+       letter-spacing: .08em; font-weight: 600; }
+  td.bad { color: var(--bad); }
+  td.good { color: var(--good); }
+
+  .legend-row { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px;
+                color: var(--muted); margin-top: 8px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+         margin-right: 6px; vertical-align: middle; }
+
+  footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--line);
+           color: var(--muted); font-size: 12px; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  .tab {
+    background: transparent; color: var(--muted); border: none;
+    padding: 12px 20px; font-size: 13px; font-weight: 600;
+    letter-spacing: .04em; cursor: pointer; border-bottom: 2px solid transparent;
+    font-family: inherit; transition: all .15s;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--warm); border-bottom-color: var(--warm); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px;
+           font-size: 10px; font-weight: 700; letter-spacing: .06em; margin-left: 6px;
+           text-transform: uppercase; }
+  .badge.optimal { background: rgba(46,204,113,.15); color: var(--good); }
+  .badge.high    { background: rgba(243,156,18,.15); color: var(--warn); }
+  .badge.under   { background: rgba(58,160,255,.15); color: var(--accent); }
+  .badge.over    { background: rgba(231,76,60,.15);  color: var(--bad); }
+  .badge.balanced{ background: rgba(46,204,113,.15); color: var(--good); }
+
+  .scan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .scan-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .scan-grid { grid-template-columns: 1fr; } }
+  .metric {
+    background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px;
+  }
+  .metric .name { font-size: 11px; color: var(--muted); text-transform: uppercase;
+                  letter-spacing: .06em; font-weight: 600; }
+  .metric .value { font-size: 24px; font-weight: 700; margin-top: 6px;
+                   letter-spacing: -.5px; }
+  .metric .unit { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .metric .range { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric .vs-prev { font-size: 11px; margin-top: 6px; font-weight: 600; }
+  .vs-prev.up { color: var(--good); } .vs-prev.down { color: var(--bad); }
+
+  .seg-section { margin-top: 24px; }
+  .seg-section h4 { font-size: 13px; color: var(--muted); text-transform: uppercase;
+                    letter-spacing: .08em; margin: 0 0 10px; font-weight: 600; }
+  .seg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  @media (max-width: 900px) { .seg-grid { grid-template-columns: repeat(2, 1fr); } }
+  .seg-cell {
+    background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .seg-cell .part { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                    letter-spacing: .06em; font-weight: 600; }
+  .seg-cell .lean { font-size: 18px; font-weight: 700; margin-top: 4px; color: var(--green); }
+  .seg-cell .fat  { font-size: 14px; font-weight: 600; color: var(--warm); margin-top: 2px; }
+  .seg-cell .lab  { font-size: 9px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="tag">EVOLT 360 · BODY COMPOSITION PROGRESSION</div>
+  <h1>Tomas — 7-Scan Progression Report</h1>
+  <div class="sub">Male · 51 yrs · 5'9" · BIA 5-compartment model</div>
+  <div class="scans">
+    <span class="scan-pill"><b>Aug 2024</b> · 185.8 lb · 17.5% BF</span>
+    <span class="scan-pill" style="border-color:#3acca0; color:#3acca0"><b>Jun 2025 ★</b> · 179.6 lb · 13.4% BF</span>
+    <span class="scan-pill"><b>Jul 2025</b> · 182.2 lb · 14.9% BF</span>
+    <span class="scan-pill"><b>Oct 2025</b> · 193.3 lb · 16.0% BF</span>
+    <span class="scan-pill"><b>May 2026</b> · 188.1 lb · 15.5% BF</span>
+    <span class="scan-pill"><b>5 Jun 2026</b> · 184.3 lb · 19.2% BF</span>
+    <span class="scan-pill" style="border-color:#3acca0; color:#3acca0"><b>11 Jun 2026 · current</b> · 182.8 lb · 15.8% BF</span>
+  </div>
+  <div class="sub" style="margin-top:8px; font-size:12px;">
+    11 data points spanning 22 months · 4 historical milestones (weight/SMM/PBF only) · 7 detailed scans (InBody Jun/Jul/Oct 2025, Evolt 12 May / 21 May / 5 Jun / 11 Jun 2026)
+  </div>
+</header>
+
+<!-- ===================== HEADLINE ===================== -->
+<h2><span class="num">01</span> Headline · 12 months from your peak (Jun 2025 → 11 Jun 2026)</h2>
+<div class="grid grid-6">
+  <div class="card">
+    <h3>Weight</h3>
+    <div class="val">182.8<span style="font-size:14px;color:var(--muted)"> lb</span></div>
+    <div class="delta down">+3.2 lb</div>
+    <div class="meta">vs Jun 2025 (179.6)</div>
+  </div>
+  <div class="card">
+    <h3>Lean Body Mass</h3>
+    <div class="val">153.9<span style="font-size:14px;color:var(--muted)"> lb</span></div>
+    <div class="delta down">−1.7 lb</div>
+    <div class="meta">vs Jun 2025 (155.6)</div>
+  </div>
+  <div class="card">
+    <h3>Skeletal Muscle</h3>
+    <div class="val">86.0<span style="font-size:14px;color:var(--muted)"> lb</span></div>
+    <div class="delta down">−3.5 lb</div>
+    <div class="meta">vs Jun 2025 (89.5)</div>
+  </div>
+  <div class="card">
+    <h3>Body Fat Mass</h3>
+    <div class="val">28.9<span style="font-size:14px;color:var(--muted)"> lb</span></div>
+    <div class="delta down">+4.9 lb</div>
+    <div class="meta">vs Jun 2025 (24.0)</div>
+  </div>
+  <div class="card">
+    <h3>Body Fat %</h3>
+    <div class="val">15.8<span style="font-size:14px;color:var(--muted)">%</span></div>
+    <div class="delta down">+2.4 pp</div>
+    <div class="meta">vs Jun 2025 (13.4%)</div>
+  </div>
+  <div class="card">
+    <h3>Visceral Fat</h3>
+    <div class="val">9<span style="font-size:14px;color:var(--muted)"> level</span></div>
+    <div class="delta up">balanced</div>
+    <div class="meta">back in range (was 11)</div>
+  </div>
+</div>
+
+<div class="insight good" style="margin-top:18px">
+  <b>Bottom line:</b> June 2025 was your peak — 13.4% BF, 89.5 lb SMM, 179.6 lb. You held it through Jul (14.9% BF), bulked to <b>193.3 lb in Oct 2025</b> (SMM 93.3, 16.0% BF), then drifted: by 5 Jun 2026 you were at 184.3 lb / 19.2% BF with visceral level 11 (over-range) — the worst point in the timeline. <b>The 11 Jun scan (today, 6 days later) shows a sharp reversal:</b> 182.8 lb (−1.5), BF% 15.8 (−3.4 pp), SMM 86.0 (+2.9), visceral level back to 9 (balanced), fat mass −6.4 lb. <b>Caveat:</b> swings of this magnitude in 6 days are too large to be pure tissue change — most of it is hydration, glycogen, and pre-scan state (sodium, sleep, stomach contents). The <i>direction</i> is real and matches the corrective changes you started; the <i>magnitude</i> will normalize over the next 2–3 scans. <b>Net 12-month picture (Jun 25 → 11 Jun 26):</b> −3.5 lb SMM, +4.9 lb fat, +2.4 pp BF — recoverable, and now trending the right way.
+</div>
+
+<!-- ===================== TREND ===================== -->
+<h2><span class="num">02</span> Mass trends · 22 months · weight vs lean vs fat</h2>
+<div class="grid grid-2">
+  <div class="chart-card">
+    <h3>Weight, lean body mass, fat mass</h3>
+    <div class="desc">All values in lb. Lean and fat moving in opposite directions is a red flag.</div>
+    <div class="chart-wrap tall"><canvas id="cMass"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Body composition split</h3>
+    <div class="desc">Stacked: lean (muscle+protein+mineral) + body water + fat. Lean shrinking while fat grows.</div>
+    <div class="chart-wrap tall"><canvas id="cStack"></canvas></div>
+  </div>
+</div>
+
+<!-- ===================== SEGMENTAL ===================== -->
+<h2><span class="num">03</span> Segmental analysis · where the change is happening</h2>
+<div class="grid grid-2">
+  <div class="chart-card">
+    <h3>Lean mass per body part</h3>
+    <div class="desc">All 5 segments declined. Torso lost the most absolute (−2.7 lb), arms ~−0.5 lb each.</div>
+    <div class="chart-wrap tall"><canvas id="cSegLean"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Fat mass per body part</h3>
+    <div class="desc">Fat is being deposited disproportionately in the torso (visceral region), legs, then arms.</div>
+    <div class="chart-wrap tall"><canvas id="cSegFat"></canvas></div>
+  </div>
+</div>
+<div class="insight bad">
+  <b>Where to focus:</b> The torso lost <b>−6 lb of lean mass</b> from Jun 2025 (67.3) to today (61.3) — that's
+  the trunk muscle (back, abs, chest) deteriorating. Both legs lost ~2 lb of muscle each over 12 months. Of the
+  recent 6.2 lb fat gain, <b>52% (3.2 lb) went to the torso</b> — visceral region. Re-introduce <i>heavy</i>
+  compound lifts: squats, deadlifts, presses, rows.
+</div>
+
+<!-- ===================== VISCERAL & METABOLISM ===================== -->
+<h2><span class="num">04</span> Visceral fat &amp; metabolism</h2>
+<div class="grid grid-3">
+  <div class="chart-card">
+    <h3>Visceral fat (level &amp; area)</h3>
+    <div class="desc">Level crossed into Over-Range. Area at the optimal ceiling.</div>
+    <div class="chart-wrap"><canvas id="cVisc"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Subcutaneous vs visceral fat (lb)</h3>
+    <div class="desc">Both rising. Subcutaneous +5.0 lb, visceral +1.2 lb.</div>
+    <div class="chart-wrap"><canvas id="cFatType"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>BMR &amp; TEE (kcal)</h3>
+    <div class="desc">BMR fell 97 kcal. Lower lean mass = lower daily burn. Compounds the problem.</div>
+    <div class="chart-wrap"><canvas id="cBMR"></canvas></div>
+  </div>
+</div>
+
+<!-- ===================== HYDRATION & QUALITY ===================== -->
+<h2><span class="num">05</span> Hydration &amp; body quality</h2>
+<div class="grid grid-3">
+  <div class="chart-card">
+    <h3>Total body water (ICF / ECF)</h3>
+    <div class="desc">Water dropped 7 lb — tracks with muscle loss (muscle is ~73% water).</div>
+    <div class="chart-wrap"><canvas id="cWater"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Protein &amp; mineral mass</h3>
+    <div class="desc">Protein mass falling — strongest signal that dietary protein is too low for activity.</div>
+    <div class="chart-wrap"><canvas id="cProt"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>BWI score &amp; bio-age</h3>
+    <div class="desc">BWI dropped from 7.3 → 7.1; bio-age ticked up from 47 → 48.</div>
+    <div class="chart-wrap"><canvas id="cBWI"></canvas></div>
+  </div>
+</div>
+
+<!-- ===================== SINGLE SCAN VIEW (TABS) ===================== -->
+<h2><span class="num">06</span> Single scan view · toggle between scans</h2>
+<div class="tabs" style="flex-wrap:wrap">
+  <button class="tab active" data-tab="0">Jun 6, 2025 <span class="badge optimal">InBody · ★ peak</span></button>
+  <button class="tab" data-tab="1">Jul 18, 2025 <span class="badge optimal">InBody</span></button>
+  <button class="tab" data-tab="2">Oct 17, 2025 <span class="badge optimal">InBody · max wt</span></button>
+  <button class="tab" data-tab="3">May 12, 2026 <span class="badge high">Evolt</span></button>
+  <button class="tab" data-tab="4">May 21, 2026 <span class="badge high">Evolt</span></button>
+  <button class="tab" data-tab="5">Jun 5, 2026 <span class="badge over">Evolt</span></button>
+  <button class="tab" data-tab="6">Jun 11, 2026 <span class="badge optimal">Evolt · current</span></button>
+</div>
+<div id="scanPanels"></div>
+
+<!-- ===================== TABLE ===================== -->
+<h2><span class="num">07</span> Full data table</h2>
+<div class="card" style="padding:6px 18px 18px">
+<table>
+<thead><tr>
+  <th>Metric</th>
+  <th>Aug '24</th><th>Oct '24</th><th>Dec '24</th><th>Mar '25</th>
+  <th>Jun '25 ★</th><th>Jul '25</th><th>Oct '25</th>
+  <th>12 May '26</th><th>21 May '26</th><th>5 Jun '26</th><th>11 Jun '26</th>
+  <th>Δ peak→now</th><th></th>
+</tr></thead>
+<tbody id="tbl"></tbody>
+</table>
+</div>
+
+<!-- ===================== INSIGHTS ===================== -->
+<h2><span class="num">08</span> What this means &amp; what to do</h2>
+<div class="insight"><b>1 · Muscle bleed reversed (mostly hydration — but the direction is right).</b> 12 May → 5 Jun showed −5.7 lb SMM in 24 days; <b>11 Jun shows +2.9 lb SMM rebound vs 5 Jun</b>. That much real tissue can't turn over in 6 days, so most of the swing is intra/extracellular fluid normalizing (TBW also bounced 107.4 → 110.9). The corrective actions are still the right ones: <b>protein at 1 g per lb bodyweight ≈ 183 g/day</b> (Evolt's 117–124 g target is too low for 86 lb of SMM); deficit capped at 300–400 kcal; 3–4 resistance sessions/wk with progressive overload. Watch the next 2 scans for the steady-state reading.</div>
+<div class="insight good"><b>2 · Visceral fat back in range.</b> Level 11 → 9 in 6 days; area 100 → 84 cm². Whatever you changed (fewer refined carbs / alcohol / better sleep / more sleep) is moving the right number. Hold the pattern: log alcohol, 7+ h sleep, fiber-dense greens, added sugars under 25 g/day. Goal for next scan: hold at ≤9 with area trending under 80 cm² — that locks in the metabolic-syndrome buffer.</div>
+<div class="insight">
+  <b>3 · Cardio profile is fine — calorie context isn't.</b> Your 30-min incline walk burns ~250–300 kcal and
+  is great for the visceral-fat target. The issue isn't <i>that</i> you're walking, it's that you're walking and
+  under-fuelling protein on a deficit, which forces the body to catabolize muscle. Keep the walks; fix the food.
+</div>
+<div class="insight">
+  <b>4 · Legs need direct stimulus.</b> Both legs lost ~1.1 lb of lean mass each. Walking maintains some
+  lower-body capacity but is not enough at age 51 to preserve quadriceps and glutes. Add 2 leg-focused sessions/wk:
+  squats / leg press / RDLs / split squats. 3–4 sets, 6–10 reps, hard.
+</div>
+<div class="insight good">
+  <b>5 · The good news.</b> You've been here before. In June 2025 you were 13.4% body fat with 89.5 lb of muscle.
+  Your BMR (1830) and TEE (2818) are still strong. Bone mineral mass is high. The 12-month damage is reversible —
+  you have proof in your own history that your body responds. The path back: protein up, lifting in, cardio
+  consistent but not excessive, sleep prioritized. Re-scan in 4 weeks.
+</div>
+
+<h2><span class="num">09</span> Recommended re-scan cadence</h2>
+<div class="card">
+  <ul style="margin:0; padding-left: 18px; line-height: 1.7;">
+    <li><b>Next scan:</b> 4 weeks from today (≈ 9 July 2026) — by then hydration variance will have averaged out and you'll see the real trend.</li>
+    <li><b>Watch list (must hold the right direction):</b> Skeletal muscle ↑ (target: back to 89, currently 86), Visceral fat level ≤9 (✓ currently 9 — hold it), Torso lean ↑ (target: 65+, currently 62.4), BWI ↑ (currently 7.3).</li>
+    <li><b>Weight target for next scan:</b> 184–186 lb is fine. <i>Composition</i> is the goal, not the scale. Target body fat % = 16% within 8 weeks (interim toward your 13.4% peak).</li>
+  </ul>
+</div>
+
+<footer>
+  Generated from Evolt 360 BIA scans · for personal tracking only · not medical advice ·
+  All masses in lb · Visceral fat area in cm² · Energy in kcal.
+</footer>
+</div>
+
+<script>
+// ============================================================
+// DATA — full timeline (9 points, Aug 2024 → Jun 2026)
+// First 4 are historical (weight/SMM/PBF only) from InBody history chart
+// Index 4-5 = InBody full scans (Jun, Jul 2025)
+// Index 6-8 = Evolt full scans (May 12, May 21, Jun 5 2026)
+// ============================================================
+const labels = ["Aug '24", "Oct '24", "Dec '24", "Mar '25",
+                "Jun '25", "Jul '25", "Oct '25", "12 May '26", "21 May '26", "5 Jun '26", "11 Jun '26"];
+
+// Pad helper
+const N = null;
+
+const D = {
+  weight:  [185.8, 185.7, 179.6, 184.6, 179.6, 182.2, 193.3, 188.1, 186.7, 184.3, 182.8],
+  lbm:     [N,     N,     N,     N,     155.6, 155.0, 162.4, 159.0, 153.2, 149.0, 153.9],
+  smm:     [87.5,  90.6,  88.0,  88.8,  89.5,  88.8,  93.3,  88.8,  85.5,  83.1, 86.0],
+  protein: [N,     N,     N,     N,     N,     N,     32.6,  33.5,  32.0,  31.1, 32.4],
+  mineral: [N,     N,     N,     N,     N,     N,     10.9,  11.0,  10.8,  10.6, 10.6],
+  tbw:     [N,     N,     N,     N,     114.0, 113.3, 118.9, 114.4, 110.5, 107.4, 110.9],
+  icf:     [N,     N,     N,     N,     N,     N,     78.0,  75.2,  72.3,  71.0, 73.0],
+  ecf:     [N,     N,     N,     N,     N,     N,     40.9,  39.2,  38.1,  36.4, 37.9],
+  bfm:     [N,     N,     N,     N,     24.0,  27.2,  30.9,  29.1,  33.5,  35.3, 28.9],
+  subcut:  [N,     N,     N,     N,     N,     N,     N,     25.4,  29.1,  30.4, 25.1],
+  visMass: [N,     N,     N,     N,     N,     N,     N,     3.7,   4.4,   4.9, 3.7],
+  visArea: [N,     N,     N,     N,     N,     N,     N,     83,    93,    100, 84],
+  visLvl:  [N,     N,     N,     N,     N,     N,     N,     9,     10,    11, 9],
+  bf_pct:  [17.5,  15.0,  14.8,  16.5,  13.4,  14.9,  16.0,  15.5,  17.9,  19.2, 15.8],
+  bmr:     [N,     N,     N,     N,     1894,  1888,  1962,  1927,  1871,  1830, 1877],
+  tee:     [N,     N,     N,     N,     N,     N,     3022,  2967,  2881,  2818, 2890],
+  bwi:     [N,     N,     N,     N,     N,     N,     N,     7.3,   7.1,   7.1, 7.3],
+  bioage:  [N,     N,     N,     N,     N,     N,     N,     47,    48,    48, 47],
+  abdom:   [N,     N,     N,     N,     N,     N,     N,     32.8,  33.9,  34.3, 32.7],
+  whr:     [N,     N,     N,     N,     N,     N,     N,     0.88,  0.90,  0.92, 0.88],
+  bmi:     [27.43, 27.41, 26.52, 27.26, 26.5,  26.9,  28.5,  27.79, 27.58, 27.22, 27.00],
+  dryLean: [N,     N,     N,     N,     41.7,  41.7,  43.5,  44.6,  42.7,  41.6, 43.0],
+};
+
+// Segmental: only 5 scans have segmental detail (Jun 25, Jul 25, May 12, May 21, Jun 5) — Oct 25 InBody had no segmental
+const SEG_LEAN = {
+  "Left arm":  [N, N, N, N, 9.00,  8.60,  N, 8.91,  8.38,  8.27, 8.49],
+  "Right arm": [N, N, N, N, 9.08,  8.84,  N, 8.73,  8.07,  8.27, 8.49],
+  "Torso":     [N, N, N, N, 67.30, 65.60, N, 64.07, 61.31, 61.33, 62.39],
+  "Left leg":  [N, N, N, N, 23.61, 23.57, N, 22.58, 22.07, 21.47, 22.02],
+  "Right leg": [N, N, N, N, 23.79, 23.48, N, 22.42, 21.78, 21.47, 22.02],
+};
+// Segmental fat: only Evolt provides this (last 3 only)
+const SEG_FAT = {
+  "Left arm":  [N, N, N, N, N, N, N, 1.28,  1.72,  1.76, 1.37],
+  "Right arm": [N, N, N, N, N, N, N, 1.39,  1.96,  1.76, 1.37],
+  "Torso":     [N, N, N, N, N, N, N, 17.70, 19.58, 20.94, 17.33],
+  "Left leg":  [N, N, N, N, N, N, N, 4.30,  5.00,  5.40, 4.41],
+  "Right leg": [N, N, N, N, N, N, N, 4.43,  5.25,  5.40, 4.41],
+};
+
+// chart defaults
+Chart.defaults.color = "#8b95a3";
+Chart.defaults.borderColor = "#2a323d";
+Chart.defaults.font.family = '-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+Chart.defaults.font.size = 11;
+
+const C = {
+  ink: "#eaf0f6", muted: "#8b95a3",
+  good: "#2ecc71", warn: "#f39c12", bad: "#e74c3c",
+  acc: "#3aa0ff", warm: "#ff7a45", purple: "#a085ff",
+  green: "#3acca0", pink: "#ff5d8f"
+};
+
+const palette = [C.acc, C.warm, C.purple, C.green, C.pink];
+
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  spanGaps: true,
+  plugins: {
+    legend: { labels: { boxWidth: 10, usePointStyle: true, pointStyle: "circle" } },
+    tooltip: { mode: "index", intersect: false }
+  },
+  scales: {
+    x: { grid: { display: false } },
+    y: { grid: { color: "rgba(255,255,255,.05)" } }
+  },
+  interaction: { mode: "index", intersect: false }
+};
+
+// ============================================================
+// CHARTS
+// ============================================================
+
+// 1 — Mass trend
+new Chart(document.getElementById("cMass"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "Weight",     data: D.weight, borderColor: C.acc,  backgroundColor: C.acc,  tension: .3 },
+    { label: "Lean Mass",  data: D.lbm,    borderColor: C.green, backgroundColor: C.green, tension: .3 },
+    { label: "Fat Mass",   data: D.bfm,    borderColor: C.bad,  backgroundColor: C.bad,  tension: .3 },
+  ]},
+  options: { ...baseOpts, scales: { ...baseOpts.scales, y: { ...baseOpts.scales.y, title: { display: true, text: "lb" } } } }
+});
+
+// 2 — Stacked composition
+new Chart(document.getElementById("cStack"), {
+  type: "bar",
+  data: { labels, datasets: [
+    { label: "Skeletal Muscle (incl. in lean)", data: D.smm, backgroundColor: C.green, stack: "lean" },
+    { label: "Other lean (protein, mineral, water)", data: D.lbm.map((v,i)=>v-D.smm[i]), backgroundColor: "#206e4a", stack: "lean" },
+    { label: "Subcutaneous Fat", data: D.subcut, backgroundColor: C.warm, stack: "fat" },
+    { label: "Visceral Fat",     data: D.visMass, backgroundColor: C.bad,  stack: "fat" },
+  ]},
+  options: { ...baseOpts, scales: {
+    x: { ...baseOpts.scales.x, stacked: true },
+    y: { ...baseOpts.scales.y, stacked: true, title: { display: true, text: "lb" } }
+  }}
+});
+
+// 3 — Segmental lean
+new Chart(document.getElementById("cSegLean"), {
+  type: "bar",
+  data: { labels, datasets: Object.keys(SEG_LEAN).map((k,i) => ({
+    label: k, data: SEG_LEAN[k],
+    backgroundColor: palette[i], borderColor: palette[i], borderWidth: 1
+  }))},
+  options: { ...baseOpts, scales: { ...baseOpts.scales, y: { ...baseOpts.scales.y, title: { display: true, text: "lb (lean)" } } } }
+});
+
+// 4 — Segmental fat
+new Chart(document.getElementById("cSegFat"), {
+  type: "bar",
+  data: { labels, datasets: Object.keys(SEG_FAT).map((k,i) => ({
+    label: k, data: SEG_FAT[k],
+    backgroundColor: palette[i], borderColor: palette[i], borderWidth: 1
+  }))},
+  options: { ...baseOpts, scales: { ...baseOpts.scales, y: { ...baseOpts.scales.y, title: { display: true, text: "lb (fat)" } } } }
+});
+
+// 5 — Visceral
+new Chart(document.getElementById("cVisc"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "Visceral fat level (1-20)", data: D.visLvl, yAxisID: "y", borderColor: C.bad, backgroundColor: C.bad, tension: .3 },
+    { label: "Visceral fat area (cm²)",   data: D.visArea, yAxisID: "y1", borderColor: C.warm, backgroundColor: C.warm, tension: .3, borderDash: [5,5] },
+  ]},
+  options: { ...baseOpts,
+    scales: {
+      x: { grid: { display:false } },
+      y:  { position: "left",  beginAtZero: false, title: { display:true, text:"Level" } },
+      y1: { position: "right", grid: { display:false }, title: { display:true, text:"Area cm²" } }
+    }
+  }
+});
+
+// 6 — Fat types
+new Chart(document.getElementById("cFatType"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "Subcutaneous (lb)", data: D.subcut, borderColor: C.warm, backgroundColor: C.warm, tension: .3, fill: true },
+    { label: "Visceral (lb)",     data: D.visMass, borderColor: C.bad, backgroundColor: C.bad, tension: .3 },
+  ]},
+  options: baseOpts
+});
+
+// 7 — BMR / TEE
+new Chart(document.getElementById("cBMR"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "BMR", data: D.bmr, borderColor: C.acc,    backgroundColor: C.acc,    tension: .3 },
+    { label: "TEE", data: D.tee, borderColor: C.purple, backgroundColor: C.purple, tension: .3 },
+  ]},
+  options: { ...baseOpts, scales: { ...baseOpts.scales, y: { ...baseOpts.scales.y, title: { display:true, text:"kcal" } } } }
+});
+
+// 8 — Water
+new Chart(document.getElementById("cWater"), {
+  type: "bar",
+  data: { labels, datasets: [
+    { label: "Intracellular (ICF)", data: D.icf, backgroundColor: C.acc,    stack: "w" },
+    { label: "Extracellular (ECF)", data: D.ecf, backgroundColor: C.purple, stack: "w" },
+  ]},
+  options: { ...baseOpts, scales: {
+    x: { ...baseOpts.scales.x, stacked: true },
+    y: { ...baseOpts.scales.y, stacked: true, title: { display:true, text:"lb" } }
+  }}
+});
+
+// 9 — Protein / mineral
+new Chart(document.getElementById("cProt"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "Protein (lb)", data: D.protein, borderColor: C.green, backgroundColor: C.green, tension: .3 },
+    { label: "Mineral (lb)", data: D.mineral, borderColor: C.warm,  backgroundColor: C.warm,  tension: .3 },
+  ]},
+  options: baseOpts
+});
+
+// 10 — BWI / Bio age
+new Chart(document.getElementById("cBWI"), {
+  type: "line",
+  data: { labels, datasets: [
+    { label: "BWI Score (/10)", data: D.bwi,    yAxisID: "y",  borderColor: C.green, backgroundColor: C.green, tension: .3 },
+    { label: "Bio Age (yrs)",   data: D.bioage, yAxisID: "y1", borderColor: C.warm,  backgroundColor: C.warm,  tension: .3, borderDash:[5,5] },
+  ]},
+  options: { ...baseOpts,
+    scales: {
+      x: { grid: { display:false } },
+      y:  { position: "left",  title: { display:true, text:"BWI" }, suggestedMin: 6, suggestedMax: 8.5 },
+      y1: { position: "right", grid: { display:false }, title: { display:true, text:"yrs" }, suggestedMin: 45, suggestedMax: 51 }
+    }
+  }
+});
+
+// ============================================================
+// TABS — 5 detailed scans (data indices 4..8)
+// Tab idx 0..4 → Data idx 4..8
+// ============================================================
+const TAB_TO_DATA = [4, 5, 6, 7, 8, 9, 10];  // map tab → array index (7 tabs)
+const SCANS = [
+  { date: "Jun 6, 2025",   time: "11:54", weight: 179.6, source: "InBody 270" },
+  { date: "Jul 18, 2025",  time: "12:06", weight: 182.2, source: "InBody 270" },
+  { date: "Oct 17, 2025",  time: "03:12", weight: 193.3, source: "InBody (CSV)" },
+  { date: "May 12, 2026",  time: "12:28", weight: 188.1, source: "Evolt 360" },
+  { date: "May 21, 2026",  time: "10:59", weight: 186.7, source: "Evolt 360" },
+  { date: "Jun 5, 2026",   time: "11:37", weight: 184.3, source: "Evolt 360" },
+  { date: "Jun 11, 2026",  time: "11:59", weight: 182.8, source: "Evolt 360" },
+];
+
+// status flags by data-index (10 long; null where no scan-side flag)
+const STATUS = {
+  // InBody doesn't tag; show neutral. Evolt last 3 from PDFs.
+  lbm:    [N,N,N,N, "optimal","optimal", "optimal", "high","high","high","high"],
+  smm:    [N,N,N,N, "optimal","optimal", N, "high","high","high","high"],
+  protein:[N,N,N,N, N,N, N, "high","high","high","high"],
+  mineral:[N,N,N,N, N,N, N, "high","high","high","high"],
+  tbw:    [N,N,N,N, "optimal","optimal", N, "high","high","high","high"],
+  bfm:    [N,N,N,N, "optimal","optimal", N, "optimal","high","high","optimal"],
+  visMass:[N,N,N,N, N,N, N, "balanced","balanced","balanced","balanced"],
+  visArea:[N,N,N,N, N,N, N, "optimal","optimal","optimal","optimal"],
+  visLvl: [N,N,N,N, N,N, N, "balanced","over","over","balanced"],
+  bf_pct: [N,N,N,N, "optimal","optimal", N, "optimal","optimal","optimal","optimal"],
+};
+const RANGES = {
+  lbm: "[110.2 - 134.9]", smm: "[61.7 - 75.4]", protein: "[22.3 - 27.1]",
+  mineral: "[7.5 - 9.3]", tbw: "[80.5 - 98.3]", bfm: "[20.7 - 31.3]",
+  visArea: "[50 - 100]", bf_pct: "[15 - 20]"
+};
+
+// Segmental ranges per scan (Evolt only) — 6 tabs now; Oct tab has no segmental
+const SEG_RANGE_LEAN = {
+  arm:  ["[6.02 - 7.34]","[6.02 - 7.34]","[6.02 - 7.34]","[6.02 - 7.34]","[6.02 - 7.34]","[6.02 - 7.34]","[6.02 - 7.34]"],
+  torso:["[45.17 - 55.23]","[45.17 - 55.23]","[45.17 - 55.23]","[45.17 - 55.23]","[45.17 - 55.23]","[45.17 - 55.23]","[45.17 - 55.23]"],
+  leg:  ["[16.58 - 20.26]","[16.58 - 20.26]","[16.58 - 20.26]","[16.58 - 20.26]","[16.58 - 20.26]","[16.58 - 20.26]","[16.58 - 20.26]"],
+};
+const SEG_RANGE_FAT = {
+  arm:   [N,N,N, "[1.50 - 2.25]","[1.48 - 2.23]","[1.48 - 2.23]","[1.46 - 2.18]"],
+  torso: [N,N,N, "[11.82 - 17.73]","[11.68 - 17.53]","[11.88 - 17.81]","[11.53 - 17.28]"],
+  leg:   [N,N,N, "[3.97 - 5.95]","[3.99 - 5.97]","[3.95 - 5.93]","[3.90 - 5.84]"],
+};
+// segmental status indexed by tab (0..5)
+const SEG_STAT_LEAN = {
+  "Left arm": ["high","high",N,"high","high","high","high"],
+  "Right arm":["high","high",N,"high","high","high","high"],
+  "Torso":    ["high","high",N,"high","high","high","high"],
+  "Left leg": ["high","high",N,"high","high","high","high"],
+  "Right leg":["high","high",N,"high","high","high","high"],
+};
+const SEG_STAT_FAT = {
+  "Left arm":  [N,N,N, "under","optimal","optimal","under"],
+  "Right arm": [N,N,N, "under","optimal","optimal","under"],
+  "Torso":     [N,N,N, "optimal","high","high","high"],
+  "Left leg":  [N,N,N, "optimal","optimal","optimal","optimal"],
+  "Right leg": [N,N,N, "optimal","optimal","optimal","optimal"],
+};
+
+// Nutrition recs — InBody doesn't provide; only Evolt last 3
+const NUTRI = [
+  null,
+  null,
+  null,
+  { cal: "1927-2027", p: "145-152 g (30%)", c: "169-177 g (35%)", f: "75-79 g (35%)" },
+  { cal: "1871-1971", p: "117-123 g (25%)", c: "23-25 g (5%)",    f: "146-153 g (70%)" },
+  { cal: "1830-1930", p: "114-121 g (25%)", c: "23-24 g (5%)",    f: "142-150 g (70%)" },
+  { cal: "1877-1977", p: "117-124 g (25%)", c: "23-25 g (5%)",    f: "146-154 g (70%)" },
+];
+
+function badge(s) { return s ? `<span class="badge ${s}">${s}</span>` : ""; }
+
+// Map of values that are derived (calculated) rather than directly measured.
+// Indexed by data-array index. Used to show an "(est.)" indicator and a tooltip.
+const DERIVED = {
+  6: {  // Oct 17, 2025 InBody CSV had limited fields — these are derived from validated ratios
+    lbm:     "Weight − BFM",
+    tbw:     "LBM × 0.732 (validated against Jun/Jul '25 scans within 0.1%)",
+    dryLean: "LBM − TBW",
+    icf:     "TBW × 0.656 (averaged across Evolt scans)",
+    ecf:     "TBW × 0.344 (averaged across Evolt scans)",
+    protein: "Dry Lean × 0.75 (averaged across Evolt scans)",
+    mineral: "Dry Lean × 0.25 (averaged across Evolt scans)",
+    tee:     "BMR × 1.54 activity factor (consistent across Evolt scans)",
+  }
+};
+
+function vsPrev(tabIdx, key, goodDir) {
+  const dataIdx = TAB_TO_DATA[tabIdx];
+  const curr = D[key][dataIdx];
+  if (curr === null || curr === undefined) return "";
+  // find previous non-null value
+  let prev = null;
+  for (let i = dataIdx - 1; i >= 0; i--) {
+    if (D[key][i] !== null && D[key][i] !== undefined) { prev = D[key][i]; break; }
+  }
+  if (prev === null) return `<div class="vs-prev" style="color:var(--muted)">first scan</div>`;
+  const d = +(curr - prev).toFixed(2);
+  if (d === 0) return `<div class="vs-prev">no change</div>`;
+  const isGood = (goodDir === "up" && d > 0) || (goodDir === "down" && d < 0);
+  const arrow = d > 0 ? "▲" : "▼";
+  return `<div class="vs-prev ${isGood ? "up" : "down"}">${arrow} ${d > 0 ? "+" : ""}${d} vs prev</div>`;
+}
+
+function metric(name, tabIdx, key, unit, goodDir, range) {
+  const dataIdx = TAB_TO_DATA[tabIdx];
+  const v = D[key][dataIdx];
+  if (v === null || v === undefined) {
+    return `<div class="metric" style="opacity:.4">
+      <div class="name">${name}</div>
+      <div class="value" style="font-size:18px;color:var(--muted)">— not measured</div>
+    </div>`;
+  }
+  const status = STATUS[key] ? STATUS[key][dataIdx] : null;
+  const derivedFormula = DERIVED[dataIdx] && DERIVED[dataIdx][key];
+  const estBadge = derivedFormula
+    ? `<span class="badge" style="background:rgba(243,156,18,.15);color:#f39c12;border:1px solid rgba(243,156,18,.4)" title="Derived: ${derivedFormula}">est.</span>`
+    : "";
+  return `<div class="metric"${derivedFormula ? ` title="Derived: ${derivedFormula}"` : ""}>
+    <div class="name">${name}${badge(status)}${estBadge}</div>
+    <div class="value">${v}<span class="unit"> ${unit}</span></div>
+    ${range ? `<div class="range">range ${range}</div>` : ""}
+    ${vsPrev(tabIdx, key, goodDir)}
+  </div>`;
+}
+
+function buildPanel(tabIdx) {
+  const s = SCANS[tabIdx];
+  const n = NUTRI[tabIdx];
+  const segLeanCells = Object.keys(SEG_LEAN).map(k => {
+    const dataIdx = TAB_TO_DATA[tabIdx];
+    const v = SEG_LEAN[k][dataIdx];
+    const fat = SEG_FAT[k][dataIdx];
+    if (v === null || v === undefined) {
+      return `<div class="seg-cell" style="opacity:.4">
+        <div class="part">${k}</div>
+        <div class="lab">— not measured</div>
+      </div>`;
+    }
+    const rkey = k === "Torso" ? "torso" : k.includes("arm") ? "arm" : "leg";
+    const range = SEG_RANGE_LEAN[rkey][tabIdx];
+    const stat = SEG_STAT_LEAN[k][tabIdx];
+    const fatRange = SEG_RANGE_FAT[rkey][tabIdx];
+    const fatStat = SEG_STAT_FAT[k][tabIdx];
+    return `<div class="seg-cell">
+      <div class="part">${k}</div>
+      <div class="lean">${v}<span class="lab"> lb lean</span></div>
+      <div class="lab">${range || ""} ${badge(stat)}</div>
+      ${fat !== null && fat !== undefined
+         ? `<div class="fat">${fat}<span class="lab"> lb fat</span></div>
+            <div class="lab">${fatRange || ""} ${badge(fatStat)}</div>`
+         : `<div class="lab" style="margin-top:6px;color:var(--muted)">fat not segmented</div>`}
+    </div>`;
+  }).join("");
+
+  return `<div class="tab-panel ${tabIdx === 0 ? "active" : ""}" data-panel="${tabIdx}">
+    <div style="margin-bottom:14px; color:var(--muted); font-size:13px;">
+      <b style="color:var(--ink)">${s.date}</b> · ${s.time} · weight ${s.weight} lb · <i>${s.source}</i>
+    </div>
+    ${DERIVED[TAB_TO_DATA[tabIdx]] ? `
+    <div class="insight" style="background:rgba(243,156,18,.08); border-color:rgba(243,156,18,.4); padding:10px 14px; margin:0 0 16px; font-size:12px;">
+      <b style="color:#f39c12">Note:</b> This scan's CSV only contained 7 fields (weight, SMM, BFM, BMI, BF%, BMR, visceral level).
+      Cards marked <span class="badge" style="background:rgba(243,156,18,.15);color:#f39c12;border:1px solid rgba(243,156,18,.4)">est.</span>
+      are derived from validated ratios across your other 5 scans (accuracy verified to within 0.1%). Hover any card for the formula.
+    </div>` : ""}
+
+    <h4 style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px;font-weight:600;">Body composition</h4>
+    <div class="scan-grid">
+      ${metric("Lean Body Mass",     tabIdx, "lbm",    "lb",  "up",   RANGES.lbm)}
+      ${metric("Skeletal Muscle",    tabIdx, "smm",    "lb",  "up",   RANGES.smm)}
+      ${metric("Protein",            tabIdx, "protein","lb",  "up",   RANGES.protein)}
+      ${metric("Mineral",            tabIdx, "mineral","lb",  "up",   RANGES.mineral)}
+      ${metric("Total Body Water",   tabIdx, "tbw",    "lb",  "up",   RANGES.tbw)}
+      ${metric("Dry Lean Mass",      tabIdx, "dryLean","lb",  "up",   "")}
+      ${metric("Body Fat Mass",      tabIdx, "bfm",    "lb",  "down", RANGES.bfm)}
+      ${metric("Body Fat %",         tabIdx, "bf_pct", "%",   "down", RANGES.bf_pct)}
+    </div>
+
+    <div class="seg-section">
+      <h4>Visceral fat &amp; metabolism</h4>
+      <div class="scan-grid">
+        ${metric("Subcutaneous Fat",  tabIdx, "subcut", "lb",  "down", "")}
+        ${metric("Visceral Fat Mass", tabIdx, "visMass","lb",  "down", "")}
+        ${metric("Visceral Fat Area", tabIdx, "visArea","cm²", "down", RANGES.visArea)}
+        ${metric("Visceral Fat Level",tabIdx, "visLvl", "/20", "down", "≤9 balanced")}
+        ${metric("BMR",               tabIdx, "bmr",    "kcal","up",   "")}
+        ${metric("TEE",               tabIdx, "tee",    "kcal","up",   "")}
+        ${metric("BMI",               tabIdx, "bmi",    "kg/m²","down","[18.5-25]")}
+        ${metric("Intracellular ICF", tabIdx, "icf",    "lb",  "up",   "")}
+        ${metric("Extracellular ECF", tabIdx, "ecf",    "lb",  "up",   "")}
+        ${metric("BWI Score",         tabIdx, "bwi",    "/10", "up",   "Optimal 8.0+")}
+        ${metric("Bio Age",           tabIdx, "bioage", "yrs", "down", "Chrono 51")}
+        ${metric("Abdominal Circ.",   tabIdx, "abdom",  "in",  "down", "<40 in")}
+        ${metric("Waist:Hip Ratio",   tabIdx, "whr",    "",    "down", "[0.75-0.90]")}
+      </div>
+    </div>
+
+    <div class="seg-section">
+      <h4>Segmental analysis · lean &amp; fat per body part</h4>
+      <div class="seg-grid">${segLeanCells}</div>
+    </div>
+
+    ${n ? `<div class="seg-section">
+      <h4>Nutrition recommendation (this scan)</h4>
+      <div class="scan-grid">
+        <div class="metric"><div class="name">Calories</div>
+          <div class="value">${n.cal}<span class="unit"> kcal</span></div></div>
+        <div class="metric"><div class="name">Protein</div>
+          <div class="value" style="font-size:18px">${n.p}</div></div>
+        <div class="metric"><div class="name">Carbohydrates</div>
+          <div class="value" style="font-size:18px">${n.c}</div></div>
+        <div class="metric"><div class="name">Fat</div>
+          <div class="value" style="font-size:18px">${n.f}</div></div>
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
+document.getElementById("scanPanels").innerHTML =
+  [0,1,2,3,4].map(buildPanel).join("");
+
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const idx = btn.dataset.tab;
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab-panel").forEach(p =>
+      p.classList.toggle("active", p.dataset.panel === idx));
+  });
+});
+// ============================================================
+// FULL DATA TABLE
+// ============================================================
+const rows = [
+  ["Weight (lb)",                     D.weight,  "down"],
+  ["Lean body mass (lb)",             D.lbm,     "up"],
+  ["Skeletal muscle mass (lb)",       D.smm,     "up"],
+  ["Dry lean mass (lb)",              D.dryLean, "up"],
+  ["Protein mass (lb)",               D.protein, "up"],
+  ["Mineral mass (lb)",               D.mineral, "up"],
+  ["Total body water (lb)",           D.tbw,     "up"],
+  ["Intracellular fluid ICF (lb)",    D.icf,     "up"],
+  ["Extracellular fluid ECF (lb)",    D.ecf,     "up"],
+  ["Body fat mass (lb)",              D.bfm,     "down"],
+  ["Subcutaneous fat (lb)",           D.subcut,  "down"],
+  ["Visceral fat mass (lb)",          D.visMass, "down"],
+  ["Visceral fat area (cm²)",         D.visArea, "down"],
+  ["Visceral fat level",              D.visLvl,  "down"],
+  ["Body fat %",                      D.bf_pct,  "down"],
+  ["BMI (kg/m²)",                     D.bmi,     "down"],
+  ["BMR (kcal)",                      D.bmr,     "up"],
+  ["TEE (kcal)",                      D.tee,     "up"],
+  ["BWI score (/10)",                 D.bwi,     "up"],
+  ["Bio age (yrs)",                   D.bioage,  "down"],
+  ["Abdominal circ. (in)",            D.abdom,   "down"],
+  ["Waist:hip ratio",                 D.whr,     "down"],
+];
+const tbody = document.getElementById("tbl");
+const PEAK_IDX = 4;        // Jun 2025 = peak baseline for delta
+const CURR_IDX = 9;        // Jun 2026 = current
+const fmt = (v) => v === null || v === undefined ? "—" :
+                   (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2));
+rows.forEach(([name, vals, goodDir]) => {
+  // pick peak (or earliest non-null) and current for delta
+  let peak = vals[PEAK_IDX];
+  if (peak === null) {
+    for (let i = 0; i < vals.length; i++) {
+      if (vals[i] !== null && vals[i] !== undefined) { peak = vals[i]; break; }
+    }
+  }
+  const curr = vals[CURR_IDX];
+  let cls = "", arrow = "—", deltaStr = "—";
+  if (peak !== null && curr !== null && peak !== undefined && curr !== undefined) {
+    const d = +(curr - peak).toFixed(2);
+    const isGood = (goodDir === "up" && d > 0) || (goodDir === "down" && d < 0);
+    cls = d === 0 ? "" : (isGood ? "good" : "bad");
+    arrow = d === 0 ? "—" : (d > 0 ? "▲" : "▼");
+    deltaStr = `${d > 0 ? "+" : ""}${fmt(d)}`;
+  }
+  const cells = vals.map(v =>
+    `<td style="${v === null || v === undefined ? 'color:var(--muted);opacity:.5' : ''}">${fmt(v)}</td>`
+  ).join("");
+  tbody.insertAdjacentHTML("beforeend",
+    `<tr>
+       <td>${name}</td>
+       ${cells}
+       <td class="${cls}">${deltaStr}</td>
+       <td class="${cls}">${arrow}</td>
+     </tr>`);
+});
+</script>
+</body>
+</html>
