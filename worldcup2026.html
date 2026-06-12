@@ -864,16 +864,32 @@ function onScoreChange(e) {
   else scores[id] = [h, a];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
 
-  // Re-render this card so the My Prediction row appears/updates
-  const newHtml = renderMatchCard(m);
-  const wrap = document.createElement('div');
-  wrap.innerHTML = newHtml.trim();
-  const fresh = wrap.firstChild;
-  card.replaceWith(fresh);
-  attachCardHandlers();
+  // Update the My Prediction row in place (don't re-render the card —
+  // that would steal focus from the input the user is typing into)
+  const myPred = scores[id];
+  let myRow = card.querySelector('.pred-row.you');
+  const aiRow = card.querySelector('.pred-row.ai');
+  if (myPred) {
+    const html = `<span class="label">👤 My Prediction:</span> <b>${myPred[0]}–${myPred[1]}</b>`;
+    if (myRow) {
+      myRow.style.opacity = '';
+      myRow.innerHTML = html;
+    } else {
+      myRow = document.createElement('div');
+      myRow.className = 'pred-row you';
+      myRow.innerHTML = html;
+      // Insert before the AI row
+      aiRow.parentNode.insertBefore(myRow, aiRow);
+    }
+  } else if (myRow) {
+    // No prediction — hide the row entirely (match is upcoming so no "not entered" placeholder needed)
+    myRow.remove();
+  }
 
+  // Standings/stats only depend on actuals + (for stats) user predictions on finished matches.
+  // Since this match has no actual, neither will change — but we still call updateStats
+  // in case the user is editing a prediction for a finished match (rare edge case).
   updateStats();
-  renderStandings();
 }
 
 function updateStats() {
