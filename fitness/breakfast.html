@@ -121,6 +121,22 @@
     <div id="gradeBadge" class="badge grade g-A">A+ · Elite</div>
   </header>
 
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <a href="calorie-calculator.html" class="calc-pill">
+      <span style="font-size:15px">🧮</span>
+      <span>Calorie &amp; Macro Calculator</span>
+      <span style="opacity:.6;font-weight:400">→</span>
+    </a>
+    <span id="appliedBanner" style="display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:999px;font-size:12px;font-weight:600">
+      ✓ <span id="appliedText">Targets loaded from calculator</span>
+      <button id="clearApplied" style="background:transparent;border:0;color:inherit;cursor:pointer;font-size:14px;padding:0 4px">×</button>
+    </span>
+  </div>
+  <style>
+    .calc-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(135deg,rgba(58,160,255,.15),rgba(58,160,255,.05));border:1px solid rgba(58,160,255,.4);color:#7cc5ff;border-radius:999px;text-decoration:none;font:600 12px Inter,system-ui,sans-serif;transition:.2s}
+    .calc-pill:hover{background:rgba(58,160,255,.9);color:#fff;transform:translateY(-1px);box-shadow:0 4px 16px rgba(58,160,255,.3)}
+  </style>
+
   <div class="profile">
     <label>Age <input type="number" id="age" value="51" min="18" max="90"></label>
     <label>Weight (lb) <input type="number" id="weight" value="184" min="80" max="400"></label>
@@ -433,6 +449,32 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,
 // ---------- Boot ----------
 renderFoods();
 render();
+
+// ---------- Load targets from calorie-calculator (if present) ----------
+(function loadTargetsFromCalculator(){
+  try {
+    const raw = localStorage.getItem('bk-targets');
+    if (!raw) return;
+    const t = JSON.parse(raw);
+    if (!t || t.source !== 'calorie-calculator') return;
+    if (typeof t.kcal === 'number') $('dayKcal').value = t.kcal;
+    if (typeof t.wLb  === 'number') $('weight').value  = t.wLb;
+    if (typeof t.age  === 'number') $('age').value     = t.age;
+    if (typeof t.meals=== 'number') $('meals').value   = t.meals;
+    const ageMin = (Date.now() - (t.ts||Date.now()))/60000;
+    const banner = $('appliedBanner');
+    const txt = $('appliedText');
+    if (banner) {
+      banner.style.display = 'inline-flex';
+      txt.textContent = `Targets from calculator · ${t.kcal} kcal · ${t.proteinG}P/${t.carbsG}C/${t.fatG}F · goal: ${t.goal}${ageMin<2?' · just now':''}`;
+    }
+    $('clearApplied')?.addEventListener('click', () => {
+      try { localStorage.removeItem('bk-targets'); } catch(e){}
+      banner.style.display = 'none';
+    });
+    render();
+  } catch(e) { /* ignore */ }
+})();
 </script>
 </body>
 </html>
