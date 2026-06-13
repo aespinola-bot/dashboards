@@ -110,6 +110,106 @@ def collect_all_results():
     return all_results
 
 
+# ---------- YouTube highlight lookup ----------
+
+def find_youtube_highlight(home: str, away: str) -> str | None:
+    """Best-effort lookup of a FIFA-style highlight video ID from YouTube
+    search results. Returns 11-char video ID or None. No API key needed.
+    Prefers videos whose title contains 'highlights' AND 'world cup 2026'.
+    """
+    from urllib.parse import quote
+    query = f"FIFA World Cup 2026 {home} vs {away} highlights"
+    url = f"https://www.youtube.com/results?search_query={quote(query)}"
+    try:
+        html = http_get(url)
+    except Exception as e:
+        print(f"    YT lookup failed for {home} vs {away}: {e}", file=sys.stderr)
+        return None
+    # videoId + title pairs
+    pat = re.compile(
+        r'"videoId":"([a-zA-Z0-9_-]{11})".*?"title":\{"runs":\[\{"text":"([^"]{1,200})"',
+        re.DOTALL,
+    )
+    matches = pat.findall(html)
+    seen = set()
+    candidates = []
+    for vid, title in matches:
+        if vid in seen:
+            continue
+        seen.add(vid)
+        candidates.append((vid, title))
+        if len(candidates) >= 12:
+            break
+    if not candidates:
+        return None
+
+    def score(title: str) -> int:
+        t = title.lower()
+        s = 0
+        if "highlight" in t: s += 5
+        if "2026" in t: s += 3
+        if "world cup" in t or "fifa" in t: s += 3
+        if home.lower() in t and away.lower() in t: s += 4
+        if "live" in t: s -= 2
+        if "preview" in t or "prediction" in t: s -= 5
+        if "anthem" in t or "ceremony" in t: s -= 5
+        if "match before" in t or "friendly" in t: s -= 5
+        return s
+
+    candidates.sort(key=lambda c: score(c[1]), reverse=True)
+    best_vid, best_title = candidates[0]
+    print(f"    YT: {home} vs {away} -> {best_vid} ({best_title[:60]})")
+    return best_vid
+
+
+HIGHLIGHT_INLINE_RE = re.compile(r"\s*highlight:'[^']*',")
+
+
+def patch_html_with_highlights(html: str) -> tuple[str, int]:
+    """For every match that has actual:[..] but no highlight:'..',
+    look up a YouTube video ID and inject highlight:'VIDEO_ID' before note:.
+    """
+    import time
+    matches_in_html = list(MATCH_LINE_RE.finditer(html))
+    # Build (id, home, away, has_actual, has_highlight) tuples
+    todo = []
+    for m in matches_in_html:
+        rest = m.group("rest")
+        if "actual:[" not in rest:
+            continue
+        if "highlight:'" in rest:
+            continue
+        todo.append((int(m.group("id")), m.group("home"), m.group("away")))
+
+    if not todo:
+        return html, 0
+    print(f"  YT lookup needed for {len(todo)} match(es)...")
+
+    found = {}
+    for mid, home, away in todo:
+        vid = find_youtube_highlight(home, away)
+        if vid:
+            found[mid] = vid
+        time.sleep(0.6)  # be polite
+
+    if not found:
+        return html, 0
+
+    def repl(m):
+        mid = int(m.group("id"))
+        vid = found.get(mid)
+        if not vid:
+            return m.group(0)
+        head = m.group(1)
+        rest = m.group("rest")
+        tail = m.group(m.lastindex)
+        new_rest = f" highlight:'{vid}',{rest}"
+        return head + new_rest + tail
+
+    new_html = MATCH_LINE_RE.sub(repl, html)
+    return new_html, len(found)
+
+
 MATCH_LINE_RE = re.compile(
     r"(\{id:(?P<id>\d+),\s+group:'(?P<g>[A-L])',\s+date:'(?P<date>\d{4}-\d{2}-\d{2})',\s+timePT:'[^']*',\s+venue:'[^']*',\s+home:'(?P<home>[^']*)',\s+away:'(?P<away>[^']*)',\s+tv:'[^']*',\s+pred:\[\d+,\d+\],)(?P<rest>.*?)(\})",
     re.DOTALL,
@@ -234,6 +334,7 @@ def main():
     ap.add_argument("--commit", action="store_true")
     ap.add_argument("--push", action="store_true")
     ap.add_argument("--skip-md", action="store_true")
+    ap.add_argument("--skip-yt", action="store_true", help="Skip YouTube highlight lookup.")
     args = ap.parse_args()
 
     print("Fetching results from Wikipedia (12 group pages)...")
@@ -247,6 +348,12 @@ def main():
     html = HTML_PATH.read_text(encoding="utf-8")
     new_html, added, updated = patch_html(html, results)
     print(f"HTML patch: +{added} added, ~{updated} updated")
+
+    # Look up YouTube highlight video IDs for any finished match that doesn't have one yet
+    yt_added = 0
+    if not args.skip_yt:
+        new_html, yt_added = patch_html_with_highlights(new_html)
+        print(f"YouTube highlights: +{yt_added} found")
 
     if not args.dry_run and new_html != html:
         HTML_PATH.write_text(new_html, encoding="utf-8")
@@ -264,8 +371,11 @@ def main():
     elif not MD_PATH.exists():
         print(f"  WARN MD not found at {MD_PATH} -- skipping MD regen.")
 
-    if args.commit and not args.dry_run and (added or updated):
-        msg = f"WC2026: auto-sync {added+updated} match result(s) from Wikipedia"
+    if args.commit and not args.dry_run and (added or updated or yt_added):
+        bits = []
+        if added or updated: bits.append(f"{added+updated} score(s)")
+        if yt_added: bits.append(f"{yt_added} highlight(s)")
+        msg = f"WC2026: auto-sync {' + '.join(bits)} from Wikipedia/YouTube"
         subprocess.run(["git", "-C", str(REPO_ROOT), "add", "worldcup2026.html"], check=True)
         subprocess.run(["git", "-C", str(REPO_ROOT), "commit", "-m", msg], check=True)
         print(f"  committed: {msg}")

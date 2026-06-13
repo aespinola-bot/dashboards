@@ -377,6 +377,61 @@
     text-decoration: underline;
   }
 
+  /* === Highlights button + inline embed === */
+  .highlights-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .highlights-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .highlights-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(220, 38, 38, 0.35);
+  }
+  .highlights-btn .yt-icon {
+    width: 14px; height: 10px;
+    background: #fff;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    font-size: 8px;
+  }
+  .highlights-embed {
+    margin-top: 10px;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 6px;
+    overflow: hidden;
+    display: none;
+  }
+  .highlights-embed.open { display: block; }
+  .highlights-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
   .standings-toggle {
     position: fixed; bottom: 20px; right: 20px;
     z-index: 99;
@@ -748,10 +803,10 @@ const GROUPS = {
 // Telemundo gets marquees in Spanish; Universo handles overflow.
 const MATCHES = [
   // MD1 — Jun 11–17 (Pacific)
-  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], actual:[2,0], note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175. FINAL: Quiñones 9', Jiménez 67' — SA had 2 red cards (Sithole, Zwane) + MEX captain Montes red 92'."},
-  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], actual:[2,1], note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220. FINAL: Krejčí 59' (CZE), Hwang In-beom 67', Oh Hyeon-gyu 80' — comeback win for Korea."},
-  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], actual:[1,1], note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins. FINAL: Lukić 21' (BIH), Larin 78' — Canada's first-ever WC point (ended 6-loss streak)."},
-  {id:4,  group:'D', date:'2026-06-12', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'United States',          away:'Paraguay',               tv:'FOX · Telemundo',     pred:[2,1], actual:[4,1], note:"USA 5W-1D-1L H2H. Pochettino's compact 4-3-3 (Pulisic/Reyna/Balogun). Home crowd decisive."},
+  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], actual:[2,0], highlight:'btmKtT3SxQQ', note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175. FINAL: Quiñones 9', Jiménez 67' — SA had 2 red cards (Sithole, Zwane) + MEX captain Montes red 92'."},
+  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], actual:[2,1], highlight:'6k18EJY8zIc', note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220. FINAL: Krejčí 59' (CZE), Hwang In-beom 67', Oh Hyeon-gyu 80' — comeback win for Korea."},
+  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], actual:[1,1], highlight:'UCJjuZuVsQ4', note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins. FINAL: Lukić 21' (BIH), Larin 78' — Canada's first-ever WC point (ended 6-loss streak)."},
+  {id:4,  group:'D', date:'2026-06-12', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'United States',          away:'Paraguay',               tv:'FOX · Telemundo',     pred:[2,1], actual:[4,1], highlight:'BXD1_mhODBU', note:"USA 5W-1D-1L H2H. Pochettino's compact 4-3-3 (Pulisic/Reyna/Balogun). Home crowd decisive."},
   {id:5,  group:'B', date:'2026-06-13', timePT:'12:00', venue:"Levi's Stadium, Santa Clara",           home:'Qatar',                  away:'Switzerland',            tv:'FS1 · Universo',      pred:[0,2], note:"Xhaka-Embolo dictate tempo. Qatar's '22 collapse foretells; SUI control xG."},
   {id:6,  group:'C', date:'2026-06-13', timePT:'15:00', venue:'MetLife Stadium, East Rutherford',      home:'Brazil',                 away:'Morocco',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ H2H: MAR won 2-1 friendly Mar 2023. Final-squad update: Rodrygo IS in the squad. Hakimi-Diaz-Ounahi vs Brazil. Ancelotti's first WC. Books drifted BRA −180→−135."},
   {id:7,  group:'C', date:'2026-06-13', timePT:'18:00', venue:'Gillette Stadium, Foxborough',          home:'Haiti',                  away:'Scotland',               tv:'FS1 · Universo',      pred:[0,2], note:"Tierney-McTominay midfield steel; Haiti's first WC since 1974."},
@@ -888,6 +943,72 @@ async function fetchGroupResults(groupLetter) {
   return out;
 }
 
+const HIGHLIGHTS_CACHE_KEY = 'wc2026_highlights_v1';
+
+// Hydrate cached highlight IDs from previous lookups
+(function hydrateCachedHighlights() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+    MATCHES.forEach(m => {
+      if (cached[m.id] && !m.highlight) m.highlight = cached[m.id];
+    });
+  } catch (e) { /* ignore */ }
+})();
+
+// YouTube blocks direct CORS fetch from youtube.com/results, so we route the
+// search-results page through a public CORS proxy. We then parse the same
+// videoId/title pattern the Python script uses and pick the most-likely
+// FIFA-style highlight reel.
+async function findYouTubeHighlight(home, away) {
+  const query = `FIFA World Cup 2026 ${home} vs ${away} highlights`;
+  const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(query);
+  // Try a couple of proxies in case one is rate-limited
+  const proxies = [
+    u => "https://corsproxy.io/?" + encodeURIComponent(u),
+    u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  ];
+  let html = null;
+  for (const p of proxies) {
+    try {
+      const r = await fetch(p(url), { method: 'GET' });
+      if (!r.ok) continue;
+      html = await r.text();
+      if (html && html.length > 1000) break;
+    } catch (e) { /* try next */ }
+  }
+  if (!html) return null;
+
+  // Pull (videoId, title) candidate list
+  const re = /"videoId":"([a-zA-Z0-9_-]{11})"[\s\S]*?"title":\{"runs":\[\{"text":"([^"]{1,200})"/g;
+  const seen = new Set();
+  const candidates = [];
+  let m;
+  while ((m = re.exec(html)) !== null && candidates.length < 12) {
+    if (seen.has(m[1])) continue;
+    seen.add(m[1]);
+    candidates.push({ id: m[1], title: m[2] });
+  }
+  if (!candidates.length) return null;
+
+  const lcHome = home.toLowerCase();
+  const lcAway = away.toLowerCase();
+  const score = (t) => {
+    const s = t.toLowerCase();
+    let p = 0;
+    if (s.includes('highlight')) p += 5;
+    if (s.includes('2026')) p += 3;
+    if (s.includes('world cup') || s.includes('fifa')) p += 3;
+    if (s.includes(lcHome) && s.includes(lcAway)) p += 4;
+    if (s.includes('live')) p -= 2;
+    if (s.includes('preview') || s.includes('prediction')) p -= 5;
+    if (s.includes('anthem') || s.includes('ceremony')) p -= 5;
+    if (s.includes('match before') || s.includes('friendly')) p -= 5;
+    return p;
+  };
+  candidates.sort((a, b) => score(b.title) - score(a.title));
+  return candidates[0].id;
+}
+
 async function refreshResults() {
   const btn = document.getElementById('refresh-results');
   const status = document.getElementById('refresh-status');
@@ -916,7 +1037,6 @@ async function refreshResults() {
     } catch (e) {
       failed++;
     }
-    // Be nice to Wikipedia API
     await new Promise(res => setTimeout(res, 300));
   }
 
@@ -925,6 +1045,25 @@ async function refreshResults() {
   MATCHES.forEach(m => { if (m.actual) cache[m.id] = m.actual; });
   localStorage.setItem(ACTUALS_CACHE_KEY, JSON.stringify(cache));
 
+  // Now look up YouTube highlights for any finished match without a video ID
+  const needsHighlight = MATCHES.filter(m => m.actual && !m.highlight);
+  let ytFound = 0, ytFailed = 0;
+  if (needsHighlight.length) {
+    status.textContent = `Looking up ${needsHighlight.length} highlight(s)…`;
+    const hCache = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+    for (let i = 0; i < needsHighlight.length; i++) {
+      const m = needsHighlight[i];
+      status.textContent = `🎬 Highlight ${i+1}/${needsHighlight.length}: ${m.home} vs ${m.away}…`;
+      try {
+        const vid = await findYouTubeHighlight(m.home, m.away);
+        if (vid) { m.highlight = vid; hCache[m.id] = vid; ytFound++; }
+        else ytFailed++;
+      } catch (e) { ytFailed++; }
+      await new Promise(res => setTimeout(res, 600)); // proxies don't love bursts
+    }
+    localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(hCache));
+  }
+
   // Re-render everything
   render();
   renderStandings();
@@ -932,12 +1071,14 @@ async function refreshResults() {
   btn.disabled = false;
   btn.textContent = originalLabel;
   const bits = [];
-  if (added)   bits.push(`✓ ${added} new`);
-  if (updated) bits.push(`✓ ${updated} updated`);
-  if (!added && !updated) bits.push('Up to date');
-  if (failed)  bits.push(`⚠ ${failed} group${failed>1?'s':''} failed`);
-  status.textContent = bits.join(' · ') + ` (${fetched}/${72} known)`;
-  setTimeout(() => { status.textContent = ''; }, 8000);
+  if (added)    bits.push(`✓ ${added} new score${added>1?'s':''}`);
+  if (updated)  bits.push(`✓ ${updated} updated`);
+  if (ytFound)  bits.push(`🎬 ${ytFound} highlight${ytFound>1?'s':''}`);
+  if (!added && !updated && !ytFound) bits.push('Up to date');
+  if (failed)   bits.push(`⚠ ${failed} group${failed>1?'s':''} failed`);
+  if (ytFailed) bits.push(`⚠ ${ytFailed} highlight${ytFailed>1?'s':''} not found`);
+  status.textContent = bits.join(' · ') + ` (${fetched}/72 results known)`;
+  setTimeout(() => { status.textContent = ''; }, 10000);
 }
 
 const flagUrl = (name) => {
@@ -1037,6 +1178,14 @@ function renderMatchCard(m) {
       ${scoreArea}
       ${myRow}
       ${aiRow}
+      ${hasFinal ? `
+        <div class="highlights-row">
+          <button class="highlights-btn" data-highlights="${m.id}" type="button">
+            <span class="yt-icon">▶</span> Watch Highlights
+          </button>
+        </div>
+        <div class="highlights-embed" data-embed="${m.id}"></div>
+      ` : ''}
       <div class="info-row">
         <div><span class="pin">📍</span> ${m.venue}</div>
         <div><span class="tv">📺</span> <span class="net">${m.tv}</span></div>
@@ -1096,6 +1245,39 @@ function attachCardHandlers() {
       btn.textContent = card.classList.contains('expanded') ? '▴ Hide analysis' : '▾ Show analysis';
     });
   });
+  document.querySelectorAll('[data-highlights]').forEach(btn => {
+    btn.addEventListener('click', onHighlightsClick);
+  });
+}
+
+function onHighlightsClick(e) {
+  const btn = e.currentTarget;
+  const id = +btn.dataset.highlights;
+  const m = MATCHES.find(x => x.id === id);
+  if (!m) return;
+  const card = btn.closest('.match-card');
+  const embed = card.querySelector(`[data-embed="${id}"]`);
+
+  // If the match has a known YouTube video ID, embed it inline (toggle).
+  // Otherwise open a YouTube search in a new tab — surfaces FIFA's official recap.
+  if (m.highlight) {
+    if (embed.classList.contains('open')) {
+      embed.classList.remove('open');
+      embed.innerHTML = '';
+      btn.innerHTML = '<span class="yt-icon">▶</span> Watch Highlights';
+    } else {
+      embed.innerHTML = `<iframe
+        src="https://www.youtube.com/embed/${encodeURIComponent(m.highlight)}?autoplay=1&rel=0"
+        title="${m.home} vs ${m.away} — Highlights"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>`;
+      embed.classList.add('open');
+      btn.innerHTML = '<span class="yt-icon">▶</span> Hide Highlights';
+    }
+  } else {
+    const q = encodeURIComponent(`FIFA World Cup 2026 ${m.home} vs ${m.away} highlights`);
+    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank', 'noopener');
+  }
 }
 
 function onScoreChange(e) {
