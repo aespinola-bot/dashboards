@@ -517,11 +517,13 @@
     </select>
     <button class="btn" id="expand-all">Expand All Notes</button>
     <button class="btn" id="collapse-all">Collapse All</button>
+    <button class="btn primary" id="refresh-results" title="Fetch latest scores from Wikipedia">🔄 Refresh Results</button>
     <button class="btn danger" id="reset-all">Reset My Predictions</button>
     <div class="stats">
       <span>Played: <b id="stat-played">0</b>/72</span>
       <span title="AI prediction accuracy on finished matches">🤖 AI: <b id="stat-ai-hit">0</b> hits (<b id="stat-ai-exact">0</b> exact)</span>
       <span title="Your prediction accuracy on finished matches">👤 You: <b id="stat-my-hit">0</b> hits (<b id="stat-my-exact">0</b> exact)</span>
+      <span id="refresh-status" style="color:var(--muted); font-size:11px;"></span>
     </div>
   </div>
 </header>
@@ -690,7 +692,118 @@ const MATCHES = [
 ];
 
 const STORAGE_KEY = 'wc2026_scores_v1';
+const ACTUALS_CACHE_KEY = 'wc2026_actuals_v1';   // cache of fetched results
 let scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+// Hydrate any cached actuals from a previous Refresh, then render.
+(function hydrateCachedActuals() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(ACTUALS_CACHE_KEY) || '{}');
+    MATCHES.forEach(m => {
+      if (cached[m.id] && !m.actual) m.actual = cached[m.id];
+    });
+  } catch (e) { /* ignore */ }
+})();
+
+// 3-letter IOC/FIFA code -> match-list home/away string
+const IOC_TO_NAME = {
+  MEX:"Mexico", RSA:"South Africa", KOR:"South Korea", CZE:"Czech Republic",
+  CAN:"Canada", BIH:"Bosnia & Herzegovina", QAT:"Qatar", SUI:"Switzerland",
+  BRA:"Brazil", MAR:"Morocco", SCO:"Scotland", HAI:"Haiti",
+  USA:"United States", AUS:"Australia", PAR:"Paraguay", TUR:"Turkey",
+  GER:"Germany", CIV:"Ivory Coast", CUW:"Curaçao", ECU:"Ecuador",
+  NED:"Netherlands", JPN:"Japan", SWE:"Sweden", TUN:"Tunisia",
+  BEL:"Belgium", EGY:"Egypt", IRN:"Iran", NZL:"New Zealand",
+  ESP:"Spain", KSA:"Saudi Arabia", CPV:"Cape Verde", URU:"Uruguay",
+  FRA:"France", SEN:"Senegal", IRQ:"Iraq", NOR:"Norway",
+  ARG:"Argentina", ALG:"Algeria", AUT:"Austria", JOR:"Jordan",
+  POR:"Portugal", COD:"DR Congo", UZB:"Uzbekistan", COL:"Colombia",
+  ENG:"England", CRO:"Croatia", GHA:"Ghana", PAN:"Panama"
+};
+
+async function fetchGroupResults(groupLetter) {
+  // Wikipedia API supports CORS via origin=*
+  const url = "https://en.wikipedia.org/w/api.php"
+    + "?action=parse&page=2026_FIFA_World_Cup_Group_" + groupLetter
+    + "&format=json&prop=wikitext&origin=*";
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const data = await r.json();
+  const wt = data && data.parse && data.parse.wikitext && data.parse.wikitext['*'];
+  if (!wt) return [];
+
+  const out = [];
+  // Match each {{#invoke:football box|main ... }} block (non-greedy)
+  const boxRe = /\{\{#invoke:football box\|main([\s\S]*?)\n\}\}/g;
+  let m;
+  while ((m = boxRe.exec(wt)) !== null) {
+    const body = m[1];
+    const dM = body.match(/\|date=\{\{Start date\|(\d{4})\|(\d{1,2})\|(\d{1,2})\}\}/);
+    const t1 = body.match(/\|team1=\{\{#invoke:flag\|[^|]+\|([A-Z]{3})\}\}/);
+    const t2 = body.match(/\|team2=\{\{#invoke:flag\|[^|]+\|([A-Z]{3})\}\}/);
+    const sc = body.match(/\|score=\{\{score link\|[^|]*\|(\d+)\s*[-–—]\s*(\d+)\}\}/)
+            || body.match(/\|score=\s*(\d+)\s*[-–—]\s*(\d+)\s*\|/);
+    if (!(dM && t1 && t2 && sc)) continue;
+    const date = `${dM[1]}-${String(dM[2]).padStart(2,'0')}-${String(dM[3]).padStart(2,'0')}`;
+    const home = IOC_TO_NAME[t1[1]];
+    const away = IOC_TO_NAME[t2[1]];
+    if (!home || !away) continue;
+    out.push({ date, home, away, score: [parseInt(sc[1],10), parseInt(sc[2],10)] });
+  }
+  return out;
+}
+
+async function refreshResults() {
+  const btn = document.getElementById('refresh-results');
+  const status = document.getElementById('refresh-status');
+  const groups = "ABCDEFGHIJKL".split('');
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = '⏳ Refreshing…';
+  status.textContent = '';
+
+  let added = 0, updated = 0, fetched = 0, failed = 0;
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    status.textContent = `Group ${g} (${i+1}/12)…`;
+    try {
+      const results = await fetchGroupResults(g);
+      fetched += results.length;
+      results.forEach(r => {
+        const m = MATCHES.find(x =>
+          x.group === g && x.date === r.date && x.home === r.home && x.away === r.away);
+        if (!m) return;
+        const prev = m.actual ? m.actual.join(',') : null;
+        const next = r.score.join(',');
+        if (prev === null) { m.actual = r.score; added++; }
+        else if (prev !== next) { m.actual = r.score; updated++; }
+      });
+    } catch (e) {
+      failed++;
+    }
+    // Be nice to Wikipedia API
+    await new Promise(res => setTimeout(res, 300));
+  }
+
+  // Persist newly-found actuals to localStorage so they survive reloads
+  const cache = {};
+  MATCHES.forEach(m => { if (m.actual) cache[m.id] = m.actual; });
+  localStorage.setItem(ACTUALS_CACHE_KEY, JSON.stringify(cache));
+
+  // Re-render everything
+  render();
+  renderStandings();
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+  const bits = [];
+  if (added)   bits.push(`✓ ${added} new`);
+  if (updated) bits.push(`✓ ${updated} updated`);
+  if (!added && !updated) bits.push('Up to date');
+  if (failed)  bits.push(`⚠ ${failed} group${failed>1?'s':''} failed`);
+  status.textContent = bits.join(' · ') + ` (${fetched}/${72} known)`;
+  setTimeout(() => { status.textContent = ''; }, 8000);
+}
 
 const flagUrl = (name) => {
   const c = FLAGS[name];
@@ -982,6 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderStandings();
     }
   });
+  document.getElementById('refresh-results').addEventListener('click', refreshResults);
   document.getElementById('open-standings').addEventListener('click', () => {
     document.getElementById('standings-panel').classList.add('open');
   });
