@@ -248,6 +248,12 @@
     font-size: 26px;
     flex-shrink: 0;
     box-shadow: 0 6px 18px -4px var(--card-color, var(--accent));
+    overflow: hidden;
+  }
+  .card-icon img {
+    width: 78%; height: 78%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
   }
   .card-title-block { flex: 1; min-width: 0; }
   .card-title {
@@ -485,6 +491,7 @@
       tag: 'Sports',
       category: 'Sports',
       icon: '🏆',
+      iconImg: 'assets/wc2026-logo.webp',
       color: '#facc15',
       desc: 'Interactive match calendar for all 72 group-stage matches with data-backed predictions, live editable scores, automatic standings, and a tournament simulator that runs full bracket Monte Carlo from R32 to Final.',
       features: ['72 matches', 'Live scoring', 'Bracket simulator', 'Pacific time', 'TV networks'],
@@ -636,7 +643,7 @@
     return `${tag}>
       ${counter}
       <div class="card-header">
-        <div class="card-icon">${d.icon}</div>
+        <div class="card-icon">${d.iconImg ? `<img src="${d.iconImg}" alt="${d.title} logo" onerror="this.replaceWith(document.createTextNode('${d.icon}'))">` : d.icon}</div>
         <div class="card-title-block">
           <div class="card-title">${d.title}</div>
           <div class="card-tag">${d.tag}</div>
