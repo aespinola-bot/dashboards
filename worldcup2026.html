@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🏆 World Cup 2026 — Match Calendar (Pacific Time)</title>
+<title>🏆 FIFA World Cup 2026 — Match Calendar &amp; Predictions</title>
 <style>
   :root {
     --bg: #f6f8fb;
@@ -28,13 +28,112 @@
   body {
     margin: 0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
+    background:
+      radial-gradient(circle at 10% 0%, rgba(0,165,80,0.05) 0%, transparent 40%),
+      radial-gradient(circle at 90% 0%, rgba(220,38,38,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(2,15,42,0.03) 0%, transparent 50%),
+      var(--bg);
     color: var(--text);
     min-height: 100vh;
   }
+
+  /* === FIFA 2026 hero banner === */
+  .hero {
+    position: relative;
+    background:
+      linear-gradient(135deg, #020F2A 0%, #0a2547 45%, #1e3a8a 100%);
+    color: #fff;
+    overflow: hidden;
+    border-bottom: 4px solid #d4810b;
+  }
+  .hero::before {
+    /* subtle football-pitch lines pattern */
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(255,255,255,0.025) 0,
+        rgba(255,255,255,0.025) 1px,
+        transparent 1px, transparent 80px),
+      radial-gradient(circle at 20% 50%, rgba(0,165,80,0.18) 0%, transparent 35%),
+      radial-gradient(circle at 80% 50%, rgba(220,38,38,0.18) 0%, transparent 35%),
+      radial-gradient(circle at 50% 30%, rgba(255,255,255,0.05) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 28px;
+    padding: 26px 32px 22px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .hero-emblem {
+    width: 92px;
+    height: 92px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  }
+  .hero-text h1 {
+    margin: 0 0 6px 0;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-text .tagline {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 10px;
+  }
+  .hero-text .tagline b { color: #fff; }
+  .hero-host-flags {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .hero-host-flags .host {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+  .hero-host-flags img {
+    width: 48px;
+    height: 32px;
+    border-radius: 3px;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .hero-meta {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+  }
+  .hero-meta b { color: #fff; font-weight: 600; }
+  .hero-meta .sep { color: rgba(255,255,255,0.3); }
+  @media (max-width: 760px) {
+    .hero-inner { grid-template-columns: auto 1fr; padding: 18px; gap: 16px; }
+    .hero-emblem { width: 64px; height: 64px; }
+    .hero-text h1 { font-size: 20px; }
+    .hero-host-flags { display: none; }
+  }
+
   header {
     background: linear-gradient(135deg, #ffffff 0%, #f0f4fa 100%);
-    padding: 24px 24px 18px;
+    padding: 18px 24px 14px;
     border-bottom: 3px solid var(--accent);
     box-shadow: 0 2px 12px rgba(20, 40, 80, 0.06);
     position: sticky; top: 0; z-index: 100;
@@ -503,9 +602,45 @@
 @media print{.home-pill{display:none}}
 </style>
 
+<!-- FIFA 2026 hero banner -->
+<section class="hero" role="banner" aria-label="FIFA World Cup 2026">
+  <div class="hero-inner">
+    <img class="hero-emblem"
+         src="https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/250px-2026_FIFA_World_Cup_emblem.svg.png"
+         alt="2026 FIFA World Cup official emblem"
+         onerror="this.style.display='none'">
+    <div class="hero-text">
+      <h1>FIFA World Cup 2026™ — Match Calendar &amp; Predictions</h1>
+      <div class="tagline">Group stage · 72 matches · Hosted by <b>Canada</b>, <b>Mexico</b> &amp; the <b>United States</b> · June 11 – July 19, 2026</div>
+      <div class="hero-meta">
+        <span>📅 <b>Group Stage:</b> Jun 11 – Jun 27</span>
+        <span class="sep">|</span>
+        <span>🏟 <b>16 cities</b></span>
+        <span class="sep">|</span>
+        <span>⚽ <b>48 nations</b></span>
+        <span class="sep">|</span>
+        <span>📺 FOX/FS1 · Telemundo/Universo</span>
+      </div>
+    </div>
+    <div class="hero-host-flags" aria-label="Host nations">
+      <div class="host">
+        <img src="https://flagcdn.com/w80/ca.png" alt="Canada">
+        <span>CAN</span>
+      </div>
+      <div class="host">
+        <img src="https://flagcdn.com/w80/mx.png" alt="Mexico">
+        <span>MEX</span>
+      </div>
+      <div class="host">
+        <img src="https://flagcdn.com/w80/us.png" alt="United States">
+        <span>USA</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <header>
-  <h1>🏆 2026 FIFA World Cup — Group Stage Match Calendar</h1>
-  <div class="sub">72 matches · All times <b>Pacific (PDT)</b> · TV: 🇺🇸 FOX/FS1 (English), Telemundo/Universo (Spanish) · 🔒 Final scores locked · 👤 Your predictions save in this browser</div>
+  <div class="sub">⏱ All times <b>Pacific (PDT)</b> · 🔒 Final scores locked · 👤 Your predictions save in this browser · 🔄 Click <i>Refresh</i> to pull live results</div>
   <div class="controls">
     <select id="filter-group">
       <option value="">All Groups</option>
