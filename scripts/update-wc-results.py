@@ -113,52 +113,74 @@ def collect_all_results():
 # ---------- YouTube highlight lookup ----------
 
 def find_youtube_highlight(home: str, away: str) -> str | None:
-    """Best-effort lookup of a FIFA-style highlight video ID from YouTube
-    search results. Returns 11-char video ID or None. No API key needed.
-    Prefers videos whose title contains 'highlights' AND 'world cup 2026'.
+    """Best-effort lookup of an embed-friendly highlight video ID from
+    YouTube search. Returns 11-char video ID or None. No API key needed.
+    Strongly prefers third-party broadcasters (FOX Sports, Telemundo,
+    FOX Soccer, ESPN) over the FIFA channel, because FIFA disables
+    in-page embedding on its uploads.
     """
     from urllib.parse import quote
-    query = f"FIFA World Cup 2026 {home} vs {away} highlights"
-    url = f"https://www.youtube.com/results?search_query={quote(query)}"
-    try:
-        html = http_get(url)
-    except Exception as e:
-        print(f"    YT lookup failed for {home} vs {away}: {e}", file=sys.stderr)
-        return None
-    # videoId + title pairs
-    pat = re.compile(
-        r'"videoId":"([a-zA-Z0-9_-]{11})".*?"title":\{"runs":\[\{"text":"([^"]{1,200})"',
-        re.DOTALL,
-    )
-    matches = pat.findall(html)
-    seen = set()
-    candidates = []
-    for vid, title in matches:
-        if vid in seen:
+    import json as _json
+    queries = [
+        f"{home} vs {away} World Cup 2026 highlights",
+        f"FOX Sports {home} {away} 2026 highlights",
+    ]
+    raw_ids: list[str] = []
+    for q in queries:
+        try:
+            html = http_get(f"https://www.youtube.com/results?search_query={quote(q)}")
+        except Exception:
             continue
-        seen.add(vid)
-        candidates.append((vid, title))
-        if len(candidates) >= 12:
+        # Permissive: capture any 11-char ID after either "videoId":" or watch?v=
+        for vid in re.findall(r'(?:videoId":"|watch\?v=)([a-zA-Z0-9_-]{11})', html):
+            if vid not in raw_ids:
+                raw_ids.append(vid)
+            if len(raw_ids) >= 25:
+                break
+        if len(raw_ids) >= 25:
             break
+    if not raw_ids:
+        return None
+
+    # Fetch oEmbed metadata (author + title) for ranking. Skip silently on failure.
+    candidates = []  # (vid, author, title)
+    for vid in raw_ids[:20]:
+        try:
+            meta = http_get(
+                f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={vid}&format=json"
+            )
+            j = _json.loads(meta)
+            candidates.append((vid, (j.get("author_name") or ""), (j.get("title") or "")))
+        except Exception:
+            continue
     if not candidates:
         return None
 
-    def score(title: str) -> int:
+    PREFERRED_CHANNELS = {"FOX Sports", "Telemundo Deportes", "FOX Soccer", "ESPN FC", "OneFootball"}
+    def score(author: str, title: str) -> int:
+        a = author.strip()
         t = title.lower()
         s = 0
-        if "highlight" in t: s += 5
+        if "highlight" in t: s += 6
         if "2026" in t: s += 3
-        if "world cup" in t or "fifa" in t: s += 3
+        if "world cup" in t or "fifa" in t: s += 2
         if home.lower() in t and away.lower() in t: s += 4
+        # Channel preferences — FIFA officially blocks embedding, so deprioritize hard
+        if a in PREFERRED_CHANNELS: s += 8
+        if a == "FIFA": s -= 5
+        # Negative content
+        if "#shorts" in t or "shorts" in t: s -= 4
         if "live" in t: s -= 2
-        if "preview" in t or "prediction" in t: s -= 5
-        if "anthem" in t or "ceremony" in t: s -= 5
-        if "match before" in t or "friendly" in t: s -= 5
+        if "preview" in t or "prediction" in t: s -= 6
+        if "anthem" in t or "ceremony" in t: s -= 6
+        if "match before" in t or "friendly" in t: s -= 6
+        if "press conference" in t or "post-match" in t: s -= 4
+        if "fans celebrate" in t or "reaction" in t: s -= 3
         return s
 
-    candidates.sort(key=lambda c: score(c[1]), reverse=True)
-    best_vid, best_title = candidates[0]
-    print(f"    YT: {home} vs {away} -> {best_vid} ({best_title[:60]})")
+    candidates.sort(key=lambda c: score(c[1], c[2]), reverse=True)
+    best_vid, best_auth, best_title = candidates[0]
+    print(f"    YT: {home} vs {away} -> {best_vid} [{best_auth}] ({best_title[:60]})")
     return best_vid
 
 

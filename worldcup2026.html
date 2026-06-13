@@ -840,9 +840,9 @@ const GROUPS = {
 // Telemundo gets marquees in Spanish; Universo handles overflow.
 const MATCHES = [
   // MD1 — Jun 11–17 (Pacific)
-  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], actual:[2,0], highlight:'btmKtT3SxQQ', note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175. FINAL: Quiñones 9', Jiménez 67' — SA had 2 red cards (Sithole, Zwane) + MEX captain Montes red 92'."},
-  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], actual:[2,1], highlight:'6k18EJY8zIc', note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220. FINAL: Krejčí 59' (CZE), Hwang In-beom 67', Oh Hyeon-gyu 80' — comeback win for Korea."},
-  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], actual:[1,1], highlight:'UCJjuZuVsQ4', note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins. FINAL: Lukić 21' (BIH), Larin 78' — Canada's first-ever WC point (ended 6-loss streak)."},
+  {id:1,  group:'A', date:'2026-06-11', timePT:'12:00', venue:'Estadio Azteca, Mexico City',           home:'Mexico',                 away:'South Africa',           tv:'FOX · Telemundo',     pred:[2,0], actual:[2,0], highlight:'r1Afsds3ZD0', note:"H2H even (3W-2D-2L MEX). Altitude 2,240m + opener pressure. Lozano-Álvarez front-pair vs SA flat back-four. Market: MEX −175. FINAL: Quiñones 9', Jiménez 67' — SA had 2 red cards (Sithole, Zwane) + MEX captain Montes red 92'."},
+  {id:2,  group:'A', date:'2026-06-11', timePT:'19:00', venue:'Estadio Akron, Zapopan',                home:'South Korea',            away:'Czech Republic',         tv:'FS1 · Universo',      pred:[1,1], actual:[2,1], highlight:'QWoDfCkh7f8', note:"No prior meeting. Son-led 4-2-3-1 vs Czech 4-2-3-1 (Souček anchor). Coin-flip; sharps on the draw at +220. FINAL: Krejčí 59' (CZE), Hwang In-beom 67', Oh Hyeon-gyu 80' — comeback win for Korea."},
+  {id:3,  group:'B', date:'2026-06-12', timePT:'12:00', venue:'BMO Field, Toronto',                    home:'Canada',                 away:'Bosnia & Herzegovina',   tv:'FS1 · Universo',      pred:[2,1], actual:[1,1], highlight:'n5qkHOWhFAc', note:"Toronto crowd · Davies + Jonathan David. Džeko's last dance gives BIH a goal but Canadian press wins. FINAL: Lukić 21' (BIH), Larin 78' — Canada's first-ever WC point (ended 6-loss streak)."},
   {id:4,  group:'D', date:'2026-06-12', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'United States',          away:'Paraguay',               tv:'FOX · Telemundo',     pred:[2,1], actual:[4,1], highlight:'BXD1_mhODBU', note:"USA 5W-1D-1L H2H. Pochettino's compact 4-3-3 (Pulisic/Reyna/Balogun). Home crowd decisive."},
   {id:5,  group:'B', date:'2026-06-13', timePT:'12:00', venue:"Levi's Stadium, Santa Clara",           home:'Qatar',                  away:'Switzerland',            tv:'FS1 · Universo',      pred:[0,2], note:"Xhaka-Embolo dictate tempo. Qatar's '22 collapse foretells; SUI control xG."},
   {id:6,  group:'C', date:'2026-06-13', timePT:'15:00', venue:'MetLife Stadium, East Rutherford',      home:'Brazil',                 away:'Morocco',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ H2H: MAR won 2-1 friendly Mar 2023. Final-squad update: Rodrygo IS in the squad. Hakimi-Diaz-Ounahi vs Brazil. Ancelotti's first WC. Books drifted BRA −180→−135."},
@@ -993,57 +993,81 @@ const HIGHLIGHTS_CACHE_KEY = 'wc2026_highlights_v1';
 })();
 
 // YouTube blocks direct CORS fetch from youtube.com/results, so we route the
-// search-results page through a public CORS proxy. We then parse the same
-// videoId/title pattern the Python script uses and pick the most-likely
-// FIFA-style highlight reel.
+// search-results page through a public CORS proxy. We then enumerate candidate
+// video IDs and look up author + title via oEmbed (which is CORS-friendly).
+// Strongly prefer third-party broadcasters (FOX Sports, Telemundo, FOX Soccer)
+// because FIFA's official uploads disable in-page embedding.
 async function findYouTubeHighlight(home, away) {
-  const query = `FIFA World Cup 2026 ${home} vs ${away} highlights`;
-  const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(query);
-  // Try a couple of proxies in case one is rate-limited
   const proxies = [
     u => "https://corsproxy.io/?" + encodeURIComponent(u),
     u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
   ];
-  let html = null;
-  for (const p of proxies) {
-    try {
-      const r = await fetch(p(url), { method: 'GET' });
-      if (!r.ok) continue;
-      html = await r.text();
-      if (html && html.length > 1000) break;
-    } catch (e) { /* try next */ }
-  }
-  if (!html) return null;
-
-  // Pull (videoId, title) candidate list
-  const re = /"videoId":"([a-zA-Z0-9_-]{11})"[\s\S]*?"title":\{"runs":\[\{"text":"([^"]{1,200})"/g;
-  const seen = new Set();
-  const candidates = [];
-  let m;
-  while ((m = re.exec(html)) !== null && candidates.length < 12) {
-    if (seen.has(m[1])) continue;
-    seen.add(m[1]);
-    candidates.push({ id: m[1], title: m[2] });
-  }
-  if (!candidates.length) return null;
-
-  const lcHome = home.toLowerCase();
-  const lcAway = away.toLowerCase();
-  const score = (t) => {
-    const s = t.toLowerCase();
-    let p = 0;
-    if (s.includes('highlight')) p += 5;
-    if (s.includes('2026')) p += 3;
-    if (s.includes('world cup') || s.includes('fifa')) p += 3;
-    if (s.includes(lcHome) && s.includes(lcAway)) p += 4;
-    if (s.includes('live')) p -= 2;
-    if (s.includes('preview') || s.includes('prediction')) p -= 5;
-    if (s.includes('anthem') || s.includes('ceremony')) p -= 5;
-    if (s.includes('match before') || s.includes('friendly')) p -= 5;
-    return p;
+  const fetchProxied = async (u) => {
+    for (const p of proxies) {
+      try {
+        const r = await fetch(p(u));
+        if (!r.ok) continue;
+        const t = await r.text();
+        if (t && t.length > 500) return t;
+      } catch (e) { /* next */ }
+    }
+    return null;
   };
-  candidates.sort((a, b) => score(b.title) - score(a.title));
-  return candidates[0].id;
+
+  const queries = [
+    `${home} vs ${away} World Cup 2026 highlights`,
+    `FOX Sports ${home} ${away} 2026 highlights`,
+  ];
+  const seen = new Set();
+  const rawIds = [];
+  for (const q of queries) {
+    const html = await fetchProxied("https://www.youtube.com/results?search_query=" + encodeURIComponent(q));
+    if (!html) continue;
+    const re = /(?:videoId":"|watch\?v=)([a-zA-Z0-9_-]{11})/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      if (!seen.has(m[1])) { seen.add(m[1]); rawIds.push(m[1]); }
+      if (rawIds.length >= 25) break;
+    }
+    if (rawIds.length >= 25) break;
+  }
+  if (!rawIds.length) return null;
+
+  // oEmbed for author+title (allows CORS directly — no proxy needed)
+  const candidates = [];
+  for (const vid of rawIds.slice(0, 18)) {
+    try {
+      const r = await fetch("https://www.youtube.com/oembed?url=" +
+        encodeURIComponent("https://www.youtube.com/watch?v=" + vid) + "&format=json");
+      if (!r.ok) continue;
+      const j = await r.json();
+      candidates.push({ vid, author: (j.author_name || ''), title: (j.title || '') });
+    } catch (e) { /* skip */ }
+  }
+  if (!candidates.length) return rawIds[0];  // last resort
+
+  const PREFERRED = new Set(['FOX Sports','Telemundo Deportes','FOX Soccer','ESPN FC','OneFootball']);
+  const lcH = home.toLowerCase(), lcA = away.toLowerCase();
+  const score = (c) => {
+    const t = c.title.toLowerCase();
+    let s = 0;
+    if (t.includes('highlight')) s += 6;
+    if (t.includes('2026')) s += 3;
+    if (t.includes('world cup') || t.includes('fifa')) s += 2;
+    if (t.includes(lcH) && t.includes(lcA)) s += 4;
+    if (PREFERRED.has(c.author)) s += 8;
+    if (c.author === 'FIFA') s -= 5;
+    if (t.includes('#shorts') || t.includes('shorts')) s -= 4;
+    if (t.includes('live')) s -= 2;
+    if (t.includes('preview') || t.includes('prediction')) s -= 6;
+    if (t.includes('anthem') || t.includes('ceremony')) s -= 6;
+    if (t.includes('match before') || t.includes('friendly')) s -= 6;
+    if (t.includes('press conference') || t.includes('post-match')) s -= 4;
+    if (t.includes('fans celebrate') || t.includes('reaction')) s -= 3;
+    return s;
+  };
+  candidates.sort((a, b) => score(b) - score(a));
+  return candidates[0].vid;
 }
 
 async function refreshResults() {
@@ -1325,27 +1349,33 @@ async function tryEmbedHighlight(embed, m) {
   embed.innerHTML = `<div id="${playerDivId}" style="position:absolute;inset:0;"></div>`;
   await loadYTApi();
   let fellBack = false;
-  // Safety timer: if onReady never fires (rare network case), do nothing — iframe will load directly.
-  // The real signal we care about is onError(101|150) = embedding disabled.
+  let ready = false;
+  const fallback = (reason) => {
+    if (fellBack) return;
+    fellBack = true;
+    buildPosterFallback(embed, m, vid);
+  };
   try {
     new YT.Player(playerDivId, {
       videoId: vid,
       width: '100%', height: '100%',
       playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 },
       events: {
+        onReady: () => { ready = true; },
         onError: (e) => {
-          // 101 / 150 = uploader disabled embedding
-          // 100 = video not found, 5 = HTML5 player error
-          if (!fellBack && [5, 100, 101, 150].includes(e.data)) {
-            fellBack = true;
-            buildPosterFallback(embed, m, vid);
-          }
+          // 5 = HTML5, 100 = not found, 101/150 = embed disabled
+          if ([5, 100, 101, 150].includes(e.data)) fallback('error-' + e.data);
         }
       }
     });
   } catch (err) {
-    buildPosterFallback(embed, m, vid);
+    fallback('exception');
+    return;
   }
+  // YouTube's onError is unreliable for FIFA-style embed-blocked videos: the
+  // iframe just shows "Video unavailable" without firing JS errors. So if
+  // onReady hasn't fired within 3.5s, assume the embed failed and fall back.
+  setTimeout(() => { if (!ready) fallback('timeout'); }, 3500);
 }
 
 function onHighlightsClick(e) {
