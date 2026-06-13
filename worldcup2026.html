@@ -71,10 +71,16 @@
     margin: 0 auto;
   }
   .hero-emblem {
-    width: 92px;
-    height: 92px;
+    width: 130px;
+    height: 130px;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+    filter: drop-shadow(0 6px 18px rgba(250, 204, 21, 0.35))
+            drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    animation: emblemFloat 6s ease-in-out infinite;
+  }
+  @keyframes emblemFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-4px) rotate(-1.5deg); }
   }
   .hero-text h1 {
     margin: 0 0 6px 0;
@@ -126,7 +132,7 @@
   .hero-meta .sep { color: rgba(255,255,255,0.3); }
   @media (max-width: 760px) {
     .hero-inner { grid-template-columns: auto 1fr; padding: 18px; gap: 16px; }
-    .hero-emblem { width: 64px; height: 64px; }
+    .hero-emblem { width: 88px; height: 88px; }
     .hero-text h1 { font-size: 20px; }
     .hero-host-flags { display: none; }
   }
@@ -698,9 +704,9 @@
 <section class="hero" role="banner" aria-label="FIFA World Cup 2026">
   <div class="hero-inner">
     <img class="hero-emblem"
-         src="https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/250px-2026_FIFA_World_Cup_emblem.svg.png"
+         src="https://upload.wikimedia.org/wikipedia/en/1/17/2026_FIFA_World_Cup_emblem.svg"
          alt="2026 FIFA World Cup official emblem"
-         onerror="this.style.display='none'">
+         onerror="this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/en/thumb/1/17/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png';">
     <div class="hero-text">
       <h1>FIFA World Cup 2026™ — Match Calendar &amp; Predictions</h1>
       <div class="tagline">Group stage · 72 matches · Hosted by <b>Canada</b>, <b>Mexico</b> &amp; the <b>United States</b> · June 11 – July 19, 2026</div>
