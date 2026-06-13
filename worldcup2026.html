@@ -431,6 +431,43 @@
     height: 100%;
     border: 0;
   }
+  /* Poster fallback when FIFA blocks embedding */
+  .yt-poster {
+    position: absolute; inset: 0;
+    display: block; text-decoration: none;
+    background: #000;
+  }
+  .yt-poster img {
+    width: 100%; height: 100%; object-fit: cover; opacity: 0.78;
+    transition: opacity 0.2s ease;
+  }
+  .yt-poster:hover img { opacity: 0.92; }
+  .yt-poster-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%);
+  }
+  .yt-play-btn {
+    width: 68px; height: 48px; border-radius: 14px;
+    background: rgba(204, 0, 0, 0.92); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; line-height: 1;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .yt-poster:hover .yt-play-btn {
+    background: #ff0000;
+    transform: scale(1.08);
+  }
+  .yt-poster-text {
+    color: #fff; text-align: center;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+    padding: 0 12px;
+  }
+  .yt-poster-text strong { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .yt-poster-text span { font-size: 11px; opacity: 0.9; }
 
   .standings-toggle {
     position: fixed; bottom: 20px; right: 20px;
@@ -1250,6 +1287,67 @@ function attachCardHandlers() {
   });
 }
 
+// Lazy-load the YouTube IFrame Player API (so we can detect embed-blocked videos)
+let _ytApiPromise = null;
+function loadYTApi() {
+  if (_ytApiPromise) return _ytApiPromise;
+  _ytApiPromise = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) { resolve(); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { if (prev) try { prev(); } catch(e){} resolve(); };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  });
+  return _ytApiPromise;
+}
+
+function buildPosterFallback(embed, m, vid) {
+  // Try maxresdefault first; the browser will silently fall back to hqdefault if missing.
+  const thumb = `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+  const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}`;
+  embed.innerHTML = `
+    <a class="yt-poster" href="${watchUrl}" target="_blank" rel="noopener">
+      <img src="${thumb}" alt="${m.home} vs ${m.away} highlights">
+      <div class="yt-poster-overlay">
+        <div class="yt-play-btn">▶</div>
+        <div class="yt-poster-text">
+          <strong>Watch on YouTube</strong>
+          <span>FIFA disables in-page embed — click to play</span>
+        </div>
+      </div>
+    </a>`;
+}
+
+async function tryEmbedHighlight(embed, m) {
+  const vid = m.highlight;
+  const playerDivId = `yt-player-${m.id}-${Date.now()}`;
+  embed.innerHTML = `<div id="${playerDivId}" style="position:absolute;inset:0;"></div>`;
+  await loadYTApi();
+  let fellBack = false;
+  // Safety timer: if onReady never fires (rare network case), do nothing — iframe will load directly.
+  // The real signal we care about is onError(101|150) = embedding disabled.
+  try {
+    new YT.Player(playerDivId, {
+      videoId: vid,
+      width: '100%', height: '100%',
+      playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 },
+      events: {
+        onError: (e) => {
+          // 101 / 150 = uploader disabled embedding
+          // 100 = video not found, 5 = HTML5 player error
+          if (!fellBack && [5, 100, 101, 150].includes(e.data)) {
+            fellBack = true;
+            buildPosterFallback(embed, m, vid);
+          }
+        }
+      }
+    });
+  } catch (err) {
+    buildPosterFallback(embed, m, vid);
+  }
+}
+
 function onHighlightsClick(e) {
   const btn = e.currentTarget;
   const id = +btn.dataset.highlights;
@@ -1258,21 +1356,17 @@ function onHighlightsClick(e) {
   const card = btn.closest('.match-card');
   const embed = card.querySelector(`[data-embed="${id}"]`);
 
-  // If the match has a known YouTube video ID, embed it inline (toggle).
-  // Otherwise open a YouTube search in a new tab — surfaces FIFA's official recap.
+  // If the match has a known YouTube video ID, try to embed it inline (with auto-fallback
+  // to a clickable poster when YouTube blocks embedding). Otherwise open a YouTube search.
   if (m.highlight) {
     if (embed.classList.contains('open')) {
       embed.classList.remove('open');
       embed.innerHTML = '';
       btn.innerHTML = '<span class="yt-icon">▶</span> Watch Highlights';
     } else {
-      embed.innerHTML = `<iframe
-        src="https://www.youtube.com/embed/${encodeURIComponent(m.highlight)}?autoplay=1&rel=0"
-        title="${m.home} vs ${m.away} — Highlights"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen></iframe>`;
       embed.classList.add('open');
       btn.innerHTML = '<span class="yt-icon">▶</span> Hide Highlights';
+      tryEmbedHighlight(embed, m);
     }
   } else {
     const q = encodeURIComponent(`FIFA World Cup 2026 ${m.home} vs ${m.away} highlights`);
