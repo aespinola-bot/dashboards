@@ -299,6 +299,7 @@
     display: flex; justify-content: space-between; align-items: center;
     background: rgba(0,0,0,0.2);
     position: relative; z-index: 1;
+    gap: 10px;
   }
   .card-meta {
     font-size: 12px;
@@ -318,6 +319,65 @@
     color: #fff;
     transform: translateX(4px);
   }
+
+  /* Live visit counter pill */
+  .visit-counter {
+    position: absolute;
+    top: 14px; right: 14px;
+    z-index: 2;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    color: var(--text);
+    background: rgba(15, 20, 36, 0.7);
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent)) 40%, var(--border));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.25s;
+    opacity: 0; transform: translateY(-4px);
+    animation: counterFadeIn 0.4s ease forwards;
+    animation-delay: 0.2s;
+  }
+  @keyframes counterFadeIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card:hover .visit-counter {
+    border-color: var(--card-color, var(--accent));
+    background: color-mix(in srgb, var(--card-color, var(--accent)) 14%, rgba(15, 20, 36, 0.85));
+    box-shadow: 0 4px 14px -2px var(--card-color, var(--accent)),
+                0 0 0 1px color-mix(in srgb, var(--card-color, var(--accent)) 60%, transparent);
+  }
+  .visit-counter .vc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--card-color, var(--accent));
+    box-shadow: 0 0 8px var(--card-color, var(--accent));
+    animation: vcPulse 2s ease-in-out infinite;
+  }
+  @keyframes vcPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+  .visit-counter .vc-num {
+    font-variant-numeric: tabular-nums;
+    color: var(--card-color, var(--accent));
+    font-weight: 700;
+  }
+  .visit-counter .vc-num.loading {
+    color: var(--muted);
+    opacity: 0.6;
+  }
+  .visit-counter .vc-label {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .card.coming-soon .visit-counter { display: none; }
 
   .card.coming-soon {
     opacity: 0.65;
@@ -421,6 +481,7 @@
   const DASHBOARDS = [
     {
       title: 'World Cup 2026',
+      slug: 'worldcup2026',
       tag: 'Sports',
       category: 'Sports',
       icon: '🏆',
@@ -433,6 +494,7 @@
     },
     {
       title: 'Incline Walk Fitness',
+      slug: 'fitness',
       tag: 'Fitness',
       category: 'Fitness',
       icon: '💪',
@@ -445,6 +507,7 @@
     },
     {
       title: 'Evolt 360 Body Comp Progression',
+      slug: 'evolt-progression',
       tag: 'Fitness',
       category: 'Fitness',
       icon: '📊',
@@ -457,6 +520,7 @@
     },
     {
       title: 'Calorie & Macro Calculator',
+      slug: 'calorie-calculator',
       tag: 'Fitness',
       category: 'Fitness',
       icon: '🧮',
@@ -469,6 +533,7 @@
     },
     {
       title: 'Elite Breakfast Report',
+      slug: 'breakfast',
       tag: 'Nutrition',
       category: 'Fitness',
       icon: '🍳',
@@ -557,11 +622,19 @@
       html += `<div class="cards-grid">${soon.map(renderCard).join('')}</div>`;
     }
     cardsEl.innerHTML = html;
+    if (typeof loadVisitCounts === 'function') loadVisitCounts();
   }
 
   function renderCard(d) {
-    const tag = `<a class="card ${d.live?'':'coming-soon'}" href="${d.url}" style="--card-color: ${d.color}"`;
+    const tag = `<a class="card ${d.live?'':'coming-soon'}" href="${d.url}" style="--card-color: ${d.color}" data-slug="${d.slug || ''}"`;
+    const counter = d.live && d.slug ? `
+      <div class="visit-counter" title="Lifetime visits">
+        <span class="vc-dot"></span>
+        <span class="vc-num loading" data-count-for="${d.slug}">···</span>
+        <span class="vc-label">visits</span>
+      </div>` : '';
     return `${tag}>
+      ${counter}
       <div class="card-header">
         <div class="card-icon">${d.icon}</div>
         <div class="card-title-block">
@@ -586,6 +659,64 @@
   document.getElementById('stat-live').textContent = DASHBOARDS.filter(d=>d.live).length;
   document.getElementById('stat-soon').textContent = DASHBOARDS.filter(d=>!d.live).length;
   document.getElementById('stat-total').textContent = DASHBOARDS.length;
+
+  // ===== Visit counters (abacus.jasoncameron.dev — free, no auth) =====
+  // Namespace under our personal GitHub Pages. Each card is keyed by its slug.
+  // GET (read-only, no increment) here on the landing page; each individual
+  // dashboard increments its own counter on load.
+  const COUNTER_NS = 'aespinola-bot-dashboards';
+  const formatCount = (n) => {
+    if (n == null) return '—';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return n.toLocaleString('en-US');
+  };
+  // Smooth count-up animation
+  function animateCount(el, target) {
+    const duration = 900;
+    const start = performance.now();
+    const initial = 0;
+    function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const current = Math.round(initial + (target - initial) * eased);
+      el.textContent = formatCount(current);
+      if (t < 1) requestAnimationFrame(tick);
+      else el.textContent = formatCount(target);
+    }
+    requestAnimationFrame(tick);
+  }
+  async function loadVisitCounts() {
+    const elements = document.querySelectorAll('[data-count-for]');
+    if (!elements.length) return;
+    // Fire all GETs in parallel — abacus is fast and CORS-friendly
+    const tasks = Array.from(elements).map(async (el) => {
+      const key = el.dataset.countFor;
+      try {
+        const r = await fetch(`https://abacus.jasoncameron.dev/get/${COUNTER_NS}/${encodeURIComponent(key)}`);
+        if (!r.ok) throw new Error(`status ${r.status}`);
+        const j = await r.json();
+        const n = (j && typeof j.value === 'number') ? j.value : 0;
+        el.classList.remove('loading');
+        animateCount(el, n);
+      } catch (e) {
+        // First-ever load (key doesn't exist yet) → create it via /create endpoint
+        try {
+          const r2 = await fetch(`https://abacus.jasoncameron.dev/create/${COUNTER_NS}/${encodeURIComponent(key)}`);
+          const j2 = r2.ok ? await r2.json() : null;
+          el.classList.remove('loading');
+          animateCount(el, (j2 && j2.value) || 0);
+        } catch (_) {
+          el.classList.remove('loading');
+          el.textContent = '—';
+        }
+      }
+    });
+    await Promise.allSettled(tasks);
+  }
+  // Re-fetch after every render is handled inside render() itself.
+  // Initial load (render was already called above)
+  loadVisitCounts();
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {

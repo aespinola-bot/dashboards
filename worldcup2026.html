@@ -1891,6 +1891,17 @@ document.addEventListener('DOMContentLoaded', () => {
   render();
   renderStandings();
 });
+
+// Visit counter — increment once per browser session, no auth needed
+(function trackVisit() {
+  try {
+    const KEY = 'visit-tracked-worldcup2026';
+    if (sessionStorage.getItem(KEY)) return;
+    sessionStorage.setItem(KEY, '1');
+    fetch('https://abacus.jasoncameron.dev/hit/aespinola-bot-dashboards/worldcup2026')
+      .catch(() => { /* counter is best-effort */ });
+  } catch (e) { /* ignore */ }
+})();
 </script>
 </body>
 </html>
