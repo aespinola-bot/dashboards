@@ -116,11 +116,12 @@
   function adjustForStandingsToggle() {
     var st = document.querySelector('.standings-toggle');
     if (!st) return;
-    var h = st.getBoundingClientRect().height || 46;
-    var lift = Math.round(h + 14); // toggle height + gap
+    var h = st.offsetHeight || st.getBoundingClientRect().height || 46;
+    var lift = Math.max(72, Math.round(h + 18)); // safe minimum so the bubble always clears
     bubble.style.bottom = (20 + lift) + 'px';
     panel.style.bottom  = (90 + lift) + 'px';
-    // Hide chat while the standings panel is open (same pattern as home pill)
+  }
+  function watchStandingsOpen() {
     var obs = new MutationObserver(function () {
       var open = document.body.classList.contains('standings-open');
       bubble.style.opacity = open ? '0' : '';
@@ -129,11 +130,14 @@
     });
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
+  // Run multiple times to guarantee correctness regardless of script ordering
+  adjustForStandingsToggle();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', adjustForStandingsToggle);
-  } else {
-    adjustForStandingsToggle();
   }
+  window.addEventListener('load', adjustForStandingsToggle);
+  window.addEventListener('resize', adjustForStandingsToggle);
+  watchStandingsOpen();
 
   // --- Refs ---
   var dot      = panel.querySelector('[data-cw-dot]');
