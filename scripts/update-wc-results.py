@@ -48,6 +48,15 @@ IOC = {
 }
 
 
+def safe_print(msg: str) -> None:
+    """Print, downgrading to ASCII if the console can't handle Unicode."""
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        enc = (sys.stdout.encoding or "ascii")
+        print(msg.encode(enc, errors="replace").decode(enc, errors="replace"))
+
+
 def http_get(url: str) -> str:
     req = Request(url, headers={"User-Agent": USER_AGENT})
     with urlopen(req, timeout=20) as r:
@@ -180,7 +189,7 @@ def find_youtube_highlight(home: str, away: str) -> str | None:
 
     candidates.sort(key=lambda c: score(c[1], c[2]), reverse=True)
     best_vid, best_auth, best_title = candidates[0]
-    print(f"    YT: {home} vs {away} -> {best_vid} [{best_auth}] ({best_title[:60]})")
+    safe_print(f"    YT: {home} vs {away} -> {best_vid} [{best_auth}] ({best_title[:60]})")
     return best_vid
 
 
@@ -209,9 +218,12 @@ def patch_html_with_highlights(html: str) -> tuple[str, int]:
 
     found = {}
     for mid, home, away in todo:
-        vid = find_youtube_highlight(home, away)
-        if vid:
-            found[mid] = vid
+        try:
+            vid = find_youtube_highlight(home, away)
+            if vid:
+                found[mid] = vid
+        except Exception as e:
+            safe_print(f"    YT lookup error for M{mid} {home} vs {away}: {e}")
         time.sleep(0.6)  # be polite
 
     if not found:

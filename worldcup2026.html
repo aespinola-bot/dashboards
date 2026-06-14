@@ -538,6 +538,27 @@
   .yt-poster-text strong { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
   .yt-poster-text span { font-size: 11px; opacity: 0.9; }
 
+  .yt-unavailable {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 18px 22px; gap: 8px;
+    background: linear-gradient(135deg, rgba(15,20,36,0.96), rgba(10,14,26,0.96));
+    color: #e8ecf5;
+  }
+  .yt-unavailable-icon { font-size: 32px; opacity: 0.85; }
+  .yt-unavailable-title { font-weight: 700; font-size: 14px; color: #f1f5f9; }
+  .yt-unavailable-sub { font-size: 12px; line-height: 1.5; color: #94a3b8; max-width: 320px; }
+  .yt-retry-btn {
+    margin-top: 10px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    color: #fff; border: none; padding: 9px 16px; border-radius: 999px;
+    font: 600 12px Inter, system-ui, sans-serif; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .yt-retry-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(139, 92, 246, 0.5); }
+  .yt-retry-btn:disabled { opacity: 0.7; cursor: progress; }
+
   .standings-toggle {
     position: fixed; bottom: 20px; right: 20px;
     z-index: 99;
@@ -1105,13 +1126,36 @@ async function fetchGroupResults(groupLetter) {
 }
 
 const HIGHLIGHTS_CACHE_KEY = 'wc2026_highlights_v1';
+const BAD_HIGHLIGHTS_KEY  = 'wc2026_bad_highlights_v1';
 
-// Hydrate cached highlight IDs from previous lookups
+// Track YouTube IDs that proved un-embeddable (FIFA-blocked, removed, etc.)
+// so we don't keep re-suggesting them and so refresh picks a different one.
+function getBadHighlights() {
+  try { return new Set(JSON.parse(localStorage.getItem(BAD_HIGHLIGHTS_KEY) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function markBadHighlight(vid) {
+  if (!vid) return;
+  const s = getBadHighlights(); s.add(vid);
+  localStorage.setItem(BAD_HIGHLIGHTS_KEY, JSON.stringify([...s]));
+  // Also drop it from the cached-good list
+  try {
+    const cached = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+    let changed = false;
+    for (const k of Object.keys(cached)) if (cached[k] === vid) { delete cached[k]; changed = true; }
+    if (changed) localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(cached));
+  } catch (e) { /* ignore */ }
+}
+
+// Hydrate cached highlight IDs from previous lookups (skipping known-bad ones)
 (function hydrateCachedHighlights() {
   try {
     const cached = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+    const bad = getBadHighlights();
     MATCHES.forEach(m => {
-      if (cached[m.id] && !m.highlight) m.highlight = cached[m.id];
+      if (cached[m.id] && !m.highlight && !bad.has(cached[m.id])) m.highlight = cached[m.id];
+      // If hardcoded highlight is known-bad, drop it so refresh re-discovers
+      if (m.highlight && bad.has(m.highlight)) m.highlight = null;
     });
   } catch (e) { /* ignore */ }
 })();
@@ -1121,7 +1165,8 @@ const HIGHLIGHTS_CACHE_KEY = 'wc2026_highlights_v1';
 // video IDs and look up author + title via oEmbed (which is CORS-friendly).
 // Strongly prefer third-party broadcasters (FOX Sports, Telemundo, FOX Soccer)
 // because FIFA's official uploads disable in-page embedding.
-async function findYouTubeHighlight(home, away) {
+async function findYouTubeHighlight(home, away, exclude) {
+  const excludeSet = exclude instanceof Set ? exclude : new Set(exclude || []);
   const proxies = [
     u => "https://corsproxy.io/?" + encodeURIComponent(u),
     u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
@@ -1150,7 +1195,7 @@ async function findYouTubeHighlight(home, away) {
     const re = /(?:videoId":"|watch\?v=)([a-zA-Z0-9_-]{11})/g;
     let m;
     while ((m = re.exec(html)) !== null) {
-      if (!seen.has(m[1])) { seen.add(m[1]); rawIds.push(m[1]); }
+      if (!seen.has(m[1]) && !excludeSet.has(m[1])) { seen.add(m[1]); rawIds.push(m[1]); }
       if (rawIds.length >= 25) break;
     }
     if (rawIds.length >= 25) break;
@@ -1230,8 +1275,9 @@ async function refreshResults() {
   MATCHES.forEach(m => { if (m.actual) cache[m.id] = m.actual; });
   localStorage.setItem(ACTUALS_CACHE_KEY, JSON.stringify(cache));
 
-  // Now look up YouTube highlights for any finished match without a video ID
-  const needsHighlight = MATCHES.filter(m => m.actual && !m.highlight);
+  // Now look up YouTube highlights for any finished match without a (good) video ID
+  const bad = getBadHighlights();
+  const needsHighlight = MATCHES.filter(m => m.actual && (!m.highlight || bad.has(m.highlight)));
   let ytFound = 0, ytFailed = 0;
   if (needsHighlight.length) {
     status.textContent = `Looking up ${needsHighlight.length} highlight(s)…`;
@@ -1240,7 +1286,7 @@ async function refreshResults() {
       const m = needsHighlight[i];
       status.textContent = `🎬 Highlight ${i+1}/${needsHighlight.length}: ${m.home} vs ${m.away}…`;
       try {
-        const vid = await findYouTubeHighlight(m.home, m.away);
+        const vid = await findYouTubeHighlight(m.home, m.away, bad);
         if (vid) { m.highlight = vid; hCache[m.id] = vid; ytFound++; }
         else ytFailed++;
       } catch (e) { ytFailed++; }
@@ -1525,20 +1571,44 @@ function loadYTApi() {
 }
 
 function buildPosterFallback(embed, m, vid) {
-  // Try maxresdefault first; the browser will silently fall back to hqdefault if missing.
-  const thumb = `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
-  const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(vid)}`;
+  // Embedding failed — most likely the channel disables in-page playback (FIFA does this).
+  // Per user request: NEVER open YouTube in a new tab. Show an inline "not available
+  // yet" notice and a Retry button that searches for a different, embeddable upload.
+  if (vid) markBadHighlight(vid);
   embed.innerHTML = `
-    <a class="yt-poster" href="${watchUrl}" target="_blank" rel="noopener">
-      <img src="${thumb}" alt="${m.home} vs ${m.away} highlights">
-      <div class="yt-poster-overlay">
-        <div class="yt-play-btn">▶</div>
-        <div class="yt-poster-text">
-          <strong>Watch on YouTube</strong>
-          <span>FIFA disables in-page embed — click to play</span>
-        </div>
+    <div class="yt-unavailable">
+      <div class="yt-unavailable-icon">🎬</div>
+      <div class="yt-unavailable-title">Highlights not embeddable yet</div>
+      <div class="yt-unavailable-sub">
+        The current upload disables in-page playback.<br>
+        We'll look for a third-party version on the next refresh.
       </div>
-    </a>`;
+      <button class="yt-retry-btn" data-yt-retry="${m.id}">🔄 Try another now</button>
+    </div>`;
+  const retry = embed.querySelector('[data-yt-retry]');
+  if (retry) retry.addEventListener('click', async (ev) => {
+    ev.stopPropagation();
+    retry.disabled = true;
+    retry.textContent = 'Searching…';
+    try {
+      const next = await findYouTubeHighlight(m.home, m.away, getBadHighlights());
+      if (next && next !== vid) {
+        m.highlight = next;
+        try {
+          const cached = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+          cached[m.id] = next;
+          localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(cached));
+        } catch (e) {}
+        tryEmbedHighlight(embed, m);
+      } else {
+        retry.disabled = false;
+        retry.textContent = 'No other version found · Try again';
+      }
+    } catch (e) {
+      retry.disabled = false;
+      retry.textContent = '🔄 Try again';
+    }
+  });
 }
 
 async function tryEmbedHighlight(embed, m) {
@@ -1585,7 +1655,8 @@ function onHighlightsClick(e) {
   const embed = card.querySelector(`[data-embed="${id}"]`);
 
   // If the match has a known YouTube video ID, try to embed it inline (with auto-fallback
-  // to a clickable poster when YouTube blocks embedding). Otherwise open a YouTube search.
+  // to an inline "not available yet" notice when YouTube blocks embedding).
+  // If no highlight ID is known yet, show the same notice — never open a new tab.
   if (m.highlight) {
     if (embed.classList.contains('open')) {
       embed.classList.remove('open');
@@ -1597,8 +1668,48 @@ function onHighlightsClick(e) {
       tryEmbedHighlight(embed, m);
     }
   } else {
-    const q = encodeURIComponent(`FIFA World Cup 2026 ${m.home} vs ${m.away} highlights`);
-    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank', 'noopener');
+    if (embed.classList.contains('open')) {
+      embed.classList.remove('open');
+      embed.innerHTML = '';
+      btn.innerHTML = '<span class="yt-icon">▶</span> Watch Highlights';
+      return;
+    }
+    embed.classList.add('open');
+    btn.innerHTML = '<span class="yt-icon">▶</span> Hide Highlights';
+    embed.innerHTML = `
+      <div class="yt-unavailable">
+        <div class="yt-unavailable-icon">🎬</div>
+        <div class="yt-unavailable-title">Highlights not available yet</div>
+        <div class="yt-unavailable-sub">
+          We haven't found an embeddable upload for this match.<br>
+          Click below to search now, or it'll auto-retry on the next refresh.
+        </div>
+        <button class="yt-retry-btn" data-yt-search="${m.id}">🔍 Search now</button>
+      </div>`;
+    const search = embed.querySelector('[data-yt-search]');
+    if (search) search.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      search.disabled = true;
+      search.textContent = 'Searching…';
+      try {
+        const vid = await findYouTubeHighlight(m.home, m.away, getBadHighlights());
+        if (vid) {
+          m.highlight = vid;
+          try {
+            const cached = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+            cached[m.id] = vid;
+            localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(cached));
+          } catch (e) {}
+          tryEmbedHighlight(embed, m);
+        } else {
+          search.disabled = false;
+          search.textContent = 'Nothing found · Try again';
+        }
+      } catch (e) {
+        search.disabled = false;
+        search.textContent = '🔍 Search now';
+      }
+    });
   }
 }
 
@@ -2156,5 +2267,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (e) { /* ignore */ }
 })();
 </script>
+
+<script src="assets/chat-widget.js" defer></script>
 </body>
 </html>
