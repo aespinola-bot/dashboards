@@ -137,6 +137,12 @@
     .hero-text h1 { font-size: 20px; }
     .hero-host-flags { display: none; }
   }
+  @media (max-width: 480px) {
+    .hero-inner { padding: 14px; gap: 12px; }
+    .hero-emblem { height: 76px; max-width: 64px; }
+    .hero-text h1 { font-size: 17px; line-height: 1.2; }
+    .hero-text .hero-sub { font-size: 11px; }
+  }
 
   header {
     background: linear-gradient(135deg, #ffffff 0%, #f0f4fa 100%);
@@ -560,7 +566,7 @@
   .yt-retry-btn:disabled { opacity: 0.7; cursor: progress; }
 
   .standings-toggle {
-    position: fixed; bottom: 20px; right: 96px;
+    position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 96px;
     z-index: 99;
     background: var(--accent); color: #fff;
     border: none; padding: 12px 18px;
@@ -569,8 +575,12 @@
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(212, 129, 11, 0.35);
   }
+  .standings-toggle .st-label { display: inline; }
+  .standings-toggle .st-emoji-only { display: none; }
   @media (max-width: 480px) {
-    .standings-toggle { right: 80px; padding: 10px 14px; font-size: 13px; }
+    .standings-toggle { right: 78px; padding: 0; width: 46px; height: 46px; border-radius: 50%; font-size: 18px; line-height: 46px; }
+    .standings-toggle .st-label { display: none; }
+    .standings-toggle .st-emoji-only { display: inline; }
   }
   .standings-panel {
     position: fixed;
@@ -936,7 +946,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
 </div>
 
 
-<button class="standings-toggle" id="open-standings">📊 Standings</button>
+<button class="standings-toggle" id="open-standings" aria-label="Open standings"><span class="st-label">📊 Standings</span><span class="st-emoji-only">📊</span></button>
 
 <aside class="standings-panel" id="standings-panel">
   <button class="close" id="close-standings">×</button>
@@ -2274,5 +2284,206 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="assets/chat-widget.js" defer></script>
 
 <script src="assets/feedback-widget.js" defer></script>
+
+<!-- ============================================================
+     MOBILE-ONLY LAYOUT (≤ 640px)
+     Desktop layout above is intentionally untouched. This block
+     reshapes the WC dashboard for phones: tighter hero, stacked
+     match cards, scrollable tabs, and a unified bottom dock that
+     replaces the three floating widgets (Standings/Feedback/Chat).
+============================================================ -->
+<style>
+@media (max-width: 640px) {
+  /* --- Hero: compact --- */
+  body .hero { padding: 8px 10px 0; }
+  body .hero-inner { grid-template-columns: auto 1fr; padding: 12px; gap: 10px; border-radius: 16px; }
+  body .hero-emblem { height: 64px; max-width: 56px; }
+  body .hero-text h1 { font-size: 15px; line-height: 1.25; margin: 0 0 4px; }
+  body .hero-text .hero-sub { font-size: 10px; }
+
+  /* --- Header / sticky tabs: less vertical real estate --- */
+  body header { padding: 12px 14px 10px; }
+  body header h1 { font-size: 17px; margin: 0 0 4px; }
+  body header .sub { font-size: 11px; }
+  body header .controls { gap: 6px; margin-top: 10px; }
+  body .btn, body select { padding: 5px 10px; font-size: 12px; }
+  body .stats { width: 100%; margin: 4px 0 0; gap: 10px; font-size: 11px; flex-wrap: wrap; }
+
+  /* --- Tabs: horizontally scrollable, never wrap --- */
+  body .tabs {
+    padding: 6px 12px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  body .tabs::-webkit-scrollbar { display: none; }
+  body .tab-btn { white-space: nowrap; flex-shrink: 0; padding: 8px 12px; font-size: 12px; }
+
+  /* --- Day header: single line, smaller --- */
+  body .day-header { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 12px; }
+  body .day-header h2 { font-size: 15px; }
+  body .day-header .day-meta { font-size: 11px; }
+
+  /* --- Match cards: full-width single column, denser --- */
+  body .matches-grid { grid-template-columns: 1fr; gap: 10px; }
+  body .match-card { padding: 12px 12px 10px; border-radius: 12px; border-left-width: 4px; }
+  body .match-card:hover { transform: none; box-shadow: 0 1px 4px rgba(20,40,80,0.04); }
+  body .match-top { font-size: 10px; margin-bottom: 8px; }
+  body .group-pill { font-size: 10px; padding: 2px 7px; }
+  body .teams-row { gap: 6px; margin: 8px 0 6px; }
+  body .team { font-size: 13px; gap: 6px; }
+  body .team img { width: 28px; height: 19px; }
+  body .vs { font-size: 10px; }
+
+  /* --- Score inputs: bigger touch target, full-width --- */
+  body .score-inputs { padding: 6px; gap: 6px; margin: 8px 0; }
+  body .score-inputs input {
+    font-size: 24px; padding: 10px 6px;
+    -webkit-appearance: none; appearance: none;
+    -moz-appearance: textfield;
+  }
+  body .score-inputs input::-webkit-outer-spin-button,
+  body .score-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  body .prediction { font-size: 10px; }
+  body .ai-pred-row { font-size: 11px; padding: 6px 8px; }
+  body .expand-btn { padding: 6px 10px; font-size: 11px; }
+  body .expand-btn .label-extra { display: none; }
+
+  /* --- YouTube embed: keep aspect, no extra margins --- */
+  body .yt-embed { margin: 8px -2px 0; border-radius: 8px; }
+  body .yt-unavailable { padding: 14px; }
+  body .yt-unavailable-title { font-size: 13px; }
+  body .yt-unavailable-sub { font-size: 11px; }
+
+  /* --- Standings panel: full-screen overlay --- */
+  body .standings-panel { width: 100vw; max-width: 100vw; }
+  body .standings-panel.open { right: 0 !important; }
+  body .std-tabs { padding: 8px; gap: 6px; }
+  body .std-tab-btn { padding: 8px 6px; font-size: 11px; }
+  body .group-table { font-size: 11px; }
+  body .group-table th, body .group-table td { padding: 5px 4px; }
+
+  /* --- Hide floating widgets in favor of a unified bottom dock --- */
+  body > .standings-toggle,
+  body > .cw-bubble,
+  body > .fw-pill { display: none !important; }
+  body.standings-open #mobile-dock { transform: translateY(110%); }
+
+  /* The dock itself */
+  #mobile-dock {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: flex;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(20,40,80,0.08);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    transition: transform .25s ease;
+  }
+  #mobile-dock button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: background .15s ease;
+    position: relative;
+  }
+  #mobile-dock button:active { background: rgba(139, 92, 246, 0.10); }
+  #mobile-dock button .dock-emoji { font-size: 20px; line-height: 1; }
+  #mobile-dock button .dock-label { font-size: 10px; opacity: .85; }
+  #mobile-dock button .dock-badge {
+    position: absolute; top: 4px; right: calc(50% - 22px);
+    min-width: 16px; height: 16px; padding: 0 5px;
+    border-radius: 8px; background: #ef4444; color: #fff;
+    font-size: 9px; line-height: 16px; font-weight: 700;
+    display: none;
+  }
+  #mobile-dock button .dock-badge.is-on { display: block; }
+
+  /* Push body content above dock so last cards aren't hidden */
+  body { padding-bottom: 70px; }
+  body.standings-open { padding-bottom: 0; }
+}
+
+/* Default: dock is hidden on desktop (no need for a desktop-side selector;
+   it lives in the DOM but is display:none unless the media query above
+   activates display:flex). */
+#mobile-dock { display: none; }
+</style>
+
+<div id="mobile-dock" role="navigation" aria-label="Mobile actions">
+  <button type="button" data-dock="standings" aria-label="Standings">
+    <span class="dock-emoji">📊</span>
+    <span class="dock-label">Standings</span>
+  </button>
+  <button type="button" data-dock="chat" aria-label="Community chat">
+    <span class="dock-emoji">💬</span>
+    <span class="dock-label">Chat</span>
+    <span class="dock-badge" data-dock-badge>0</span>
+  </button>
+  <button type="button" data-dock="feedback" aria-label="Send feedback">
+    <span class="dock-emoji">📨</span>
+    <span class="dock-label">Feedback</span>
+  </button>
+</div>
+
+<script>
+// Wire mobile dock buttons to the existing widgets.
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    var dock = document.getElementById('mobile-dock');
+    if (!dock) return;
+    dock.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-dock]');
+      if (!b) return;
+      var which = b.dataset.dock;
+      if (which === 'standings') {
+        var t = document.getElementById('open-standings');
+        if (t) t.click();
+      } else if (which === 'chat') {
+        var cw = document.querySelector('.cw-bubble');
+        if (cw) cw.click();
+      } else if (which === 'feedback') {
+        var fw = document.querySelector('.fw-pill');
+        if (fw) fw.click();
+      }
+    });
+
+    // Mirror chat unread badge into the dock chat button
+    var dockBadge = dock.querySelector('[data-dock-badge]');
+    if (dockBadge) {
+      var sync = function () {
+        var src = document.querySelector('.cw-bubble [data-cw-badge]');
+        if (!src) return;
+        if (src.classList.contains('is-on')) {
+          dockBadge.textContent = src.textContent;
+          dockBadge.classList.add('is-on');
+        } else {
+          dockBadge.classList.remove('is-on');
+        }
+      };
+      // Poll lightly — chat-widget mutates its own badge on each new msg
+      setInterval(sync, 1000);
+    }
+  });
+})();
+</script>
 </body>
 </html>

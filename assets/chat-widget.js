@@ -24,7 +24,7 @@
   // --- Styles ---
   var css = document.createElement('style');
   css.textContent = [
-    '.cw-bubble{position:fixed;bottom:20px;right:20px;z-index:2147483645;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6 0%,#06b6d4 100%);border:none;cursor:pointer;box-shadow:0 8px 24px rgba(139,92,246,.45),0 4px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;transition:transform .2s ease,box-shadow .2s ease;animation:cwIn .35s cubic-bezier(.34,1.56,.64,1)}',
+    '.cw-bubble{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));right:20px;z-index:2147483645;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6 0%,#06b6d4 100%);border:none;cursor:pointer;box-shadow:0 8px 24px rgba(139,92,246,.45),0 4px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;transition:transform .2s ease,box-shadow .2s ease;animation:cwIn .35s cubic-bezier(.34,1.56,.64,1)}',
     '.cw-bubble:hover{transform:scale(1.08);box-shadow:0 12px 30px rgba(139,92,246,.6),0 6px 14px rgba(0,0,0,.35)}',
     '.cw-bubble:active{transform:scale(.95)}',
     '.cw-bubble svg{width:28px;height:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}',

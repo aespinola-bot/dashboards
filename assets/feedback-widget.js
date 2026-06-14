@@ -15,7 +15,7 @@
 
   var css = document.createElement('style');
   css.textContent = [
-    '.fw-pill{position:fixed;bottom:20px;left:20px;z-index:2147483645;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(15,20,36,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(139,92,246,.35);color:#e8ecf5;font:600 12px Inter,system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;animation:fwIn .35s cubic-bezier(.34,1.56,.64,1)}',
+    '.fw-pill{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:20px;z-index:2147483645;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(15,20,36,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(139,92,246,.35);color:#e8ecf5;font:600 12px Inter,system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;animation:fwIn .35s cubic-bezier(.34,1.56,.64,1)}',
     '.fw-pill:hover{transform:translateY(-1px);border-color:rgba(139,92,246,.7);box-shadow:0 10px 24px rgba(139,92,246,.35)}',
     '.fw-pill svg{width:14px;height:14px}',
     '@keyframes fwIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}',
@@ -48,7 +48,7 @@
     '.fw-btn.is-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(139,92,246,.5)}',
     '.fw-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}',
     '@media print{.fw-pill,.fw-overlay{display:none!important}}',
-    '@media (max-width:480px){.fw-pill{bottom:14px;left:14px}.fw-types{grid-template-columns:1fr 1fr 1fr}}'
+    '@media (max-width:480px){.fw-pill{bottom:calc(14px + env(safe-area-inset-bottom));left:14px;padding:0;width:46px;height:46px;border-radius:50%;justify-content:center;gap:0}.fw-pill span{display:none}.fw-pill svg{width:18px;height:18px}.fw-types{grid-template-columns:1fr 1fr 1fr}}'
   ].join('');
   document.head.appendChild(css);
 
