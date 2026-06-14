@@ -72,7 +72,7 @@
       '<div class="fw-head">' +
         '<div>' +
           '<div class="fw-title">Send feedback</div>' +
-          '<div class="fw-sub">filed at github.com/' + REPO + '/issues</div>' +
+          '<div class="fw-sub">we read every message</div>' +
         '</div>' +
         '<button class="fw-close" data-fw-action="close" aria-label="Close">✕</button>' +
       '</div>' +
@@ -98,12 +98,12 @@
           '<input class="fw-input" data-fw-name placeholder="So I know who to thank" maxlength="40" />' +
         '</div>' +
         '<div class="fw-help">' +
-          'Submitting opens a prefilled GitHub Issue in a new tab. You\'ll need a (free) GitHub account to post it.' +
+          'A new tab will open to confirm and send your message. If it\'s your first time, you may be asked to sign in.' +
         '</div>' +
       '</div>' +
       '<div class="fw-foot">' +
         '<button class="fw-btn"            data-fw-action="close"  type="button">Cancel</button>' +
-        '<button class="fw-btn is-primary" data-fw-action="submit" type="button" data-fw-submit>Open GitHub Issue ↗</button>' +
+        '<button class="fw-btn is-primary" data-fw-action="submit" type="button" data-fw-submit>Submit</button>' +
       '</div>' +
     '</div>';
 

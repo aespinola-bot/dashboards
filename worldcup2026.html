@@ -560,7 +560,7 @@
   .yt-retry-btn:disabled { opacity: 0.7; cursor: progress; }
 
   .standings-toggle {
-    position: fixed; bottom: 20px; right: 20px;
+    position: fixed; bottom: 20px; right: 96px;
     z-index: 99;
     background: var(--accent); color: #fff;
     border: none; padding: 12px 18px;
@@ -568,6 +568,9 @@
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(212, 129, 11, 0.35);
+  }
+  @media (max-width: 480px) {
+    .standings-toggle { right: 80px; padding: 10px 14px; font-size: 13px; }
   }
   .standings-panel {
     position: fixed;

@@ -111,16 +111,8 @@
   document.body.appendChild(bubble);
   document.body.appendChild(panel);
 
-  // Avoid overlapping the World Cup "Standings" toggle which also lives in the
-  // bottom-right corner. If detected, raise the bubble and panel accordingly.
-  function adjustForStandingsToggle() {
-    var st = document.querySelector('.standings-toggle');
-    if (!st) return;
-    var h = st.offsetHeight || st.getBoundingClientRect().height || 46;
-    var lift = Math.max(72, Math.round(h + 18)); // safe minimum so the bubble always clears
-    bubble.style.bottom = (20 + lift) + 'px';
-    panel.style.bottom  = (90 + lift) + 'px';
-  }
+  // Chat bubble lives at bottom-right of all dashboards. The WC Standings toggle
+  // has been moved left (right:96px) so the two never overlap — no JS lift needed.
   function watchStandingsOpen() {
     var obs = new MutationObserver(function () {
       var open = document.body.classList.contains('standings-open');
@@ -130,13 +122,6 @@
     });
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
-  // Run multiple times to guarantee correctness regardless of script ordering
-  adjustForStandingsToggle();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', adjustForStandingsToggle);
-  }
-  window.addEventListener('load', adjustForStandingsToggle);
-  window.addEventListener('resize', adjustForStandingsToggle);
   watchStandingsOpen();
 
   // --- Refs ---
