@@ -339,11 +339,73 @@
     border-radius: 4px;
   }
   .pred-row.you  { background: rgba(37, 99, 235, 0.06); }
-  .pred-row.ai   { background: rgba(212, 129, 11, 0.06); }
-  .pred-row .label { font-weight: 700; }
+  .pred-row.ai   { background: rgba(212, 129, 11, 0.06); }  .pred-row .label { font-weight: 700; }
   .pred-row.you  .label { color: var(--blue); }
   .pred-row.ai   .label { color: var(--accent); }
   .pred-row b { color: var(--text); }
+  .use-ai-btn {
+    margin-left: 8px;
+    padding: 3px 9px;
+    font: 600 10px/1.2 'Inter', system-ui, sans-serif;
+    color: var(--accent);
+    background: rgba(212, 129, 11, 0.12);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .use-ai-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  /* Missing-matches dialog */
+  .missing-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.18s ease;
+  }
+  .missing-dialog {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    width: min(560px, 100%);
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .missing-dialog-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .missing-dialog-head h3 { margin: 0; font-size: 15px; }
+  .missing-dialog-head .close-x {
+    background: none; border: 0; font-size: 22px; cursor: pointer; color: var(--muted);
+  }
+  .missing-dialog-body {
+    overflow-y: auto;
+    padding: 14px 20px 18px;
+  }
+  .missing-row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .missing-row:last-child { border-bottom: 0; }
+  .missing-row .meta { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .missing-row .jump-btn {
+    padding: 4px 10px; font-size: 11px; font-weight: 600;
+    background: var(--accent); color: #fff; border: 0; border-radius: 4px; cursor: pointer;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .info-row {
     font-size: 11px;
@@ -506,6 +568,53 @@
     position: absolute; top: 12px; right: 12px;
     background: none; border: none; color: var(--text);
     font-size: 24px; cursor: pointer;
+    z-index: 10;
+  }
+  .std-tabs {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0 16px;
+    padding: 4px;
+    background: var(--panel2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .std-tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    font: 600 12px/1 'Inter', system-ui, sans-serif;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .std-tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .std-tab-btn.active {
+    background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, black) 100%);
+    color: #fff;
+    box-shadow: 0 3px 10px -2px var(--accent);
+  }
+  .std-mode-banner {
+    font-size: 11px;
+    color: var(--muted);
+    margin: -8px 0 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--panel2);
+    border-left: 3px solid var(--accent);
+  }
+  .std-mode-banner.you { border-left-color: #f97316; }
+  .std-empty {
+    padding: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
   }
   .group-table {
     margin-bottom: 16px;
@@ -691,13 +800,14 @@
 </head>
 <body>
 <a href="./" class="home-pill" aria-label="Back to dashboards home">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
-  <span>Dashboards</span>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  <span>Home</span>
 </a>
 <style>
 .home-pill{position:fixed;top:16px;right:16px;z-index:2147483647;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;font:600 13px/1 system-ui,-apple-system,'Segoe UI',Inter,sans-serif;color:#fff;background:rgba(15,23,42,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:999px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .2s ease}
 .home-pill:hover{background:rgba(58,160,255,.9);border-color:rgba(58,160,255,1);transform:translateY(-1px);box-shadow:0 6px 20px rgba(58,160,255,.4)}
 .home-pill svg{flex:0 0 auto}
+body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translateX(20px)}
 @media print{.home-pill{display:none}}
 </style>
 
@@ -807,9 +917,13 @@
 <aside class="standings-panel" id="standings-panel">
   <button class="close" id="close-standings">×</button>
   <h2>📊 Live Group Standings</h2>
-  <p style="color:var(--muted); font-size:12px; margin-top:-8px;">
-    Standings update from the scores you enter. Top 2 = qualified (green). 3rd = best-third race (orange).
-  </p>
+  <div class="std-tabs" role="tablist">
+    <button class="std-tab-btn active" data-std-mode="real" role="tab" aria-selected="true">🏟️ Real Progress</button>
+    <button class="std-tab-btn" data-std-mode="you" role="tab" aria-selected="false">🎯 My Predictions</button>
+  </div>
+  <div id="std-mode-banner" class="std-mode-banner">
+    Live standings from <b>actual final scores only</b>. Matches not yet played are excluded.
+  </div>
   <div id="standings-content"></div>
 </aside>
 
@@ -1217,6 +1331,9 @@ function renderMatchCard(m) {
        </div>`;
 
   // Two prediction rows: My (only if user entered) + AI (always)
+  const useAiBtn = (hasFinal && !myPred)
+    ? ` <button class="use-ai-btn" data-use-ai="${m.id}" type="button" title="Save AI prediction as your prediction">📋 Use as Mine</button>`
+    : '';
   const myRow = myPred
     ? `<div class="pred-row you">
          <span class="label">👤 My Prediction:</span> <b>${myPred[0]}–${myPred[1]}</b> ${hasFinal ? pillFor(myAcc) : ''}
@@ -1226,7 +1343,7 @@ function renderMatchCard(m) {
         : '');
 
   const aiRow = `<div class="pred-row ai">
-       <span class="label">🤖 AI Prediction:</span> <b>${m.pred[0]}–${m.pred[1]}</b> ${hasFinal ? pillFor(aiAcc) : ''}
+       <span class="label">🤖 AI Prediction:</span> <b>${m.pred[0]}–${m.pred[1]}</b> ${hasFinal ? pillFor(aiAcc) : ''}${useAiBtn}
      </div>`;
 
   return `
@@ -1318,6 +1435,77 @@ function attachCardHandlers() {
   });
   document.querySelectorAll('[data-highlights]').forEach(btn => {
     btn.addEventListener('click', onHighlightsClick);
+  });
+  document.querySelectorAll('[data-use-ai]').forEach(btn => {
+    btn.addEventListener('click', onUseAiClick);
+  });
+}
+
+function onUseAiClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const id = +e.currentTarget.dataset.useAi;
+  const m = MATCHES.find(x => x.id === id);
+  if (!m || !m.pred) return;
+  scores[id] = [m.pred[0], m.pred[1]];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+  // Re-render the card + stats + standings
+  render();
+  updateStats();
+  renderStandings();
+}
+
+// Show a dialog listing matches that are missing scores in the current source
+function showMissingMatchesDialog() {
+  const src = (typeof getActiveGroupScores === 'function') ? getActiveGroupScores() : null;
+  let missing;
+  if (src) {
+    missing = MATCHES.filter(m => !src[m.id]);
+  } else {
+    missing = MATCHES.filter(m => !m.actual && !scores[m.id]);
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'missing-overlay';
+  overlay.innerHTML = `
+    <div class="missing-dialog" role="dialog" aria-modal="true">
+      <div class="missing-dialog-head">
+        <h3>${missing.length} match${missing.length === 1 ? '' : 'es'} missing scores</h3>
+        <button class="close-x" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="missing-dialog-body">
+        ${missing.length === 0
+          ? '<p style="color:var(--muted);text-align:center;padding:20px 0;">All 72 matches have scores. ✓</p>'
+          : missing.map(m => `
+              <div class="missing-row">
+                <div>
+                  <div><b>${m.home}</b> vs <b>${m.away}</b></div>
+                  <div class="meta">M${m.id} · Group ${m.group} · ${m.date} · ${m.timePT} PT</div>
+                </div>
+                <button class="jump-btn" data-jump="${m.id}" type="button">Jump →</button>
+              </div>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector('.close-x').addEventListener('click', close);
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) close(); });
+  overlay.querySelectorAll('[data-jump]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = +b.dataset.jump;
+      // Switch to Match Calendar tab and scroll to the card
+      const calBtn = document.querySelector('.tab-btn[data-tab="calendar"]');
+      if (calBtn && !calBtn.classList.contains('active')) calBtn.click();
+      close();
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`[data-match-id="${id}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.transition = 'box-shadow 0.4s ease';
+          card.style.boxShadow = '0 0 0 3px var(--accent)';
+          setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+        }
+      });
+    });
   });
 }
 
@@ -1480,12 +1668,21 @@ function updateStats() {
   document.getElementById('stat-my-exact').textContent = myExact;
 }
 
-function computeStandings(group) {
+// Standings mode: 'real' = actual final scores only, 'you' = user's predictions only
+let standingsMode = 'real';
+
+function computeStandings(group, mode) {
+  mode = mode || standingsMode;
   const teams = GROUPS[group];
   const table = {};
   teams.forEach(t => { table[t] = { team:t, P:0, W:0, D:0, L:0, GF:0, GA:0, GD:0, Pts:0 }; });
+  let used = 0;
   MATCHES.filter(m => m.group === group).forEach(m => {
-    const sc = m.actual; if (!sc) return;
+    let sc = null;
+    if (mode === 'real') sc = m.actual;
+    else if (mode === 'you') sc = scores[m.id];   // user predictions only
+    if (!sc) return;
+    used++;
     const [h, a] = sc;
     const ht = table[m.home], at = table[m.away];
     ht.P++; at.P++;
@@ -1495,15 +1692,43 @@ function computeStandings(group) {
     else if (h < a) { at.W++; at.Pts+=3; ht.L++; }
     else { ht.D++; at.D++; ht.Pts++; at.Pts++; }
   });
-  return Object.values(table).sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
+  const rows = Object.values(table).sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
+  return { rows, used, total: 3 }; // 3 group-stage matches per team but 6 matches per group total — count below
 }
 
 function renderStandings() {
+  // Update tab + banner based on mode
+  document.querySelectorAll('.std-tab-btn').forEach(b => {
+    const isActive = b.dataset.stdMode === standingsMode;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  const banner = document.getElementById('std-mode-banner');
+  if (banner) {
+    banner.classList.toggle('you', standingsMode === 'you');
+    if (standingsMode === 'real') {
+      banner.innerHTML = 'Live standings from <b>actual final scores only</b>. Top 2 = qualified (green). 3rd = best-third race (orange).';
+    } else {
+      const predicted = MATCHES.filter(m => scores[m.id]).length;
+      banner.innerHTML = `Standings as if <b>your predictions</b> were the final results. <b>${predicted}/72</b> matches predicted. Locked-final matches need a click below to assign your pick.`;
+    }
+  }
+
   const html = Object.keys(GROUPS).map(g => {
-    const rows = computeStandings(g);
+    const { rows, used } = computeStandings(g, standingsMode);
+    const totalGroupMatches = MATCHES.filter(m => m.group === g).length; // always 6
+    if (used === 0) {
+      return `
+        <div class="group-table" style="--gcolor: var(--${g});">
+          <h3>Group ${g}</h3>
+          <div class="std-empty">${standingsMode === 'you'
+            ? 'No predictions entered for this group yet.'
+            : 'No matches played in this group yet.'}</div>
+        </div>`;
+    }
     return `
       <div class="group-table" style="--gcolor: var(--${g});">
-        <h3>Group ${g}</h3>
+        <h3>Group ${g} <span style="float:right;font-weight:400;opacity:0.85;font-size:11px;">${used}/${totalGroupMatches} matches</span></h3>
         <table>
           <thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
           <tbody>
@@ -1549,10 +1774,28 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refresh-results').addEventListener('click', refreshResults);
   document.getElementById('open-standings').addEventListener('click', () => {
     document.getElementById('standings-panel').classList.add('open');
+    document.body.classList.add('standings-open');
   });
   document.getElementById('close-standings').addEventListener('click', () => {
     document.getElementById('standings-panel').classList.remove('open');
+    document.body.classList.remove('standings-open');
   });
+
+  // Standings mode tabs (Real Progress / My Predictions)
+  document.querySelectorAll('.std-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      standingsMode = btn.dataset.stdMode;
+      renderStandings();
+    });
+  });
+
+  // Click "X/72 matches scored" badge to reveal which matches are missing
+  const gsStatusEl = document.getElementById('gs-status');
+  if (gsStatusEl) {
+    gsStatusEl.style.cursor = 'pointer';
+    gsStatusEl.title = 'Click to see which matches are missing';
+    gsStatusEl.addEventListener('click', showMissingMatchesDialog);
+  }
 
   // ============== TABS ==============
   document.querySelectorAll('.tab-btn').forEach(btn => {
