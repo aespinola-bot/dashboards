@@ -111,6 +111,30 @@
   document.body.appendChild(bubble);
   document.body.appendChild(panel);
 
+  // Avoid overlapping the World Cup "Standings" toggle which also lives in the
+  // bottom-right corner. If detected, raise the bubble and panel accordingly.
+  function adjustForStandingsToggle() {
+    var st = document.querySelector('.standings-toggle');
+    if (!st) return;
+    var h = st.getBoundingClientRect().height || 46;
+    var lift = Math.round(h + 14); // toggle height + gap
+    bubble.style.bottom = (20 + lift) + 'px';
+    panel.style.bottom  = (90 + lift) + 'px';
+    // Hide chat while the standings panel is open (same pattern as home pill)
+    var obs = new MutationObserver(function () {
+      var open = document.body.classList.contains('standings-open');
+      bubble.style.opacity = open ? '0' : '';
+      bubble.style.pointerEvents = open ? 'none' : '';
+      bubble.style.transform = open ? 'translateX(20px)' : '';
+    });
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', adjustForStandingsToggle);
+  } else {
+    adjustForStandingsToggle();
+  }
+
   // --- Refs ---
   var dot      = panel.querySelector('[data-cw-dot]');
   var statusEl = panel.querySelector('[data-cw-status]');
