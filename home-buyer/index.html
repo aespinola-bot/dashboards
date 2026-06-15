@@ -418,13 +418,47 @@ async function lookupLot(g){
 
   if (county.includes('bucks') && state==='PA'){
     try {
-      const url = `https://services3.arcgis.com/SP47Tddf7RK32lBU/arcgis/rest/services/Bucks_County_Parcels/FeatureServer/0/query?where=1=1&geometry=${g.lon},${g.lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PIN,DEED_AREA,SITE_ADDRESS&outSR=4326&returnGeometry=true&f=json`;
-      const j = await (await fetch(url)).json();
-      const f = j.features?.[0];
-      if (f && f.geometry){
+      // Bucks Census geocode returns street-centerline-interpolated coords ~50m off,
+      // so we (a) try point-in-polygon, (b) buffer to ~80m envelope, (c) fall back to address match.
+      const fields = 'PARCEL_NUM,ADDRESS,DEED_AREA,MUNICIPALITY,LAND_VALUE,BUILDING_VALUE,TOTAL_VALUE,Shape__Area';
+      const base = 'https://services3.arcgis.com/SP47Tddf7RK32lBU/arcgis/rest/services/Bucks_County_Parcels/FeatureServer/0/query';
+      const tries = [];
+      // 1) point-in-polygon
+      tries.push(`${base}?where=1=1&geometry=${g.lon},${g.lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=${fields}&outSR=4326&returnGeometry=true&f=json`);
+      // 2) ~100m envelope around the point
+      const d = 0.001;
+      const env = `${g.lon-d},${g.lat-d},${g.lon+d},${g.lat+d}`;
+      tries.push(`${base}?where=1=1&geometry=${env}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=${fields}&outSR=4326&returnGeometry=true&f=json&resultRecordCount=20`);
+      // 3) address LIKE — parse house# + street from matched
+      const num = (g.matched||'').match(/^(\d+)\s/)?.[1];
+      const street = (g.matched||'').replace(/^\d+\s+/,'').split(',')[0].trim().toUpperCase().replace(/\bCIRCLE\b/,'CIR').replace(/\bSTREET\b/,'ST').replace(/\bAVENUE\b/,'AVE').replace(/\bROAD\b/,'RD');
+      if (num && street){
+        const where = encodeURIComponent(`ADDRESS LIKE '${num} ${street}%'`);
+        tries.push(`${base}?where=${where}&outFields=${fields}&outSR=4326&returnGeometry=true&f=json&resultRecordCount=5`);
+      }
+      let f = null;
+      for (let i=0; i<tries.length && !f; i++){
+        try {
+          const j = await (await fetch(tries[i])).json();
+          if (j.features?.length){
+            // pick the closest one to our lat/lon if multiple
+            f = pickClosest(j.features, g.lat, g.lon);
+          }
+        } catch {}
+      }
+      if (f && f.geometry?.rings){
         const rings = f.geometry.rings;
-        const acres = parseFloat(f.attributes.DEED_AREA) || ringsAreaAcres(rings);
-        return { source:'Bucks County, PA Parcel GIS', polygon:rings, polygonType:'rings', acres, pin:f.attributes.PIN, addr:f.attributes.SITE_ADDRESS };
+        const a = f.attributes;
+        const deedAcres = parseDeedArea(a.DEED_AREA);
+        const calcAcres = ringsAreaAcres(rings);
+        return {
+          source:'Bucks County, PA Parcel GIS',
+          polygon:rings, polygonType:'rings',
+          acres: deedAcres || calcAcres,
+          deedAcres, calcAcres,
+          pin:a.PARCEL_NUM, addr:a.ADDRESS, muni:a.MUNICIPALITY,
+          landValue:a.LAND_VALUE, buildingValue:a.BUILDING_VALUE, totalValue:a.TOTAL_VALUE
+        };
       }
     } catch(e){}
   }
@@ -447,15 +481,22 @@ async function lookupLot(g){
 function renderLot(lot, g){
   const acres = lot.acres||0;
   const sqft = Math.round(acres*43560);
-  // estimated dimensions if rectangular
   const sideFt = Math.round(Math.sqrt(sqft));
+  const deedRow = lot.deedAcres ? `<div class="kpi"><div class="l">Deed (Tax Roll)</div><div class="v">${lot.deedAcres.toFixed(3)} ac</div><div class="h">official county record</div></div>` : '';
+  const calcRow = lot.calcAcres ? `<div class="kpi"><div class="l">Polygon (GIS)</div><div class="v">${lot.calcAcres.toFixed(3)} ac</div><div class="h">computed from boundary</div></div>` : '';
+  const valueRow = lot.totalValue ? `
+    <div class="kpi"><div class="l">Land (Assessed)</div><div class="v">${fmtMoney(lot.landValue)}</div><div class="h">county assessment</div></div>
+    <div class="kpi"><div class="l">Building (Assessed)</div><div class="v">${fmtMoney(lot.buildingValue)}</div><div class="h">county assessment</div></div>
+    <div class="kpi"><div class="l">Total (Assessed)</div><div class="v">${fmtMoney(lot.totalValue)}</div><div class="h">≠ market value</div></div>` : '';
   const html = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px">
-      <div class="kpi"><div class="l">Acres</div><div class="v">${acres.toFixed(3)}</div><div class="h">recorded area</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px">
+      <div class="kpi"><div class="l">Acres</div><div class="v">${acres.toFixed(3)}</div><div class="h">primary value used</div></div>
       <div class="kpi"><div class="l">Square Feet</div><div class="v">${sqft.toLocaleString('en-US')}</div><div class="h">≈ ${sideFt}×${sideFt} ft if square</div></div>
-      ${lot.pin?`<div class="kpi"><div class="l">Parcel ID</div><div class="v mono" style="font-size:13px">${escape(lot.pin)}</div><div class="h">${escape(lot.addr||'')}</div></div>`:''}
+      ${deedRow}${calcRow}
+      ${lot.pin?`<div class="kpi"><div class="l">Parcel ID</div><div class="v mono" style="font-size:13px">${escape(lot.pin)}</div><div class="h">${escape(lot.addr||'')} · ${escape(lot.muni||'')}</div></div>`:''}
+      ${valueRow}
     </div>
-    <div class="source">Source: ${escape(lot.source)}${lot.note?' — '+escape(lot.note):''}</div>`;
+    <div class="source">Source: ${escape(lot.source)}${lot.note?' — '+escape(lot.note):''}${(lot.deedAcres && lot.calcAcres && Math.abs(lot.deedAcres-lot.calcAcres)>0.05)?' · ⚠️ Deed and polygon disagree by '+Math.abs(lot.deedAcres-lot.calcAcres).toFixed(2)+' ac — survey may differ from tax record':''}</div>`;
   $('#lotBox').innerHTML = html;
 
   // Overlay polygon on map
@@ -469,23 +510,47 @@ function renderLot(lot, g){
   if (lotLayer) map.fitBounds(lotLayer.getBounds(), {padding:[30,30], maxZoom:19});
 }
 
-// Spherical-ish polygon area (good enough for residential lots)
+// Spherical polygon area on WGS84 ellipsoid; rings are [[lon,lat],...] in degrees
 function ringsAreaAcres(rings){
-  let total = 0;
+  const R = 6378137; // meters
+  const D2R = Math.PI/180;
+  let totalSqM = 0;
   for (const ring of rings){
-    let area = 0;
-    for (let i=0;i<ring.length-1;i++){
-      const [x1,y1]=ring[i], [x2,y2]=ring[i+1];
-      area += (x2-x1)*(2+Math.sin(y1*Math.PI/180)+Math.sin(y2*Math.PI/180));
+    let a = 0;
+    for (let i=0; i<ring.length-1; i++){
+      const [x1,y1] = ring[i], [x2,y2] = ring[i+1];
+      a += (x2 - x1) * D2R * (2 + Math.sin(y1*D2R) + Math.sin(y2*D2R));
     }
-    total += Math.abs(area * 6378137*6378137 / 2);
+    totalSqM += Math.abs(a * R * R / 2);
   }
-  return total / 4046.8564224;
+  return totalSqM / 4046.8564224;
 }
 function geojsonAreaAcres(gj){
   if (gj.type==='Polygon') return ringsAreaAcres(gj.coordinates);
   if (gj.type==='MultiPolygon') return gj.coordinates.reduce((s,p)=>s+ringsAreaAcres(p),0);
   return 0;
+}
+function parseDeedArea(s){
+  if (!s) return null;
+  const m = String(s).match(/([\d.]+)\s*(AC|SQFT|SF)?/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]);
+  const u = (m[2]||'AC').toUpperCase();
+  return u==='AC' ? v : v/43560;
+}
+function pickClosest(features, lat, lon){
+  let best=null, bestD=Infinity;
+  for (const f of features){
+    const rings = f.geometry?.rings; if (!rings) continue;
+    // centroid of first ring
+    let sx=0, sy=0, n=0;
+    for (const [x,y] of rings[0]){ sx+=x; sy+=y; n++; }
+    if (!n) continue;
+    const dx = sx/n - lon, dy = sy/n - lat;
+    const d = dx*dx + dy*dy;
+    if (d<bestD){ bestD=d; best=f; }
+  }
+  return best;
 }
 
 // ---------- Schools (Urban Institute district directory + race) ----------
