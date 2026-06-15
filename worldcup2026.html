@@ -1354,7 +1354,77 @@ function markBadHighlight(vid) {
   } catch (e) { /* ignore */ }
 })();
 
-// YouTube blocks direct CORS fetch from youtube.com/results, so we route the
+// ============================================================================
+// Auto-poller: every 5 min, look for highlights on finished matches that don't
+// have one yet. Stops polling a match as soon as a good video is found.
+// ============================================================================
+const HIGHLIGHT_POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+let _highlightPollTimer = null;
+let _highlightPollInFlight = false;
+
+function _matchesNeedingHighlight() {
+  const bad = getBadHighlights();
+  return MATCHES.filter(m => m.actual && (!m.highlight || bad.has(m.highlight)));
+}
+
+async function pollHighlightsOnce() {
+  if (_highlightPollInFlight) return;
+  const needing = _matchesNeedingHighlight();
+  if (!needing.length) {
+    if (_highlightPollTimer) { clearInterval(_highlightPollTimer); _highlightPollTimer = null; }
+    return;
+  }
+  _highlightPollInFlight = true;
+  const bad = getBadHighlights();
+  const hCache = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+  let anyFound = false;
+  try {
+    for (const m of needing) {
+      try {
+        const vid = await findYouTubeHighlight(m.home, m.away, bad);
+        if (vid) {
+          m.highlight = vid;
+          hCache[m.id] = vid;
+          anyFound = true;
+          console.log(`[highlight-poll] found ${vid} for M${m.id} ${m.home} vs ${m.away}`);
+        }
+      } catch (_) { /* keep trying next match */ }
+      await new Promise(res => setTimeout(res, 700));
+    }
+    if (anyFound) {
+      localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(hCache));
+      try { render(); } catch (_) {}
+    }
+    // Stop the timer if nothing's left to find
+    if (_matchesNeedingHighlight().length === 0 && _highlightPollTimer) {
+      clearInterval(_highlightPollTimer);
+      _highlightPollTimer = null;
+      console.log('[highlight-poll] all matches have highlights — stopped polling');
+    }
+  } finally {
+    _highlightPollInFlight = false;
+  }
+}
+
+function startHighlightPolling() {
+  if (_highlightPollTimer) return;
+  // First run: 8s after load so we don't compete with initial render
+  setTimeout(pollHighlightsOnce, 8000);
+  _highlightPollTimer = setInterval(pollHighlightsOnce, HIGHLIGHT_POLL_INTERVAL_MS);
+  // Stop polling when tab is hidden, resume when visible — saves battery & quota
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (_highlightPollTimer) { clearInterval(_highlightPollTimer); _highlightPollTimer = null; }
+    } else {
+      if (!_highlightPollTimer && _matchesNeedingHighlight().length) {
+        pollHighlightsOnce();
+        _highlightPollTimer = setInterval(pollHighlightsOnce, HIGHLIGHT_POLL_INTERVAL_MS);
+      }
+    }
+  });
+}
+
+
 // search-results page through a public CORS proxy. We then enumerate candidate
 // video IDs and look up author + title via oEmbed (which is CORS-friendly).
 // Strongly prefer third-party broadcasters (FOX Sports, Telemundo, FOX Soccer)
@@ -2557,6 +2627,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   render();
   renderStandings();
+  // Auto-discover highlights every 5 min for finished matches missing one
+  try { startHighlightPolling(); } catch (_) {}
 });
 
 // Visit counter — increment once per browser session, no auth needed
