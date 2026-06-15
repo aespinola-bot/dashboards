@@ -166,6 +166,8 @@ def find_youtube_highlight(home: str, away: str) -> str | None:
         return None
 
     PREFERRED_CHANNELS = {"FOX Sports", "Telemundo Deportes", "FOX Soccer", "ESPN FC", "OneFootball"}
+    # Channels that primarily post video-game/simulation content
+    GAMING_CHANNELS = {"NuruBuzz", "JaviGameplay", "M2RTV", "PesXMods", "WorldCupOfficialEAFC", "Football Fox"}
     def score(author: str, title: str) -> int:
         a = author.strip()
         t = title.lower()
@@ -177,6 +179,14 @@ def find_youtube_highlight(home: str, away: str) -> str | None:
         # Channel preferences — FIFA officially blocks embedding, so deprioritize hard
         if a in PREFERRED_CHANNELS: s += 8
         if a == "FIFA": s -= 5
+        # Hard reject: video game / simulation content
+        if a in GAMING_CHANNELS: s -= 30
+        if any(g in t for g in (
+            "ea fc", "ea sports fc", "fc 26", "fifa 26", "fifa26",
+            "pes 2", "efootball", "video game", "videogame",
+            "gameplay", "simulation", "predicted by ea", "let's play",
+            "career mode", "ps5", "ps4", "xbox", "next gen graphics",
+        )): s -= 30
         # Negative content
         if "#shorts" in t or "shorts" in t: s -= 4
         if "live" in t: s -= 2
@@ -189,6 +199,11 @@ def find_youtube_highlight(home: str, away: str) -> str | None:
 
     candidates.sort(key=lambda c: score(c[1], c[2]), reverse=True)
     best_vid, best_auth, best_title = candidates[0]
+    # Refuse to return obviously-bad hits (gaming channels, etc.)
+    best_score = score(best_auth, best_title)
+    if best_score < 0:
+        safe_print(f"    YT: {home} vs {away} -> NO clean highlight found (best={best_vid} [{best_auth}] score={best_score})")
+        return None
     safe_print(f"    YT: {home} vs {away} -> {best_vid} [{best_auth}] ({best_title[:60]})")
     return best_vid
 
