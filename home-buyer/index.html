@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Home Buyer Intel · Address → Schools, Demographics, Income</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root{
+    --bg-0:#0a0e1a; --bg-1:#0f1424; --bg-2:#161c30; --bg-3:#1f2740; --border:#2a3556;
+    --text:#e8ecf5; --text-dim:#a8b2cc; --muted:#6b7794;
+    --accent:#8b5cf6; --accent-glow:#a78bfa; --pink:#ec4899;
+    --cyan:#06b6d4; --green:#10b981; --orange:#f97316; --yellow:#facc15; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;background:var(--bg-0);color:var(--text);min-height:100vh;line-height:1.5;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(6,182,212,.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 120%, rgba(139,92,246,.10), transparent 60%),
+      var(--bg-0);
+  }
+  .home-pill{position:fixed;top:18px;right:18px;padding:8px 14px;border-radius:999px;
+    background:rgba(15,20,36,.78);backdrop-filter:blur(8px);border:1px solid var(--border);
+    color:#c4b5fd;text-decoration:none;font-size:12px;font-weight:600;z-index:9999}
+  .home-pill:hover{border-color:var(--accent)}
+  @media print{.home-pill{display:none}}
+
+  .wrap{max-width:1280px;margin:0 auto;padding:48px 24px 64px}
+  .hero h1{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.02em;margin:0 0 6px;
+    background:linear-gradient(90deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .sub{color:var(--text-dim);font-size:15px;max-width:780px}
+
+  .search-row{display:flex;gap:10px;margin:24px 0 8px;flex-wrap:wrap}
+  .search-row input{flex:1;min-width:280px;padding:14px 16px;border-radius:12px;
+    background:var(--bg-1);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:inherit}
+  .search-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+  .btn{padding:14px 22px;border-radius:12px;border:none;cursor:pointer;font-weight:700;font-size:14px;
+    background:linear-gradient(135deg,var(--accent),var(--cyan));color:#0a0e1a;font-family:inherit}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+  .examples{font-size:12px;color:var(--muted);margin-bottom:24px}
+  .examples a{color:var(--accent-glow);cursor:pointer;text-decoration:underline;margin-right:14px}
+
+  .key-banner{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;
+    background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.4);color:#fed7aa;font-size:13px;margin-bottom:16px}
+  .key-banner.show{display:flex}
+  .key-banner input{flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(249,115,22,.3);
+    background:rgba(0,0,0,.25);color:#fed7aa;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .key-banner button{padding:6px 12px;border-radius:8px;border:1px solid rgba(249,115,22,.4);
+    background:rgba(249,115,22,.2);color:#fed7aa;cursor:pointer;font-weight:600;font-size:12px}
+  .key-banner a{color:#fed7aa;text-decoration:underline}
+
+  .grid-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}
+  @media(max-width:880px){.grid-kpi{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:linear-gradient(180deg,var(--bg-1),var(--bg-2));border:1px solid var(--border);border-radius:14px;padding:16px}
+  .kpi .l{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+  .kpi .v{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;margin-top:6px}
+  .kpi .h{color:var(--text-dim);font-size:12px;margin-top:4px}
+
+  .panel{background:linear-gradient(180deg,var(--bg-1),var(--bg-2));border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:18px}
+  .panel h2{font-size:18px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .panel h3{font-size:14px;font-weight:600;color:var(--text-dim);margin:14px 0 8px}
+  #map{height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+    background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35);color:#c4b5fd;font-size:11px;font-weight:600}
+  .pill.cy{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.35);color:#67e8f9}
+  .pill.gn{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#6ee7b7}
+  .pill.or{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.35);color:#fdba74}
+  .pill.rd{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
+
+  .schools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media(max-width:880px){.schools{grid-template-columns:1fr}}
+  .school{background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:14px}
+  .school .lvl{font-size:11px;color:var(--accent-glow);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+  .school .nm{font-size:16px;font-weight:700;margin:4px 0 8px;line-height:1.25}
+  .school .meta{font-size:12px;color:var(--muted)}
+  .ethbar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:10px 0 4px;background:var(--bg-3)}
+  .ethbar div{height:100%}
+  .ethleg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--text-dim)}
+  .ethleg span{display:inline-flex;align-items:center;gap:4px}
+  .ethleg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+  td.mono{font-family:'JetBrains Mono',monospace}
+
+  .source{color:var(--muted);font-size:11px;margin-top:8px}
+  .err{color:#fca5a5;font-size:13px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);margin-bottom:14px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(139,92,246,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hide{display:none}
+  .footer{color:var(--muted);font-size:12px;margin-top:32px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<a class="home-pill" href="../">← Back to Dashboards</a>
+<div class="wrap">
+  <div class="hero">
+    <h1>🏠 Home Buyer Intel</h1>
+    <div class="sub">Type a U.S. address. We'll geocode it, identify the school district + assigned schools, surface each school's enrollment & race/ethnicity breakdown, and pull neighborhood demographics (income, home value, education) — all from free public sources (US Census, NCES, Urban Institute).</div>
+  </div>
+
+  <form class="search-row" id="form">
+    <input id="addr" placeholder="e.g. 202 Woodspring Cir, Doylestown, PA 18901" autocomplete="off" />
+    <button type="submit" class="btn">Analyze</button>
+    <button type="button" class="btn ghost" id="resetKey" title="Update Census API key">🔑</button>
+  </form>
+  <div class="examples">
+    Try:
+    <a data-ex="202 Woodspring Cir, Doylestown, PA 18901">Doylestown, PA</a>
+    <a data-ex="1600 Pennsylvania Ave NW, Washington, DC 20500">Washington, DC</a>
+    <a data-ex="2400 Bay Area Blvd, Houston, TX 77058">Houston, TX</a>
+    <a data-ex="1 Microsoft Way, Redmond, WA 98052">Redmond, WA</a>
+  </div>
+
+  <div class="key-banner" id="keyBanner">
+    <span>🔑</span>
+    <span>For income & home-value data, paste a free Census API key (signup takes 30s)</span>
+    <input id="keyInput" placeholder="Census API key" />
+    <button id="saveKey">Save</button>
+    <a href="https://api.census.gov/data/key_signup.html" target="_blank">Get key →</a>
+  </div>
+
+  <div id="err" class="err hide"></div>
+  <div id="results" class="hide">
+
+    <div class="grid-kpi" id="kpis"></div>
+
+    <div class="panel">
+      <h2>📍 Location & district</h2>
+      <div id="locInfo"></div>
+      <div id="map" style="margin-top:14px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>🎓 Assigned schools (NCES SABS 2015–16)</h2>
+      <div id="schoolsBox"><div class="source">Querying attendance boundaries…</div></div>
+      <div class="source">Race/ethnicity from NCES Common Core of Data (latest year, via Urban Institute Education Data API).
+      ⚠️ Boundaries reflect 2015–16 NCES SABS; districts may have been re-zoned since. Confirm with the district.</div>
+    </div>
+
+    <div class="panel">
+      <h2>👥 Neighborhood demographics & cost of living</h2>
+      <div id="demoBox"><div class="source">Loading ACS data…</div></div>
+      <div class="source">Source: U.S. Census ACS 5-year (latest available), at the Census tract containing this address.</div>
+    </div>
+
+    <div class="panel">
+      <h2>🧭 Buy-side checklist</h2>
+      <ol style="padding-left:22px;line-height:1.9;color:var(--text-dim);font-size:14px">
+        <li>Confirm assigned schools with the district (boundaries can be re-drawn).</li>
+        <li>Check property tax: search "<span id="cl-tax">[county] property tax search</span>" — Pennsylvania, Texas, NY, IL, NJ tend to be highest.</li>
+        <li>Pull commute time: Google Maps "Directions" from the address to your office at the time you'd actually leave.</li>
+        <li>Run a flood/wildfire check: <a href="https://msc.fema.gov/portal/search" target="_blank" style="color:var(--accent-glow)">FEMA Flood Map</a> · <a href="https://hazards.fema.gov/nri/map" target="_blank" style="color:var(--accent-glow)">FEMA NRI</a>.</li>
+        <li>Crime: county sheriff or city PD CompStat data; <a href="https://www.spotcrime.com/" target="_blank" style="color:var(--accent-glow)">SpotCrime</a> for a rough heatmap.</li>
+        <li>Walkability: <a id="cl-walk" href="https://www.walkscore.com/" target="_blank" style="color:var(--accent-glow)">Walk Score</a> — paste address.</li>
+        <li>Listing comps: Zillow, Redfin, Realtor — sort by recently sold within 1 mi.</li>
+      </ol>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Sources: U.S. Census Geocoder · NCES School Attendance Boundary Survey 2015–16 · NCES Common Core of Data via Urban Institute Education Data API · U.S. Census ACS 5-year (2022).
+    Map © Esri World Imagery / OpenStreetMap.<br>
+    Data is informational, not a substitute for due diligence. Boundaries and tax codes change.
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ---------- Race code mapping (NCES CCD) ----------
+const RACE = {
+  1: {label:'White',                              color:'#8b5cf6'},
+  2: {label:'Black/African American',             color:'#06b6d4'},
+  3: {label:'Hispanic/Latino',                    color:'#f97316'},
+  4: {label:'Asian',                              color:'#10b981'},
+  5: {label:'American Indian/Alaska Native',      color:'#facc15'},
+  6: {label:'Native Hawaiian/Pacific Islander',   color:'#ec4899'},
+  7: {label:'Two or more races',                  color:'#a78bfa'},
+  9: {label:'Nonresident alien',                  color:'#6b7794'}
+};
+
+const $ = (s) => document.querySelector(s);
+const fmtMoney = (n) => n==null||isNaN(n)||n<0 ? '—' : '$'+Number(n).toLocaleString('en-US');
+const fmtPct = (n) => n==null||isNaN(n) ? '—' : (n*100).toFixed(1)+'%';
+const fmtN = (n) => n==null||isNaN(n) ? '—' : Number(n).toLocaleString('en-US');
+
+let map, marker;
+
+// ---------- Census API key handling ----------
+function getKey(){ return localStorage.getItem('censusKey') || ''; }
+function setKey(k){ localStorage.setItem('censusKey', k.trim()); refreshKeyBanner(); }
+function refreshKeyBanner(){ $('#keyBanner').classList.toggle('show', !getKey()); }
+$('#saveKey').onclick = () => { setKey($('#keyInput').value); };
+$('#resetKey').onclick = () => {
+  const k = prompt('Census API key (free at api.census.gov/data/key_signup.html):', getKey());
+  if (k!=null) setKey(k);
+};
+refreshKeyBanner();
+
+// ---------- Examples ----------
+document.querySelectorAll('[data-ex]').forEach(a=>{
+  a.onclick = () => { $('#addr').value = a.dataset.ex; $('#form').requestSubmit(); };
+});
+
+// ---------- Main flow ----------
+$('#form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const addr = $('#addr').value.trim();
+  if (!addr) return;
+  showError('');
+  $('#results').classList.remove('hide');
+  $('#schoolsBox').innerHTML = '<div class="source"><span class="spinner"></span> Querying attendance boundaries…</div>';
+  $('#demoBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading ACS demographics…</div>';
+  $('#kpis').innerHTML = '';
+  $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
+
+  let geo;
+  try { geo = await geocode(addr); }
+  catch (err) { showError('Could not geocode address. Check spelling. ' + err.message); return; }
+  renderLocation(geo);
+  renderMap(geo);
+
+  // Kick off all data fetches in parallel
+  const [schools, acs] = await Promise.allSettled([
+    findSchools(geo),
+    fetchACS(geo)
+  ]);
+
+  if (schools.status==='fulfilled') renderSchools(schools.value);
+  else $('#schoolsBox').innerHTML = '<div class="source">⚠️ School boundary lookup failed: '+escape(schools.reason?.message||'unknown')+'</div>';
+
+  if (acs.status==='fulfilled') renderDemographics(geo, acs.value);
+  else $('#demoBox').innerHTML = '<div class="source">⚠️ ACS lookup failed: '+escape(acs.reason?.message||'unknown')+'</div>';
+
+  buildKpis(geo, schools.status==='fulfilled'?schools.value:null, acs.status==='fulfilled'?acs.value:null);
+
+  // checklist links
+  const county = geo.county.replace(' County','');
+  $('#cl-tax').textContent = county + ' County, ' + geo.state + ' property tax search';
+  $('#cl-walk').href = 'https://www.walkscore.com/score/'+encodeURIComponent(addr.replace(/[, ]+/g,'-'));
+});
+
+function showError(msg){ const e=$('#err'); if(!msg){e.classList.add('hide');e.textContent='';return;} e.classList.remove('hide');e.textContent=msg;}
+function escape(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]); }
+
+// ---------- Geocoding ----------
+async function geocode(addr){
+  const u = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+    + '?address=' + encodeURIComponent(addr)
+    + '&benchmark=Public_AR_Current&vintage=Current_Current&layers=all&format=json';
+  const r = await fetch(u);
+  if (!r.ok) throw new Error('geocoder ' + r.status);
+  const j = await r.json();
+  const m = j.result?.addressMatches?.[0];
+  if (!m) throw new Error('No match');
+  const g = m.geographies;
+  const usd = g['Unified School Districts']?.[0];
+  const esd = g['Elementary School Districts']?.[0];
+  const ssd = g['Secondary School Districts']?.[0];
+  const tract = g['Census Tracts']?.[0];
+  const county = g['Counties']?.[0];
+  const state = g['States']?.[0];
+  const zip = g['2020 Census ZIP Code Tabulation Areas']?.[0];
+  return {
+    matched: m.matchedAddress,
+    lat: m.coordinates.y,
+    lon: m.coordinates.x,
+    districtName: usd?.NAME || esd?.NAME || ssd?.NAME || '(none — non-unified)',
+    leaid: usd?.GEOID || esd?.GEOID || ssd?.GEOID,
+    tractGeoid: tract?.GEOID,
+    countyFips: county?.GEOID,
+    county: county?.NAME || '',
+    stateFips: state?.GEOID,
+    state: state?.STUSAB || '',
+    zip: zip?.GEOID
+  };
+}
+
+function renderLocation(g){
+  $('#locInfo').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      <div><div class="kpi" style="padding:12px"><div class="l">Address</div><div class="v" style="font-size:14px">${escape(g.matched)}</div></div></div>
+      <div><div class="kpi" style="padding:12px"><div class="l">School District</div><div class="v" style="font-size:16px">${escape(g.districtName)}</div><div class="h">LEAID ${g.leaid||'—'}</div></div></div>
+      <div><div class="kpi" style="padding:12px"><div class="l">County</div><div class="v" style="font-size:16px">${escape(g.county)}, ${g.state}</div><div class="h">FIPS ${g.countyFips||'—'}</div></div></div>
+      <div><div class="kpi" style="padding:12px"><div class="l">Census Tract</div><div class="v mono" style="font-size:13px">${g.tractGeoid||'—'}</div><div class="h">ZIP ${g.zip||'—'}</div></div></div>
+    </div>`;
+}
+
+function renderMap(g){
+  if (!map){
+    map = L.map('map').setView([g.lat,g.lon],17);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:21,attribution:'Esri World Imagery'}).addTo(map);
+  } else {
+    map.setView([g.lat,g.lon],17);
+  }
+  if (marker) marker.remove();
+  marker = L.marker([g.lat,g.lon]).addTo(map).bindPopup(escape(g.matched)).openPopup();
+}
+
+// ---------- Schools (NCES SABS + Urban Institute) ----------
+async function findSchools(g){
+  const svc = 'https://nces.ed.gov/opengis/rest/services/K12_School_Locations/SABS_1516/MapServer/0/query';
+  const u = svc + '?geometry=' + g.lon + ',' + g.lat
+    + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects'
+    + '&outFields=schnam,leaid,leanm,ncessch,gslo,gshi,level&returnGeometry=false&f=json';
+  const r = await fetch(u);
+  if (!r.ok) throw new Error('SABS '+r.status);
+  const j = await r.json();
+  const feats = (j.features||[]).map(f=>f.attributes).filter(a=>a && a.ncessch);
+  // dedupe by ncessch
+  const seen={}; const list=[];
+  for (const a of feats) { if (!seen[a.ncessch]){seen[a.ncessch]=1; list.push(a);} }
+  // sort: elementary, middle, high
+  const order = {'1':1,'2':2,'3':3};
+  list.sort((a,b)=>(order[a.level]||9)-(order[b.level]||9));
+
+  // Fetch race breakdown for each
+  await Promise.all(list.map(async (a)=>{
+    a.race = await fetchSchoolRace(a.ncessch).catch(()=>null);
+    a.dir  = await fetchSchoolDirectory(a.ncessch).catch(()=>null);
+  }));
+  return list;
+}
+
+const RACE_YEARS = [2022, 2021, 2020, 2019];
+async function fetchSchoolRace(ncessch){
+  for (const y of RACE_YEARS){
+    try {
+      const u = `https://educationdata.urban.org/api/v1/schools/ccd/enrollment/${y}/grade-99/race/?ncessch=${ncessch}`;
+      const r = await fetch(u); if (!r.ok) continue;
+      const j = await r.json();
+      if (j.results?.length) return {year:y, rows:j.results};
+    } catch {}
+  }
+  return null;
+}
+async function fetchSchoolDirectory(ncessch){
+  for (const y of RACE_YEARS){
+    try {
+      const u = `https://educationdata.urban.org/api/v1/schools/ccd/directory/${y}/?ncessch=${ncessch}`;
+      const r = await fetch(u); if (!r.ok) continue;
+      const j = await r.json();
+      if (j.results?.length) return j.results[0];
+    } catch {}
+  }
+  return null;
+}
+
+function levelLabel(l){ return ({'1':'Elementary','2':'Middle','3':'High','4':'Other','5':'Adult','M':'Mixed'})[l]||'School'; }
+
+function renderSchools(list){
+  if (!list.length){
+    $('#schoolsBox').innerHTML = '<div class="source">No NCES SABS attendance polygon contains this point. The address may be in a non-public-school zone, or in a district that didn\'t submit boundaries to the 2015–16 SABS survey.</div>';
+    return;
+  }
+  $('#schoolsBox').innerHTML = '<div class="schools">' + list.map(renderSchoolCard).join('') + '</div>';
+}
+
+function renderSchoolCard(s){
+  const race = s.race;
+  let chart='', leg='', total='—', year='';
+  if (race){
+    year = race.year;
+    const rows = race.rows.filter(r=>r.race!==99 && r.enrollment>0);
+    const tot  = race.rows.find(r=>r.race===99)?.enrollment || rows.reduce((a,r)=>a+r.enrollment,0);
+    total = tot.toLocaleString('en-US');
+    chart = '<div class="ethbar">' + rows.map(r=>{
+      const pct = (r.enrollment/tot)*100;
+      const c = RACE[r.race]?.color || '#444';
+      return `<div title="${RACE[r.race]?.label}: ${pct.toFixed(1)}%" style="width:${pct}%;background:${c}"></div>`;
+    }).join('') + '</div>';
+    leg = '<div class="ethleg">' + rows.sort((a,b)=>b.enrollment-a.enrollment).map(r=>{
+      const pct = (r.enrollment/tot)*100;
+      return `<span><i style="background:${RACE[r.race]?.color||'#444'}"></i>${RACE[r.race]?.label||('race '+r.race)} <b>${pct.toFixed(1)}%</b></span>`;
+    }).join('') + '</div>';
+  }
+  return `<div class="school">
+    <div class="lvl">${levelLabel(s.level)} · grades ${s.gslo||'?'}–${s.gshi||'?'}</div>
+    <div class="nm">${escape(s.schnam||'(unnamed)')}</div>
+    <div class="meta">${escape(s.leanm||'')}</div>
+    ${chart}${leg}
+    <div class="meta" style="margin-top:8px">Enrollment: <b>${total}</b>${year?` · ${year}`:''} ${s.ncessch?` · <a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow)">NCES profile →</a>`:''}</div>
+  </div>`;
+}
+
+// ---------- ACS ----------
+async function fetchACS(g){
+  const key = getKey();
+  if (!key) throw new Error('Need a free Census API key. Click 🔑 in the search bar.');
+  if (!g.tractGeoid) throw new Error('No tract for this address');
+  const state = g.tractGeoid.slice(0,2);
+  const county = g.tractGeoid.slice(2,5);
+  const tract = g.tractGeoid.slice(5,11);
+  const vars = [
+    'NAME',
+    'B01003_001E', // total pop
+    'B19013_001E', // median household income
+    'B25077_001E', // median home value
+    'B25064_001E', // median gross rent
+    'B25088_002E', // median monthly mortgage owner cost (with mortgage)
+    'B01002_001E', // median age
+    'B25081_002E', // owner occupied with mortgage
+    'B25081_001E', // tenure base
+    'B25003_002E', // owner-occupied
+    'B25003_003E', // renter-occupied
+    'B23025_002E', // labor force
+    'B23025_005E', // unemployed
+    'B15003_001E', // edu denom (25+)
+    'B15003_022E', // bachelor's
+    'B15003_023E', // master's
+    'B15003_024E', // professional
+    'B15003_025E', // doctorate
+    'B08303_001E', // commute denom
+    'B08303_013E', // 90+ min commute
+    'B08303_012E'  // 60–89 min commute
+  ];
+  const u = 'https://api.census.gov/data/2022/acs/acs5'
+    + '?get=' + vars.join(',')
+    + '&for=tract:' + tract + '&in=state:' + state + '+county:' + county
+    + '&key=' + encodeURIComponent(key);
+  const r = await fetch(u);
+  if (!r.ok){
+    if (r.status===401||r.status===403) throw new Error('Census API key invalid or rate-limited');
+    throw new Error('ACS '+r.status);
+  }
+  const j = await r.json();
+  const headers = j[0], row = j[1];
+  const o = {}; headers.forEach((h,i)=>o[h]=row[i]);
+  const num = (k)=> o[k]==null||o[k]==='-666666666' ? null : Number(o[k]);
+  return {
+    name: o.NAME,
+    pop: num('B01003_001E'),
+    medIncome: num('B19013_001E'),
+    medHomeValue: num('B25077_001E'),
+    medRent: num('B25064_001E'),
+    medMortgage: num('B25088_002E'),
+    medAge: num('B01002_001E'),
+    ownerOcc: num('B25003_002E'),
+    renterOcc: num('B25003_003E'),
+    laborForce: num('B23025_002E'),
+    unemployed: num('B23025_005E'),
+    eduBase: num('B15003_001E'),
+    eduBach: num('B15003_022E'),
+    eduMast: num('B15003_023E'),
+    eduProf: num('B15003_024E'),
+    eduDoc: num('B15003_025E'),
+    commuteBase: num('B08303_001E'),
+    longCommute: (num('B08303_013E')||0) + (num('B08303_012E')||0)
+  };
+}
+
+function renderDemographics(g, a){
+  if (!a){ $('#demoBox').innerHTML = '<div class="source">No demographic data.</div>'; return; }
+  const ownerPct = a.ownerOcc && a.renterOcc ? a.ownerOcc/(a.ownerOcc+a.renterOcc) : null;
+  const unemploymentPct = a.laborForce ? a.unemployed/a.laborForce : null;
+  const bachPlus = a.eduBase ? (a.eduBach+a.eduMast+a.eduProf+a.eduDoc)/a.eduBase : null;
+  const longCommutePct = a.commuteBase ? a.longCommute/a.commuteBase : null;
+
+  $('#demoBox').innerHTML = `
+    <div class="grid-kpi">
+      <div class="kpi"><div class="l">Median household income</div><div class="v">${fmtMoney(a.medIncome)}</div><div class="h">${escape(a.name)}</div></div>
+      <div class="kpi"><div class="l">Median home value</div><div class="v">${fmtMoney(a.medHomeValue)}</div><div class="h">Owner-occupied units</div></div>
+      <div class="kpi"><div class="l">Median gross rent</div><div class="v">${fmtMoney(a.medRent)}</div><div class="h">/month</div></div>
+      <div class="kpi"><div class="l">Median monthly mortgage</div><div class="v">${fmtMoney(a.medMortgage)}</div><div class="h">Owner w/ mortgage</div></div>
+    </div>
+    <table style="margin-top:8px">
+      <thead><tr><th>Indicator</th><th>Value</th><th>Read</th></tr></thead>
+      <tbody>
+        <tr><td>Total population (tract)</td><td class="mono">${fmtN(a.pop)}</td><td></td></tr>
+        <tr><td>Median age</td><td class="mono">${a.medAge||'—'}</td><td></td></tr>
+        <tr><td>Owner-occupied share</td><td class="mono">${ownerPct?fmtPct(ownerPct):'—'}</td><td>${signalOwner(ownerPct)}</td></tr>
+        <tr><td>Bachelor's degree or higher (25+)</td><td class="mono">${bachPlus?fmtPct(bachPlus):'—'}</td><td>${signalEdu(bachPlus)}</td></tr>
+        <tr><td>Unemployment rate</td><td class="mono">${unemploymentPct?fmtPct(unemploymentPct):'—'}</td><td>${signalUnemp(unemploymentPct)}</td></tr>
+        <tr><td>Long commute (60+ min) share</td><td class="mono">${longCommutePct?fmtPct(longCommutePct):'—'}</td><td>${signalCommute(longCommutePct)}</td></tr>
+      </tbody>
+    </table>`;
+}
+
+function signalOwner(p){ if(p==null)return''; if(p>=.7)return '<span class="pill gn">Stable, owner-heavy</span>'; if(p>=.5)return '<span class="pill cy">Mixed</span>'; return '<span class="pill or">Renter-heavy</span>'; }
+function signalEdu(p){ if(p==null)return''; if(p>=.5)return '<span class="pill gn">Highly educated</span>'; if(p>=.3)return '<span class="pill cy">Above average</span>'; return '<span class="pill">National avg ~35%</span>'; }
+function signalUnemp(p){ if(p==null)return''; if(p<=.04)return '<span class="pill gn">Strong</span>'; if(p<=.07)return '<span class="pill cy">Healthy</span>'; return '<span class="pill or">Elevated</span>'; }
+function signalCommute(p){ if(p==null)return''; if(p<=.10)return '<span class="pill gn">Easy commute area</span>'; if(p<=.20)return '<span class="pill cy">Moderate</span>'; return '<span class="pill or">Long-commute zone</span>'; }
+
+function buildKpis(g, schools, acs){
+  const items = [];
+  items.push({l:'School District', v: shortDist(g.districtName), h: g.leaid?('LEAID '+g.leaid):''});
+  if (schools && schools.length){
+    const hs = schools.find(s=>s.level==='3') || schools[schools.length-1];
+    items.push({l:'Assigned High School', v: shortName(hs.schnam), h: 'Grades '+(hs.gslo||'')+'–'+(hs.gshi||'')});
+  } else items.push({l:'Assigned High School', v:'—', h:''});
+  if (acs){
+    items.push({l:'Median Income', v: fmtMoney(acs.medIncome), h:'tract'});
+    items.push({l:'Median Home Value', v: fmtMoney(acs.medHomeValue), h:'tract'});
+  } else {
+    items.push({l:'Median Income', v:'—', h:'API key needed'});
+    items.push({l:'Median Home Value', v:'—', h:'API key needed'});
+  }
+  $('#kpis').innerHTML = items.map(it=>`<div class="kpi"><div class="l">${it.l}</div><div class="v" style="font-size:18px">${escape(it.v)}</div><div class="h">${escape(it.h||'')}</div></div>`).join('');
+}
+function shortDist(n){ return (n||'').replace(/School District/i,'SD').replace(/\s+/g,' ').trim(); }
+function shortName(n){ return (n||'').replace(/Central\s+/i,'').replace(/High School/i,'HS').replace(/Elementary School/i,'ES').replace(/Middle School/i,'MS'); }
+</script>
+</body>
+</html>
