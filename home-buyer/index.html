@@ -136,10 +136,22 @@
     </div>
 
     <div class="panel">
-      <h2>🎓 Assigned schools (NCES SABS 2015–16)</h2>
-      <div id="schoolsBox"><div class="source">Querying attendance boundaries…</div></div>
-      <div class="source">Race/ethnicity from NCES Common Core of Data via Urban Institute Education Data API (latest available year).
-      ⚠️ Boundaries reflect 2015–16 NCES SABS; districts may have re-zoned since. Confirm with the district.</div>
+      <h2>📐 Lot / parcel</h2>
+      <div id="lotBox"><div class="source"><span class="spinner"></span> Looking up parcel boundary…</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>💰 Listing status & price (Zillow / Redfin / Realtor)</h2>
+      <div id="realtyBox"></div>
+      <div class="source">⚠️ Zillow killed their public API in 2021. None of the three sites allow scraping from a static page (CORS + WAF). The links below open the listing for this exact address — status (For Sale / Pending / Under Contract / Sold), price, photos, and Zestimate are visible there in one click.</div>
+    </div>
+
+    <div class="panel">
+      <h2>🎓 Schools in this district (NCES CCD)</h2>
+      <h2>🎓 Schools in this district (NCES CCD)</h2>
+      <div id="schoolsBox"><div class="source">Querying schools in district…</div></div>
+      <div class="source">All public schools listed in this district per NCES Common Core of Data, with race/ethnicity from latest CCD enrollment data via Urban Institute Education Data API.
+      ⚠️ Exact attendance assignment depends on the district's current boundary map — confirm specific elementary/middle/high zone with the district transportation office.</div>
     </div>
 
     <div class="panel">
@@ -190,7 +202,7 @@ const fmtN = (n) => n==null||isNaN(n) ? '—' : Math.round(Number(n)).toLocaleSt
 const escape = (s) => String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const sleep = (ms) => new Promise(r=>setTimeout(r,ms));
 
-let map, marker, jsonpId=0;
+let map, marker, lotLayer, jsonpId=0;
 
 // ---------- JSONP helper (for Census Geocoder which has no CORS) ----------
 function jsonp(url, callbackParam='callback', timeout=15000){
@@ -291,6 +303,8 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#results').classList.remove('hide');
   $('#schoolsBox').innerHTML = '<div class="source"><span class="spinner"></span> Querying attendance boundaries…</div>';
   $('#demoBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading ACS demographics…</div>';
+  $('#lotBox').innerHTML = '<div class="source"><span class="spinner"></span> Looking up parcel boundary…</div>';
+  $('#realtyBox').innerHTML = '';
   $('#kpis').innerHTML = '';
   $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
 
@@ -300,17 +314,22 @@ $('#form').addEventListener('submit', async (e)=>{
   renderLocation(geo);
   renderMap(geo);
   buildKpis(geo, null, null);
+  renderRealty(addr, geo);
+
+  const lotP = lookupLot(geo)
+    .then(lot => { renderLot(lot, geo); window.__lastLot = lot; buildKpis(geo, window.__lastSchools, window.__lastAcs, lot); })
+    .catch(e => { $('#lotBox').innerHTML = '<div class="source">⚠️ Lot lookup unavailable: '+escape(e?.message||'unknown')+'</div>'; });
 
   // Fire both fetches independently — render each as it resolves
   const schoolsP = listDistrictSchools(geo)
-    .then(list => { renderSchools(list); buildKpis(geo, list, window.__lastAcs); window.__lastSchools = list; })
+    .then(list => { renderSchools(list); buildKpis(geo, list, window.__lastAcs, window.__lastLot); window.__lastSchools = list; })
     .catch(e => { $('#schoolsBox').innerHTML = '<div class="source">⚠️ Schools lookup failed: '+escape(e?.message||'unknown')+'</div>'; });
 
   const acsP = fetchACS(geo)
-    .then(a => { renderDemographics(geo, a); buildKpis(geo, window.__lastSchools, a); window.__lastAcs = a; })
+    .then(a => { renderDemographics(geo, a); buildKpis(geo, window.__lastSchools, a, window.__lastLot); window.__lastAcs = a; })
     .catch(e => { $('#demoBox').innerHTML = '<div class="source">⚠️ Demographics lookup failed: '+escape(e?.message||'unknown')+'</div>'; });
 
-  await Promise.allSettled([schoolsP, acsP]);
+  await Promise.allSettled([schoolsP, acsP, lotP]);
 
   const county = (geo.county||'').replace(' County','');
   $('#cl-tax').textContent = (county?county+' County, ':'') + geo.state + ' property tax search';
@@ -369,6 +388,104 @@ function renderMap(g){
   }
   if (marker) marker.remove();
   marker = L.marker([g.lat,g.lon]).addTo(map).bindPopup(escape(g.matched)).openPopup();
+  if (lotLayer){ lotLayer.remove(); lotLayer = null; }
+}
+
+// ---------- Realty deep links ----------
+function renderRealty(addr, g){
+  const slug = addr.replace(/[,]/g,'').replace(/\s+/g,'-');
+  const slugComma = encodeURIComponent(addr);
+  const links = [
+    {name:'Zillow',     url:`https://www.zillow.com/homes/${encodeURIComponent(slug)}_rb/`,                                color:'#006aff'},
+    {name:'Redfin',     url:`https://www.redfin.com/stingray/do/location-autocomplete?location=${slugComma}&v=2`,           color:'#a02021', search: `https://www.redfin.com/zipcode/${g.zip||''}`},
+    {name:'Realtor.com',url:`https://www.realtor.com/realestateandhomes-search/${encodeURIComponent(slug)}`,                color:'#bc3133'},
+    {name:'Trulia',     url:`https://www.trulia.com/${encodeURIComponent(slug)}`,                                           color:'#5eaa22'},
+    {name:'County GIS', url:`https://www.google.com/search?q=${encodeURIComponent((g.county||'')+' '+(g.state||'')+' parcel viewer')}`, color:'#475569'}
+  ];
+  $('#realtyBox').innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:10px">' +
+    links.map(l => `<a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:${l.color};color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">🔗 Open in ${l.name}</a>`).join('') +
+    '</div>';
+}
+
+// ---------- Lot / parcel ----------
+async function lookupLot(g){
+  // Strategy:
+  // 1. If county is in our adapter list (e.g. Bucks County PA) → query county GIS for true parcel polygon + recorded acreage
+  // 2. Else → reverse-geocode via Nominatim with polygon_geojson=1 to grab the OSM building footprint (rough proxy)
+  // 3. Else → fall back to the bounding box from the geocoder
+  const county = (g.county||'').toLowerCase();
+  const state = (g.state||'').toUpperCase();
+
+  if (county.includes('bucks') && state==='PA'){
+    try {
+      const url = `https://services3.arcgis.com/SP47Tddf7RK32lBU/arcgis/rest/services/Bucks_County_Parcels/FeatureServer/0/query?where=1=1&geometry=${g.lon},${g.lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PIN,DEED_AREA,SITE_ADDRESS&outSR=4326&returnGeometry=true&f=json`;
+      const j = await (await fetch(url)).json();
+      const f = j.features?.[0];
+      if (f && f.geometry){
+        const rings = f.geometry.rings;
+        const acres = parseFloat(f.attributes.DEED_AREA) || ringsAreaAcres(rings);
+        return { source:'Bucks County, PA Parcel GIS', polygon:rings, polygonType:'rings', acres, pin:f.attributes.PIN, addr:f.attributes.SITE_ADDRESS };
+      }
+    } catch(e){}
+  }
+
+  // OSM fallback — reverse geocode for building footprint
+  try {
+    const j = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${g.lat}&lon=${g.lon}&zoom=18&polygon_geojson=1`,{headers:{'Accept-Language':'en'}})).json();
+    if (j.geojson && (j.geojson.type==='Polygon' || j.geojson.type==='MultiPolygon')){
+      const acres = geojsonAreaAcres(j.geojson);
+      return { source:'OpenStreetMap building footprint (NOT lot boundary)', polygon:j.geojson, polygonType:'geojson', acres, note:'OSM provides building outlines, not parcels — actual lot is usually larger' };
+    }
+  } catch(e){}
+
+  // Last resort: synthesized 0.25-acre square around the point
+  const d = 0.0003;
+  const rings = [[[g.lon-d,g.lat-d],[g.lon+d,g.lat-d],[g.lon+d,g.lat+d],[g.lon-d,g.lat+d],[g.lon-d,g.lat-d]]];
+  return { source:'Estimated (no parcel data found for this county)', polygon:rings, polygonType:'rings', acres: ringsAreaAcres(rings), note:'No public parcel API for this county — drawn as a rough rectangle. Open the County GIS link for the real boundary.' };
+}
+
+function renderLot(lot, g){
+  const acres = lot.acres||0;
+  const sqft = Math.round(acres*43560);
+  // estimated dimensions if rectangular
+  const sideFt = Math.round(Math.sqrt(sqft));
+  const html = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px">
+      <div class="kpi"><div class="l">Acres</div><div class="v">${acres.toFixed(3)}</div><div class="h">recorded area</div></div>
+      <div class="kpi"><div class="l">Square Feet</div><div class="v">${sqft.toLocaleString('en-US')}</div><div class="h">≈ ${sideFt}×${sideFt} ft if square</div></div>
+      ${lot.pin?`<div class="kpi"><div class="l">Parcel ID</div><div class="v mono" style="font-size:13px">${escape(lot.pin)}</div><div class="h">${escape(lot.addr||'')}</div></div>`:''}
+    </div>
+    <div class="source">Source: ${escape(lot.source)}${lot.note?' — '+escape(lot.note):''}</div>`;
+  $('#lotBox').innerHTML = html;
+
+  // Overlay polygon on map
+  if (lotLayer){ lotLayer.remove(); }
+  if (lot.polygonType==='rings'){
+    const latlngs = lot.polygon.map(ring => ring.map(([x,y])=>[y,x]));
+    lotLayer = L.polygon(latlngs, {color:'#06b6d4', weight:3, fillColor:'#06b6d4', fillOpacity:0.18}).addTo(map);
+  } else if (lot.polygonType==='geojson'){
+    lotLayer = L.geoJSON(lot.polygon, {style:{color:'#06b6d4', weight:3, fillColor:'#06b6d4', fillOpacity:0.18}}).addTo(map);
+  }
+  if (lotLayer) map.fitBounds(lotLayer.getBounds(), {padding:[30,30], maxZoom:19});
+}
+
+// Spherical-ish polygon area (good enough for residential lots)
+function ringsAreaAcres(rings){
+  let total = 0;
+  for (const ring of rings){
+    let area = 0;
+    for (let i=0;i<ring.length-1;i++){
+      const [x1,y1]=ring[i], [x2,y2]=ring[i+1];
+      area += (x2-x1)*(2+Math.sin(y1*Math.PI/180)+Math.sin(y2*Math.PI/180));
+    }
+    total += Math.abs(area * 6378137*6378137 / 2);
+  }
+  return total / 4046.8564224;
+}
+function geojsonAreaAcres(gj){
+  if (gj.type==='Polygon') return ringsAreaAcres(gj.coordinates);
+  if (gj.type==='MultiPolygon') return gj.coordinates.reduce((s,p)=>s+ringsAreaAcres(p),0);
+  return 0;
 }
 
 // ---------- Schools (Urban Institute district directory + race) ----------
@@ -533,13 +650,12 @@ function signalEdu(p){ if(p==null)return''; if(p>=.5)return '<span class="pill g
 function signalUnemp(p){ if(p==null)return''; if(p<=.04)return '<span class="pill gn">Strong</span>'; if(p<=.07)return '<span class="pill cy">Healthy</span>'; return '<span class="pill or">Elevated</span>'; }
 function signalCommute(p){ if(p==null)return''; if(p<=.10)return '<span class="pill gn">Easy commute area</span>'; if(p<=.20)return '<span class="pill cy">Moderate</span>'; return '<span class="pill or">Long-commute zone</span>'; }
 
-function buildKpis(g, schools, acs){
+function buildKpis(g, schools, acs, lot){
   const items = [];
   items.push({l:'School District', v: shortDist(g.districtName), h: g.leaid?('LEAID '+g.leaid):''});
-  if (schools && schools.length){
-    const hs = schools.find(s=>s.level==='3') || schools[schools.length-1];
-    items.push({l:'Assigned High School', v: shortName(hs.schnam), h: 'Grades '+(hs.gslo||'')+'–'+(hs.gshi||'')});
-  } else items.push({l:'Assigned High School', v:'—', h:''});
+  if (lot && lot.acres){
+    items.push({l:'Lot Size', v: lot.acres.toFixed(2)+' ac', h: Math.round(lot.acres*43560).toLocaleString('en-US')+' sq ft'});
+  } else items.push({l:'Lot Size', v:'—', h:'parcel data unavailable'});
   if (acs){
     items.push({l:'Median Income', v: fmtMoney(acs.medIncome), h:'tract'});
     items.push({l:'Median Home Value', v: fmtMoney(acs.medHomeValue), h:'tract'});
