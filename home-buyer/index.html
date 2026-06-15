@@ -163,7 +163,7 @@
   </div>
 
   <div class="footer">
-    Sources: U.S. Census Geocoder (JSONP) · NCES School Attendance Boundary Survey 2015–16 · NCES Common Core of Data via Urban Institute Education Data API · U.S. Census ACS 5-year via Census Reporter API · OpenStreetMap/Photon for autocomplete.
+    Sources: U.S. Census Geocoder (JSONP) · NCES School Attendance Boundary Survey 2015–16 · NCES Common Core of Data via Urban Institute Education Data API · U.S. Census ACS 5-year via Census Reporter API · OpenStreetMap/Nominatim for address autocomplete (© OpenStreetMap contributors, ODbL).
     Map © Esri World Imagery.<br>
     Data is informational, not a substitute for due diligence. Boundaries and tax codes change.
   </div>
@@ -226,7 +226,7 @@ acInput.addEventListener('input', () => {
   clearTimeout(acTimer);
   const q = acInput.value.trim();
   if (q.length < 4) { hideAc(); return; }
-  acTimer = setTimeout(()=>fetchAc(q), 220);
+  acTimer = setTimeout(()=>fetchAc(q), 380);
 });
 acInput.addEventListener('keydown', (e) => {
   if (!acList.classList.contains('show')) return;
@@ -241,23 +241,24 @@ async function fetchAc(q){
   if (acAbort) acAbort.abort();
   acAbort = new AbortController();
   try {
-    const u = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=12&lang=en';
-    const r = await fetch(u, {signal: acAbort.signal});
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=8&q=' + encodeURIComponent(q);
+    const r = await fetch(u, {signal: acAbort.signal, headers: {'Accept':'application/json'}});
     if (!r.ok) throw new Error(r.status);
-    const j = await r.json();
-    const us = (j.features||[]).filter(f => f.properties?.countrycode === 'US');
-    acItems = us.slice(0,8).map(f => formatAc(f));
+    const arr = await r.json();
+    acItems = (arr||[]).map(formatAcNominatim).filter(x=>x.full);
     acIndex = -1;
     paintAc();
   } catch (e){ /* silent */ }
 }
-function formatAc(f){
-  const p = f.properties || {};
-  const street = [p.housenumber, p.street].filter(Boolean).join(' ');
-  const cityLine = [p.city || p.town || p.village || p.county, p.state, p.postcode].filter(Boolean).join(', ').replace(/,\s*([A-Z]{2}),/, ', $1');
-  const main = street || p.name || '';
-  const fullForGeo = [street || p.name, p.city || p.town || p.village, p.state, p.postcode].filter(Boolean).join(', ');
-  return { main, sub: cityLine, full: fullForGeo, lat: f.geometry?.coordinates?.[1], lon: f.geometry?.coordinates?.[0] };
+function formatAcNominatim(f){
+  const a = f.address || {};
+  const street = [a.house_number, a.road].filter(Boolean).join(' ');
+  const city = a.city || a.town || a.village || a.hamlet || a.county || '';
+  const stateAbbr = (a['ISO3166-2-lvl4']||'').replace('US-','') || a.state || '';
+  const main = street || a.road || a.neighbourhood || f.display_name?.split(',')[0] || '';
+  const sub = [city, stateAbbr, a.postcode].filter(Boolean).join(', ');
+  const full = [street || a.road, city, stateAbbr, a.postcode].filter(Boolean).join(', ');
+  return { main, sub, full, lat: parseFloat(f.lat), lon: parseFloat(f.lon) };
 }
 function paintAc(){
   if (!acItems.length){ hideAc(); return; }
