@@ -299,19 +299,18 @@ $('#form').addEventListener('submit', async (e)=>{
   catch (err) { showError('Could not geocode address. Try the autocomplete suggestions. (' + err.message + ')'); $('#locInfo').innerHTML=''; return; }
   renderLocation(geo);
   renderMap(geo);
+  buildKpis(geo, null, null);
 
-  const [schools, acs] = await Promise.allSettled([
-    findSchools(geo),
-    fetchACS(geo)
-  ]);
+  // Fire both fetches independently — render each as it resolves
+  const schoolsP = listDistrictSchools(geo)
+    .then(list => { renderSchools(list); buildKpis(geo, list, window.__lastAcs); window.__lastSchools = list; })
+    .catch(e => { $('#schoolsBox').innerHTML = '<div class="source">⚠️ Schools lookup failed: '+escape(e?.message||'unknown')+'</div>'; });
 
-  if (schools.status==='fulfilled') renderSchools(schools.value);
-  else $('#schoolsBox').innerHTML = '<div class="source">⚠️ School boundary lookup failed: '+escape(schools.reason?.message||'unknown')+'</div>';
+  const acsP = fetchACS(geo)
+    .then(a => { renderDemographics(geo, a); buildKpis(geo, window.__lastSchools, a); window.__lastAcs = a; })
+    .catch(e => { $('#demoBox').innerHTML = '<div class="source">⚠️ Demographics lookup failed: '+escape(e?.message||'unknown')+'</div>'; });
 
-  if (acs.status==='fulfilled') renderDemographics(geo, acs.value);
-  else $('#demoBox').innerHTML = '<div class="source">⚠️ ACS lookup failed: '+escape(acs.reason?.message||'unknown')+'</div>';
-
-  buildKpis(geo, schools.status==='fulfilled'?schools.value:null, acs.status==='fulfilled'?acs.value:null);
+  await Promise.allSettled([schoolsP, acsP]);
 
   const county = (geo.county||'').replace(' County','');
   $('#cl-tax').textContent = (county?county+' County, ':'') + geo.state + ' property tax search';
@@ -372,29 +371,40 @@ function renderMap(g){
   marker = L.marker([g.lat,g.lon]).addTo(map).bindPopup(escape(g.matched)).openPopup();
 }
 
-// ---------- Schools (NCES SABS, CORS OK) ----------
-async function findSchools(g){
-  const svc = 'https://nces.ed.gov/opengis/rest/services/K12_School_Locations/SABS_1516/MapServer/0/query';
-  const u = svc + '?geometry=' + g.lon + ',' + g.lat
-    + '&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects'
-    + '&outFields=schnam,leaid,leanm,ncessch,gslo,gshi,level&returnGeometry=false&f=json';
-  const r = await fetch(u);
-  if (!r.ok) throw new Error('SABS '+r.status);
-  const j = await r.json();
-  const feats = (j.features||[]).map(f=>f.attributes).filter(a=>a && a.ncessch);
-  const seen={}; const list=[];
-  for (const a of feats) { if (!seen[a.ncessch]){seen[a.ncessch]=1; list.push(a);} }
-  const order = {'1':1,'2':2,'3':3};
-  list.sort((a,b)=>(order[a.level]||9)-(order[b.level]||9));
-  await Promise.all(list.map(async (a)=>{
-    a.race = await fetchSchoolRace(a.ncessch).catch(()=>null);
-  }));
-  return list;
+// ---------- Schools (Urban Institute district directory + race) ----------
+const SCHOOL_YEARS = [2022, 2021, 2020, 2019];
+async function listDistrictSchools(g){
+  if (!g.leaid) throw new Error('No school district for this address');
+  let dir = null, dirYear = null;
+  for (const y of SCHOOL_YEARS){
+    try {
+      const r = await fetch(`https://educationdata.urban.org/api/v1/schools/ccd/directory/${y}/?leaid=${g.leaid}`);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j.results?.length){ dir = j.results; dirYear = y; break; }
+    } catch {}
+  }
+  if (!dir) throw new Error('No district schools found in NCES CCD');
+  // keep only operating regular/charter schools
+  const list = dir
+    .filter(s => s.school_status === 1)
+    .map(s => ({
+      ncessch: s.ncessch,
+      schnam: s.school_name,
+      leanm: s.lea_name,
+      level: s.school_level,
+      gslo: s.lowest_grade_offered,
+      gshi: s.highest_grade_offered,
+      enrollment: s.enrollment
+    }));
+  list.sort((a,b)=>(a.level||9)-(b.level||9) || (a.schnam||'').localeCompare(b.schnam||''));
+  // Fetch race breakdown for each (parallel)
+  await Promise.all(list.map(async s => { s.race = await fetchSchoolRace(s.ncessch).catch(()=>null); }));
+  return { schools: list, year: dirYear };
 }
 
-const RACE_YEARS = [2022, 2021, 2020, 2019];
 async function fetchSchoolRace(ncessch){
-  for (const y of RACE_YEARS){
+  for (const y of SCHOOL_YEARS){
     try {
       const u = `https://educationdata.urban.org/api/v1/schools/ccd/enrollment/${y}/grade-99/race/?ncessch=${ncessch}`;
       const r = await fetch(u); if (!r.ok) continue;
@@ -405,38 +415,50 @@ async function fetchSchoolRace(ncessch){
   return null;
 }
 
-function levelLabel(l){ return ({'1':'Elementary','2':'Middle','3':'High','4':'Other','M':'Mixed'})[l]||'School'; }
+function levelLabel(l){ return ({1:'Elementary',2:'Middle',3:'High',4:'Other'})[l]||'School'; }
+function gradeLabel(g){ if (g===0||g==='0'||g==='KG') return 'K'; return g; }
 
-function renderSchools(list){
-  if (!list.length){
-    $('#schoolsBox').innerHTML = '<div class="source">No NCES SABS attendance polygon contains this point. The address may be in a non-public-school zone, or in a district that didn\'t submit boundaries to the 2015–16 SABS survey.</div>';
+function renderSchools(payload){
+  if (!payload || !payload.schools?.length){
+    $('#schoolsBox').innerHTML = '<div class="source">No schools found in NCES CCD for this district.</div>';
     return;
   }
-  $('#schoolsBox').innerHTML = '<div class="schools">' + list.map(renderSchoolCard).join('') + '</div>';
+  const groups = [1,2,3,4];
+  let html = '';
+  for (const lvl of groups){
+    const subset = payload.schools.filter(s=>s.level===lvl);
+    if (!subset.length) continue;
+    html += `<h3 style="margin-top:18px">${levelLabel(lvl)} schools (${subset.length})</h3>`;
+    html += `<div class="schools">${subset.map(renderSchoolCard).join('')}</div>`;
+  }
+  html += `<div class="source" style="margin-top:14px">Showing all ${payload.schools.length} public schools in this district (NCES CCD ${payload.year}). Exact attendance assignment depends on the district's current boundary map — confirm the specific elementary/middle/high zone with the district transportation office.</div>`;
+  $('#schoolsBox').innerHTML = html;
 }
 
 function renderSchoolCard(s){
   const race = s.race;
-  let chart='', leg='', total='—', year='';
+  let chart='', leg='', total = s.enrollment ? s.enrollment.toLocaleString('en-US') : '—';
+  let year='';
   if (race){
     year = race.year;
     const rows = race.rows.filter(r=>r.race!==99 && r.enrollment>0);
     const tot  = race.rows.find(r=>r.race===99)?.enrollment || rows.reduce((a,r)=>a+r.enrollment,0);
-    total = tot.toLocaleString('en-US');
-    chart = '<div class="ethbar">' + rows.map(r=>{
-      const pct = (r.enrollment/tot)*100;
-      const c = RACE[r.race]?.color || '#444';
-      return `<div title="${RACE[r.race]?.label}: ${pct.toFixed(1)}%" style="width:${pct}%;background:${c}"></div>`;
-    }).join('') + '</div>';
-    leg = '<div class="ethleg">' + rows.sort((a,b)=>b.enrollment-a.enrollment).map(r=>{
-      const pct = (r.enrollment/tot)*100;
-      return `<span><i style="background:${RACE[r.race]?.color||'#444'}"></i>${RACE[r.race]?.label||('race '+r.race)} <b>${pct.toFixed(1)}%</b></span>`;
-    }).join('') + '</div>';
+    if (tot){
+      total = tot.toLocaleString('en-US');
+      chart = '<div class="ethbar">' + rows.map(r=>{
+        const pct = (r.enrollment/tot)*100;
+        const c = RACE[r.race]?.color || '#444';
+        return `<div title="${RACE[r.race]?.label}: ${pct.toFixed(1)}%" style="width:${pct}%;background:${c}"></div>`;
+      }).join('') + '</div>';
+      leg = '<div class="ethleg">' + rows.sort((a,b)=>b.enrollment-a.enrollment).map(r=>{
+        const pct = (r.enrollment/tot)*100;
+        return `<span><i style="background:${RACE[r.race]?.color||'#444'}"></i>${RACE[r.race]?.label||('race '+r.race)} <b>${pct.toFixed(1)}%</b></span>`;
+      }).join('') + '</div>';
+    }
   }
   return `<div class="school">
-    <div class="lvl">${levelLabel(s.level)} · grades ${s.gslo||'?'}–${s.gshi||'?'}</div>
+    <div class="lvl">${levelLabel(s.level)} · grades ${gradeLabel(s.gslo)}–${gradeLabel(s.gshi)}</div>
     <div class="nm">${escape(s.schnam||'(unnamed)')}</div>
-    <div class="meta">${escape(s.leanm||'')}</div>
     ${chart}${leg}
     <div class="meta" style="margin-top:8px">Enrollment: <b>${total}</b>${year?` · ${year}`:''} ${s.ncessch?` · <a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow)">NCES profile →</a>`:''}</div>
   </div>`;
