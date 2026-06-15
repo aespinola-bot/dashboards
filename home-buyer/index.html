@@ -136,6 +136,11 @@
     </div>
 
     <div class="panel">
+      <h2>🗳️ Presidential election results — county</h2>
+      <div id="electionBox"><div class="source">Loading election results…</div></div>
+    </div>
+
+    <div class="panel">
       <h2>📐 Lot / parcel</h2>
       <div id="lotBox"><div class="source"><span class="spinner"></span> Looking up parcel boundary…</div></div>
     </div>
@@ -305,6 +310,7 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#demoBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading ACS demographics…</div>';
   $('#lotBox').innerHTML = '<div class="source"><span class="spinner"></span> Looking up parcel boundary…</div>';
   $('#realtyBox').innerHTML = '';
+  $('#electionBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading election results…</div>';
   $('#kpis').innerHTML = '';
   $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
 
@@ -315,6 +321,10 @@ $('#form').addEventListener('submit', async (e)=>{
   renderMap(geo);
   buildKpis(geo, null, null);
   renderRealty(addr, geo);
+
+  const electionP = lookupElection(geo)
+    .then(e => renderElection(e, geo))
+    .catch(e => { $('#electionBox').innerHTML = '<div class="source">⚠️ Election results unavailable: '+escape(e?.message||'unknown')+'</div>'; });
 
   const lotP = lookupLot(geo)
     .then(lot => { renderLot(lot, geo); window.__lastLot = lot; buildKpis(geo, window.__lastSchools, window.__lastAcs, lot); })
@@ -329,7 +339,7 @@ $('#form').addEventListener('submit', async (e)=>{
     .then(a => { renderDemographics(geo, a); buildKpis(geo, window.__lastSchools, a, window.__lastLot); window.__lastAcs = a; })
     .catch(e => { $('#demoBox').innerHTML = '<div class="source">⚠️ Demographics lookup failed: '+escape(e?.message||'unknown')+'</div>'; });
 
-  await Promise.allSettled([schoolsP, acsP, lotP]);
+  await Promise.allSettled([schoolsP, acsP, lotP, electionP]);
 
   const county = (geo.county||'').replace(' County','');
   $('#cl-tax').textContent = (county?county+' County, ':'') + geo.state + ' property tax search';
@@ -551,6 +561,89 @@ function pickClosest(features, lat, lon){
     if (d<bestD){ bestD=d; best=f; }
   }
   return best;
+}
+
+// ---------- Presidential election results (county) ----------
+const ELECTION_SRC = 'https://raw.githubusercontent.com/tonmcg/US_County_Level_Election_Results_08-24/master';
+const electionCache = {};
+function loadElectionYear(year){
+  if (electionCache[year]) return electionCache[year];
+  const url = `${ELECTION_SRC}/${year}_US_County_Level_Presidential_Results.csv`;
+  electionCache[year] = fetch(url).then(r => r.text()).then(parseElectionCsv);
+  return electionCache[year];
+}
+function parseElectionCsv(txt){
+  const lines = txt.trim().split(/\r?\n/);
+  const head = lines[0].split(',');
+  const idx = (k) => head.indexOf(k);
+  const fipsCol = idx('county_fips') >= 0 ? idx('county_fips') : idx('combined_fips');
+  const demCol = idx('votes_dem'), repCol = idx('votes_gop'), totCol = idx('total_votes');
+  const stateCol = idx('state_name') >= 0 ? idx('state_name') : idx('state_abbr');
+  const cnameCol = idx('county_name');
+  const map = {};
+  for (let i=1;i<lines.length;i++){
+    const row = parseCsvLine(lines[i]);
+    if (!row || row.length<3) continue;
+    let f = row[fipsCol]; if (!f) continue;
+    f = String(f).replace(/\D/g,'').padStart(5,'0');
+    map[f] = {
+      dem: parseFloat(row[demCol])||0,
+      rep: parseFloat(row[repCol])||0,
+      total: parseFloat(row[totCol])||0,
+      state: row[stateCol], county: row[cnameCol]
+    };
+  }
+  return map;
+}
+function parseCsvLine(line){
+  const out = []; let cur=''; let inQ=false;
+  for (let i=0;i<line.length;i++){
+    const c = line[i];
+    if (c==='"'){ inQ = !inQ; continue; }
+    if (c===',' && !inQ){ out.push(cur); cur=''; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+async function lookupElection(g){
+  const fips = (g.countyFips||'').padStart(5,'0');
+  if (!fips || fips.length!==5) throw new Error('No county FIPS for this address');
+  const years = [2024, 2020, 2016];
+  const results = await Promise.all(years.map(y => loadElectionYear(y).then(m => ({year:y, row:m[fips]})).catch(()=>({year:y, row:null}))));
+  const filled = results.filter(r => r.row);
+  if (!filled.length) throw new Error('No election data found for this county');
+  return filled;
+}
+function renderElection(results, g){
+  const rows = results.map(({year, row}) => {
+    const dem = row.dem, rep = row.rep, tot = row.total || (dem+rep);
+    const oth = Math.max(0, tot - dem - rep);
+    const pDem = dem/tot*100, pRep = rep/tot*100, pOth = oth/tot*100;
+    const winner = dem>rep ? 'D' : rep>dem ? 'R' : '–';
+    const margin = Math.abs(pDem-pRep);
+    const winnerColor = winner==='D' ? '#3b82f6' : winner==='R' ? '#ef4444' : '#94a3b8';
+    return `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <div><span style="font-weight:700;font-size:15px">${year}</span>
+            <span style="margin-left:10px;padding:2px 10px;border-radius:6px;background:${winnerColor};color:#fff;font-weight:700;font-size:12px">${winner==='D'?'Democrat won':winner==='R'?'Republican won':'tie'}</span>
+            <span style="margin-left:10px;color:var(--text-dim);font-size:12px">+${margin.toFixed(1)} pts</span>
+          </div>
+          <div class="mono" style="font-size:12px;color:var(--text-dim)">${tot.toLocaleString('en-US')} votes</div>
+        </div>
+        <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:#1a2240">
+          <div style="width:${pDem}%;background:#3b82f6;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff" title="Dem ${dem.toLocaleString('en-US')}">${pDem>=10?pDem.toFixed(1)+'% D':''}</div>
+          <div style="width:${pRep}%;background:#ef4444;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff" title="Rep ${rep.toLocaleString('en-US')}">${pRep>=10?pRep.toFixed(1)+'% R':''}</div>
+          <div style="width:${pOth}%;background:#64748b;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:700;color:#fff" title="Other ${oth.toLocaleString('en-US')}">${pOth>=4?pOth.toFixed(1)+'%':''}</div>
+        </div>
+      </div>`;
+  }).join('');
+  const sample = results[0].row;
+  $('#electionBox').innerHTML = `
+    <div style="margin-bottom:10px;color:var(--text-dim);font-size:13px">${escape(sample.county||'')}, ${escape(sample.state||'')} · FIPS ${escape((g.countyFips||'').padStart(5,'0'))}</div>
+    ${rows}
+    <div class="source">Source: <a href="https://github.com/tonmcg/US_County_Level_Election_Results_08-24" target="_blank" rel="noopener" style="color:var(--cyan)">tonmcg/US_County_Level_Election_Results</a> (compiled from state SoS / Politico). County-level totals only — your individual precinct may vote differently.</div>`;
 }
 
 // ---------- Schools (Urban Institute district directory + race) ----------
