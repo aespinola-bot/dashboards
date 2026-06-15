@@ -82,6 +82,63 @@ TEAM2_RE  = re.compile(r"\|team2=\{\{#invoke:flag\|[^|]+\|([A-Z]{3})\}\}")
 SCORE_RE  = re.compile(r"\|score=\{\{score link\|[^|]*\|(\d+)\s*[-\u2013\u2014]\s*(\d+)\}\}")
 SIMPLE_SCORE_RE = re.compile(r"\|score=\s*(\d+)\s*[-\u2013\u2014]\s*(\d+)\s*\|")
 
+GOALS_BLOCK_RE = re.compile(r"\|goals(?P<side>1|2)=(?P<body>.*?)(?=\n\||\n\}\})", re.DOTALL)
+GOAL_LINE_RE   = re.compile(r"\*\s*(?P<player>[^\n]+?)\s+(?P<minute>\d+(?:\+\d+)?)'", re.MULTILINE)
+STADIUM_RE     = re.compile(r"\|stadium=\s*([^\n]+)")
+ATTENDANCE_RE  = re.compile(r"\|attendance=\s*([^\n<]+)")
+REFEREE_RE     = re.compile(r"\|referee=\s*([^\n<]+)")
+FIFA_URL_RE    = re.compile(r"https?://(?:www\.)?fifa\.com/[^\s\"\]]+match-cent[^\s\"\]]+")
+
+
+def _strip_wiki_links(s: str) -> str:
+    """[[Page|Display]] -> Display ; [[Page]] -> Page ; strip refs/templates."""
+    s = re.sub(r"\{\{[^{}]*\}\}", "", s)               # {{...}}
+    s = re.sub(r"<ref[^>]*>.*?</ref>", "", s, flags=re.DOTALL)
+    s = re.sub(r"<ref[^>]*/>", "", s)
+    s = re.sub(r"\[\[([^|\]]+)\|([^\]]+)\]\]", r"\2", s)  # [[A|B]] -> B
+    s = re.sub(r"\[\[([^\]]+)\]\]", r"\1", s)             # [[A]] -> A
+    s = re.sub(r"&nbsp;", " ", s)
+    s = re.sub(r"<[^>]+>", "", s)                         # any other tags
+    return s.strip()
+
+
+def parse_match_report(body: str) -> dict | None:
+    """Extract match report fields (goals per side, stadium, attendance,
+    referee, FIFA report URL) from a {{#invoke:football box}} body."""
+    out: dict = {}
+    for gm in GOALS_BLOCK_RE.finditer(body):
+        side = "home" if gm.group("side") == "1" else "away"
+        gb = gm.group("body")
+        goals: list[dict] = []
+        for line in gb.splitlines():
+            ln = line.strip()
+            if not ln.startswith("*"):
+                continue
+            stripped = _strip_wiki_links(ln.lstrip("*").strip())
+            mm = re.search(r"^(.*?)\s+(\d+(?:\+\d+)?)'", stripped)
+            if mm:
+                player = mm.group(1).strip(" ,;:")
+                minute = mm.group(2) + "'"
+                # Detect penalty / own goal markers
+                tag = ""
+                rest = stripped[mm.end():].lower()
+                if "pen" in rest: tag = "pen"
+                elif "o.g." in rest or "own goal" in rest: tag = "og"
+                goals.append({"p": player, "m": minute, **({"t": tag} if tag else {})})
+        if goals:
+            out[f"goals_{side}"] = goals
+    sm = STADIUM_RE.search(body)
+    if sm: out["stadium"] = _strip_wiki_links(sm.group(1))
+    am = ATTENDANCE_RE.search(body)
+    if am:
+        att = _strip_wiki_links(am.group(1)).strip()
+        if att: out["attendance"] = att
+    rm = REFEREE_RE.search(body)
+    if rm: out["referee"] = _strip_wiki_links(rm.group(1))
+    um = FIFA_URL_RE.search(body)
+    if um: out["fifa"] = um.group(0)
+    return out or None
+
 
 def parse_group_results(wikitext: str):
     out = []
@@ -98,8 +155,10 @@ def parse_group_results(wikitext: str):
         away = IOC.get(t2.group(1))
         if not home or not away:
             continue
+        report = parse_match_report(body)
         out.append({"date": date, "home": home, "away": away,
-                    "score": [int(sc.group(1)), int(sc.group(2))]})
+                    "score": [int(sc.group(1)), int(sc.group(2))],
+                    "report": report})
     return out
 
 
@@ -299,6 +358,50 @@ MD_ROW_RE = re.compile(
 )
 
 
+REPORTS_BLOCK_RE = re.compile(
+    r"(// __MATCH_REPORTS_START__\n)(.*?)(\n\s*// __MATCH_REPORTS_END__)",
+    re.DOTALL,
+)
+
+
+def patch_html_with_reports(html: str, results: list) -> tuple[str, int]:
+    """Inject a MATCH_REPORTS = {...} JS const block into worldcup2026.html
+    between // __MATCH_REPORTS_START__ and // __MATCH_REPORTS_END__ markers.
+    Maps Wikipedia match-report dicts to the in-HTML match ids."""
+    if not REPORTS_BLOCK_RE.search(html):
+        return html, 0  # markers not present yet — caller must add them once
+
+    # Build (date, home, away) -> id from the HTML
+    id_lookup: dict[tuple[str, str, str], int] = {}
+    for m in MATCH_LINE_RE.finditer(html):
+        id_lookup[(m.group("date"), m.group("home"), m.group("away"))] = int(m.group("id"))
+
+    reports: dict[int, dict] = {}
+    for r in results:
+        rep = r.get("report")
+        if not rep:
+            continue
+        mid = id_lookup.get((r["date"], r["home"], r["away"]))
+        if mid is None:
+            continue
+        reports[mid] = rep
+
+    if not reports:
+        # Still rewrite to ensure the constant is at least an empty object
+        body = "const MATCH_REPORTS = {};"
+    else:
+        # Compact, deterministic JSON
+        ordered = {str(k): reports[k] for k in sorted(reports.keys())}
+        body = "const MATCH_REPORTS = " + json.dumps(ordered, ensure_ascii=False) + ";"
+
+    new_html = REPORTS_BLOCK_RE.sub(
+        lambda m: m.group(1) + body + m.group(3),
+        html,
+    )
+    return new_html, len(reports)
+
+
+
 def _ai_accuracy_marker(pred, actual):
     if pred == actual:
         return "\u2713\u2713"  # ✓✓ exact
@@ -404,6 +507,10 @@ def main():
         new_html, yt_added = patch_html_with_highlights(new_html)
         print(f"YouTube highlights: +{yt_added} found")
 
+    # Inject match reports (goalscorers, attendance, referee, ...) if markers exist
+    new_html, reports_count = patch_html_with_reports(new_html, results)
+    print(f"Match reports: {reports_count} synced")
+
     if not args.dry_run and new_html != html:
         HTML_PATH.write_text(new_html, encoding="utf-8")
         print(f"  wrote {HTML_PATH}")
@@ -420,10 +527,11 @@ def main():
     elif not MD_PATH.exists():
         print(f"  WARN MD not found at {MD_PATH} -- skipping MD regen.")
 
-    if args.commit and not args.dry_run and (added or updated or yt_added):
+    if args.commit and not args.dry_run and (added or updated or yt_added or reports_count):
         bits = []
         if added or updated: bits.append(f"{added+updated} score(s)")
         if yt_added: bits.append(f"{yt_added} highlight(s)")
+        if reports_count: bits.append(f"{reports_count} report(s)")
         msg = f"WC2026: auto-sync {' + '.join(bits)} from Wikipedia/YouTube"
         subprocess.run(["git", "-C", str(REPO_ROOT), "add", "worldcup2026.html"], check=True)
         subprocess.run(["git", "-C", str(REPO_ROOT), "commit", "-m", msg], check=True)
