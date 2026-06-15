@@ -1971,7 +1971,7 @@ function onReportClick(e) {
   }
 }
 
-
+function onScoreChange(e) {
   const id = +e.target.dataset.match;
   const card = e.target.closest('.match-card');
   const m = MATCHES.find(x => x.id === id);
