@@ -418,19 +418,24 @@ def patch_html_with_reports(html: str, results: list) -> tuple[str, int]:
 
     reports: dict[int, dict] = {}
     for r in results:
-        rep = r.get("report")
-        if not rep:
-            continue
+        rep = r.get("report") or {}
         mid = id_lookup.get((r["date"], r["home"], r["away"]))
         if mid is None:
             continue
-        reports[mid] = rep
+        # Best-effort: enrich with ESPN team statistics (possession, shots, ...)
+        try:
+            stats = fetch_espn_stats(r["date"], r["home"], r["away"])
+            if stats:
+                rep = dict(rep)  # don't mutate input
+                rep["stats"] = stats
+        except Exception as e:
+            safe_print(f"  ESPN stats failed for M{mid} {r['home']}-{r['away']}: {e}")
+        if rep:
+            reports[mid] = rep
 
     if not reports:
-        # Still rewrite to ensure the constant is at least an empty object
         body = "const MATCH_REPORTS = {};"
     else:
-        # Compact, deterministic JSON
         ordered = {str(k): reports[k] for k in sorted(reports.keys())}
         body = "const MATCH_REPORTS = " + json.dumps(ordered, ensure_ascii=False) + ";"
 
@@ -439,6 +444,145 @@ def patch_html_with_reports(html: str, results: list) -> tuple[str, int]:
         html,
     )
     return new_html, len(reports)
+
+
+# ---- ESPN team-statistics enrichment ----------------------------------------
+# ESPN exposes WC2026 stats at site.api.espn.com (no auth, no rate-limit hassle).
+
+ESPN_TEAM_ALIASES = {
+    "south korea": ["korea republic"],
+    "korea republic": ["south korea"],
+    "ivory coast": ["côte d'ivoire", "cote d'ivoire"],
+    "côte d'ivoire": ["ivory coast"],
+    "cape verde": ["cabo verde"],
+    "cabo verde": ["cape verde"],
+    "iran": ["ir iran"],
+    "united states": ["usa"],
+    "usa": ["united states"],
+    "czech republic": ["czechia"],
+    "czechia": ["czech republic"],
+    "bosnia & herzegovina": ["bosnia-herzegovina", "bosnia and herzegovina"],
+    "bosnia-herzegovina": ["bosnia & herzegovina"],
+    "turkey": ["türkiye", "turkiye"],
+    "türkiye": ["turkey"],
+    "curacao": ["curaçao"],
+    "curaçao": ["curacao"],
+}
+
+# ESPN stat key -> (label, format)  -- order matters for display
+ESPN_STAT_MAP = [
+    ("possessionPct",   "Possession",      "{:.0f}%"),
+    ("totalShots",      "Shots",           "{:.0f}"),
+    ("shotsOnTarget",   "Shots on target", "{:.0f}"),
+    ("blockedShots",    "Shots blocked",   "{:.0f}"),
+    ("wonCorners",      "Corners",         "{:.0f}"),
+    ("offsides",        "Offsides",        "{:.0f}"),
+    ("foulsCommitted",  "Fouls",           "{:.0f}"),
+    ("yellowCards",     "Yellow cards",    "{:.0f}"),
+    ("redCards",        "Red cards",       "{:.0f}"),
+    ("saves",           "Saves",           "{:.0f}"),
+    ("totalPasses",     "Passes",          "{:.0f}"),
+    ("passPct",         "Pass accuracy",   "{:.0%}"),
+]
+
+
+def _team_match(name: str, espn_name: str) -> bool:
+    a = name.strip().lower()
+    b = espn_name.strip().lower()
+    if a == b:
+        return True
+    for x, alts in ESPN_TEAM_ALIASES.items():
+        if (a == x and b in alts) or (b == x and a in alts):
+            return True
+    return False
+
+
+_ESPN_SCOREBOARD_CACHE: dict[str, dict] = {}
+
+
+def _espn_scoreboard(date: str) -> dict:
+    """date 'YYYY-MM-DD' -> ESPN scoreboard JSON for that day (cached)."""
+    if date in _ESPN_SCOREBOARD_CACHE:
+        return _ESPN_SCOREBOARD_CACHE[date]
+    yyyymmdd = date.replace("-", "")
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates={yyyymmdd}"
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    with urlopen(req, timeout=15) as r:
+        data = json.loads(r.read().decode("utf-8"))
+    _ESPN_SCOREBOARD_CACHE[date] = data
+    return data
+
+
+def fetch_espn_stats(date: str, home: str, away: str) -> dict | None:
+    """Return {'home':{stat:val,...}, 'away':{...}} or None on failure.
+    Tries the listed date, then date+1 to cover late-night PT → next-day UTC."""
+    from datetime import datetime, timedelta
+    candidates = [date]
+    try:
+        d0 = datetime.strptime(date, "%Y-%m-%d")
+        candidates.append((d0 + timedelta(days=1)).strftime("%Y-%m-%d"))
+    except Exception:
+        pass
+    event = None
+    espn_home_first = True
+    for try_date in candidates:
+        sb = _espn_scoreboard(try_date)
+        for e in sb.get("events", []):
+            comps = (e.get("competitions") or [{}])[0].get("competitors") or []
+            names = [(c.get("team") or {}).get("displayName", "") for c in comps]
+            if len(names) != 2:
+                continue
+            if (_team_match(home, names[0]) and _team_match(away, names[1])) or \
+               (_team_match(home, names[1]) and _team_match(away, names[0])):
+                event = e
+                espn_home_first = _team_match(home, names[0])
+                break
+        if event:
+            break
+    if not event:
+        return None
+    if not (event.get("status", {}).get("type", {}) or {}).get("completed"):
+        return None
+    eid = event["id"]
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event={eid}"
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    with urlopen(req, timeout=15) as r:
+        summary = json.loads(r.read().decode("utf-8"))
+    teams = (summary.get("boxscore") or {}).get("teams") or []
+    if len(teams) != 2:
+        return None
+    raw = []
+    for t in teams:
+        d = {s.get("name"): s.get("displayValue") for s in (t.get("statistics") or [])}
+        raw.append((t.get("team", {}).get("displayName", ""), d))
+    # Re-order so [0]=home, [1]=away based on user's match orientation
+    if not espn_home_first:
+        raw = [raw[1], raw[0]]
+    out: dict = {"home": {"team": home, "rows": []}, "away": {"team": away, "rows": []}}
+    def _norm(key, val):
+        if val is None: return None
+        s = str(val).strip()
+        if key == "passPct":
+            try:
+                # ESPN returns 0.9 meaning 90% (or sometimes already a %)
+                f = float(s.rstrip("%"))
+                if f <= 1.5: f *= 100
+                return f"{round(f)}%"
+            except: return s
+        if key == "possessionPct" and not s.endswith("%"):
+            return s + "%"
+        return s
+    for key, label, _fmt in ESPN_STAT_MAP:
+        h = raw[0][1].get(key)
+        a = raw[1][1].get(key)
+        if h is None and a is None:
+            continue
+        out["home"]["rows"].append({"k": label, "v": _norm(key, h)})
+        out["away"]["rows"].append({"k": label, "v": _norm(key, a)})
+    return out
+
+
+
 
 
 
