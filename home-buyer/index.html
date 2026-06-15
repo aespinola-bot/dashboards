@@ -36,25 +36,26 @@
     background:linear-gradient(90deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
   .hero .sub{color:var(--text-dim);font-size:15px;max-width:780px}
 
-  .search-row{display:flex;gap:10px;margin:24px 0 8px;flex-wrap:wrap}
-  .search-row input{flex:1;min-width:280px;padding:14px 16px;border-radius:12px;
+  .search-row{display:flex;gap:10px;margin:24px 0 8px;flex-wrap:wrap;position:relative;z-index:50}
+  .search-wrap{flex:1;min-width:280px;position:relative}
+  .search-wrap input{width:100%;padding:14px 16px;border-radius:12px;
     background:var(--bg-1);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:inherit}
-  .search-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+  .search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+  .ac-list{position:absolute;top:calc(100% + 4px);left:0;right:0;
+    background:var(--bg-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);z-index:60;max-height:340px;overflow-y:auto;display:none}
+  .ac-list.show{display:block}
+  .ac-row{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;flex-direction:column;gap:2px}
+  .ac-row:last-child{border-bottom:none}
+  .ac-row:hover, .ac-row.active{background:rgba(139,92,246,.12)}
+  .ac-row b{color:var(--text)}
+  .ac-row span{color:var(--muted);font-size:11px}
   .btn{padding:14px 22px;border-radius:12px;border:none;cursor:pointer;font-weight:700;font-size:14px;
     background:linear-gradient(135deg,var(--accent),var(--cyan));color:#0a0e1a;font-family:inherit}
   .btn:hover{filter:brightness(1.1)}
   .btn.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
   .examples{font-size:12px;color:var(--muted);margin-bottom:24px}
   .examples a{color:var(--accent-glow);cursor:pointer;text-decoration:underline;margin-right:14px}
-
-  .key-banner{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;
-    background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.4);color:#fed7aa;font-size:13px;margin-bottom:16px}
-  .key-banner.show{display:flex}
-  .key-banner input{flex:1;padding:6px 10px;border-radius:8px;border:1px solid rgba(249,115,22,.3);
-    background:rgba(0,0,0,.25);color:#fed7aa;font-family:'JetBrains Mono',monospace;font-size:12px}
-  .key-banner button{padding:6px 12px;border-radius:8px;border:1px solid rgba(249,115,22,.4);
-    background:rgba(249,115,22,.2);color:#fed7aa;cursor:pointer;font-weight:600;font-size:12px}
-  .key-banner a{color:#fed7aa;text-decoration:underline}
 
   .grid-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}
   @media(max-width:880px){.grid-kpi{grid-template-columns:repeat(2,1fr)}}
@@ -94,7 +95,7 @@
 
   .source{color:var(--muted);font-size:11px;margin-top:8px}
   .err{color:#fca5a5;font-size:13px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);margin-bottom:14px}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(139,92,246,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(139,92,246,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
   @keyframes spin{to{transform:rotate(360deg)}}
   .hide{display:none}
   .footer{color:var(--muted);font-size:12px;margin-top:32px;text-align:center;line-height:1.7}
@@ -105,13 +106,15 @@
 <div class="wrap">
   <div class="hero">
     <h1>🏠 Home Buyer Intel</h1>
-    <div class="sub">Type a U.S. address. We'll geocode it, identify the school district + assigned schools, surface each school's enrollment & race/ethnicity breakdown, and pull neighborhood demographics (income, home value, education) — all from free public sources (US Census, NCES, Urban Institute).</div>
+    <div class="sub">Type any U.S. address. We'll geocode it, identify the school district + assigned schools (with race/ethnicity %), and pull neighborhood demographics — income, home value, education, commute — from free public sources (US Census, NCES, Census Reporter, Urban Institute). No API keys needed.</div>
   </div>
 
-  <form class="search-row" id="form">
-    <input id="addr" placeholder="e.g. 202 Woodspring Cir, Doylestown, PA 18901" autocomplete="off" />
+  <form class="search-row" id="form" autocomplete="off">
+    <div class="search-wrap">
+      <input id="addr" placeholder="Start typing… e.g. 202 Woodspring Cir, Doylestown, PA" autocomplete="off" />
+      <div id="acList" class="ac-list"></div>
+    </div>
     <button type="submit" class="btn">Analyze</button>
-    <button type="button" class="btn ghost" id="resetKey" title="Update Census API key">🔑</button>
   </form>
   <div class="examples">
     Try:
@@ -119,14 +122,6 @@
     <a data-ex="1600 Pennsylvania Ave NW, Washington, DC 20500">Washington, DC</a>
     <a data-ex="2400 Bay Area Blvd, Houston, TX 77058">Houston, TX</a>
     <a data-ex="1 Microsoft Way, Redmond, WA 98052">Redmond, WA</a>
-  </div>
-
-  <div class="key-banner" id="keyBanner">
-    <span>🔑</span>
-    <span>For income & home-value data, paste a free Census API key (signup takes 30s)</span>
-    <input id="keyInput" placeholder="Census API key" />
-    <button id="saveKey">Save</button>
-    <a href="https://api.census.gov/data/key_signup.html" target="_blank">Get key →</a>
   </div>
 
   <div id="err" class="err hide"></div>
@@ -143,14 +138,14 @@
     <div class="panel">
       <h2>🎓 Assigned schools (NCES SABS 2015–16)</h2>
       <div id="schoolsBox"><div class="source">Querying attendance boundaries…</div></div>
-      <div class="source">Race/ethnicity from NCES Common Core of Data (latest year, via Urban Institute Education Data API).
-      ⚠️ Boundaries reflect 2015–16 NCES SABS; districts may have been re-zoned since. Confirm with the district.</div>
+      <div class="source">Race/ethnicity from NCES Common Core of Data via Urban Institute Education Data API (latest available year).
+      ⚠️ Boundaries reflect 2015–16 NCES SABS; districts may have re-zoned since. Confirm with the district.</div>
     </div>
 
     <div class="panel">
       <h2>👥 Neighborhood demographics & cost of living</h2>
       <div id="demoBox"><div class="source">Loading ACS data…</div></div>
-      <div class="source">Source: U.S. Census ACS 5-year (latest available), at the Census tract containing this address.</div>
+      <div class="source">Source: U.S. Census ACS 5-year via Census Reporter, at the Census tract containing this address.</div>
     </div>
 
     <div class="panel">
@@ -161,16 +156,15 @@
         <li>Pull commute time: Google Maps "Directions" from the address to your office at the time you'd actually leave.</li>
         <li>Run a flood/wildfire check: <a href="https://msc.fema.gov/portal/search" target="_blank" style="color:var(--accent-glow)">FEMA Flood Map</a> · <a href="https://hazards.fema.gov/nri/map" target="_blank" style="color:var(--accent-glow)">FEMA NRI</a>.</li>
         <li>Crime: county sheriff or city PD CompStat data; <a href="https://www.spotcrime.com/" target="_blank" style="color:var(--accent-glow)">SpotCrime</a> for a rough heatmap.</li>
-        <li>Walkability: <a id="cl-walk" href="https://www.walkscore.com/" target="_blank" style="color:var(--accent-glow)">Walk Score</a> — paste address.</li>
+        <li>Walkability: <a id="cl-walk" href="https://www.walkscore.com/" target="_blank" style="color:var(--accent-glow)">Walk Score</a>.</li>
         <li>Listing comps: Zillow, Redfin, Realtor — sort by recently sold within 1 mi.</li>
       </ol>
     </div>
-
   </div>
 
   <div class="footer">
-    Sources: U.S. Census Geocoder · NCES School Attendance Boundary Survey 2015–16 · NCES Common Core of Data via Urban Institute Education Data API · U.S. Census ACS 5-year (2022).
-    Map © Esri World Imagery / OpenStreetMap.<br>
+    Sources: U.S. Census Geocoder (JSONP) · NCES School Attendance Boundary Survey 2015–16 · NCES Common Core of Data via Urban Institute Education Data API · U.S. Census ACS 5-year via Census Reporter API · OpenStreetMap/Photon for autocomplete.
+    Map © Esri World Imagery.<br>
     Data is informational, not a substitute for due diligence. Boundaries and tax codes change.
   </div>
 </div>
@@ -190,32 +184,107 @@ const RACE = {
 };
 
 const $ = (s) => document.querySelector(s);
-const fmtMoney = (n) => n==null||isNaN(n)||n<0 ? '—' : '$'+Number(n).toLocaleString('en-US');
+const fmtMoney = (n) => n==null||isNaN(n)||n<0 ? '—' : '$'+Math.round(Number(n)).toLocaleString('en-US');
 const fmtPct = (n) => n==null||isNaN(n) ? '—' : (n*100).toFixed(1)+'%';
-const fmtN = (n) => n==null||isNaN(n) ? '—' : Number(n).toLocaleString('en-US');
+const fmtN = (n) => n==null||isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString('en-US');
+const escape = (s) => String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const sleep = (ms) => new Promise(r=>setTimeout(r,ms));
 
-let map, marker;
+let map, marker, jsonpId=0;
 
-// ---------- Census API key handling ----------
-function getKey(){ return localStorage.getItem('censusKey') || ''; }
-function setKey(k){ localStorage.setItem('censusKey', k.trim()); refreshKeyBanner(); }
-function refreshKeyBanner(){ $('#keyBanner').classList.toggle('show', !getKey()); }
-$('#saveKey').onclick = () => { setKey($('#keyInput').value); };
-$('#resetKey').onclick = () => {
-  const k = prompt('Census API key (free at api.census.gov/data/key_signup.html):', getKey());
-  if (k!=null) setKey(k);
-};
-refreshKeyBanner();
+// ---------- JSONP helper (for Census Geocoder which has no CORS) ----------
+function jsonp(url, callbackParam='callback', timeout=15000){
+  return new Promise((resolve, reject) => {
+    const cbName = '__jp_' + (++jsonpId) + '_' + Date.now();
+    const script = document.createElement('script');
+    const sep = url.includes('?') ? '&' : '?';
+    const fullUrl = url + sep + callbackParam + '=' + cbName;
+    let done = false;
+    const cleanup = () => {
+      if (done) return; done = true;
+      delete window[cbName];
+      script.remove();
+      clearTimeout(t);
+    };
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
+    const t = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout')); }, timeout);
+    script.src = fullUrl;
+    document.head.appendChild(script);
+  });
+}
+
+// ---------- Address autocomplete (Photon / Komoot, OSM-based) ----------
+const acInput = $('#addr');
+const acList  = $('#acList');
+let acItems = [];
+let acIndex = -1;
+let acTimer = null;
+let acAbort = null;
+
+acInput.addEventListener('input', () => {
+  clearTimeout(acTimer);
+  const q = acInput.value.trim();
+  if (q.length < 4) { hideAc(); return; }
+  acTimer = setTimeout(()=>fetchAc(q), 220);
+});
+acInput.addEventListener('keydown', (e) => {
+  if (!acList.classList.contains('show')) return;
+  if (e.key === 'ArrowDown'){ e.preventDefault(); acIndex = Math.min(acIndex+1, acItems.length-1); paintAc(); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); acIndex = Math.max(acIndex-1, -1); paintAc(); }
+  else if (e.key === 'Enter' && acIndex >= 0){ e.preventDefault(); pickAc(acIndex); }
+  else if (e.key === 'Escape'){ hideAc(); }
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) hideAc(); });
+
+async function fetchAc(q){
+  if (acAbort) acAbort.abort();
+  acAbort = new AbortController();
+  try {
+    const u = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=12&lang=en';
+    const r = await fetch(u, {signal: acAbort.signal});
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    const us = (j.features||[]).filter(f => f.properties?.countrycode === 'US');
+    acItems = us.slice(0,8).map(f => formatAc(f));
+    acIndex = -1;
+    paintAc();
+  } catch (e){ /* silent */ }
+}
+function formatAc(f){
+  const p = f.properties || {};
+  const street = [p.housenumber, p.street].filter(Boolean).join(' ');
+  const cityLine = [p.city || p.town || p.village || p.county, p.state, p.postcode].filter(Boolean).join(', ').replace(/,\s*([A-Z]{2}),/, ', $1');
+  const main = street || p.name || '';
+  const fullForGeo = [street || p.name, p.city || p.town || p.village, p.state, p.postcode].filter(Boolean).join(', ');
+  return { main, sub: cityLine, full: fullForGeo, lat: f.geometry?.coordinates?.[1], lon: f.geometry?.coordinates?.[0] };
+}
+function paintAc(){
+  if (!acItems.length){ hideAc(); return; }
+  acList.innerHTML = acItems.map((it,i)=>`<div class="ac-row ${i===acIndex?'active':''}" data-i="${i}"><b>${escape(it.main || it.sub)}</b><span>${escape(it.sub)}</span></div>`).join('');
+  acList.classList.add('show');
+  acList.querySelectorAll('.ac-row').forEach(r=>{
+    r.onclick = () => pickAc(Number(r.dataset.i));
+  });
+}
+function hideAc(){ acList.classList.remove('show'); acList.innerHTML=''; acItems=[]; acIndex=-1; }
+function pickAc(i){
+  const it = acItems[i]; if (!it) return;
+  acInput.value = it.full;
+  hideAc();
+  $('#form').requestSubmit();
+}
 
 // ---------- Examples ----------
 document.querySelectorAll('[data-ex]').forEach(a=>{
-  a.onclick = () => { $('#addr').value = a.dataset.ex; $('#form').requestSubmit(); };
+  a.onclick = () => { acInput.value = a.dataset.ex; $('#form').requestSubmit(); };
 });
 
 // ---------- Main flow ----------
 $('#form').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const addr = $('#addr').value.trim();
+  hideAc();
+  const addr = acInput.value.trim();
   if (!addr) return;
   showError('');
   $('#results').classList.remove('hide');
@@ -226,11 +295,10 @@ $('#form').addEventListener('submit', async (e)=>{
 
   let geo;
   try { geo = await geocode(addr); }
-  catch (err) { showError('Could not geocode address. Check spelling. ' + err.message); return; }
+  catch (err) { showError('Could not geocode address. Try the autocomplete suggestions. (' + err.message + ')'); $('#locInfo').innerHTML=''; return; }
   renderLocation(geo);
   renderMap(geo);
 
-  // Kick off all data fetches in parallel
   const [schools, acs] = await Promise.allSettled([
     findSchools(geo),
     fetchACS(geo)
@@ -244,25 +312,21 @@ $('#form').addEventListener('submit', async (e)=>{
 
   buildKpis(geo, schools.status==='fulfilled'?schools.value:null, acs.status==='fulfilled'?acs.value:null);
 
-  // checklist links
-  const county = geo.county.replace(' County','');
-  $('#cl-tax').textContent = county + ' County, ' + geo.state + ' property tax search';
+  const county = (geo.county||'').replace(' County','');
+  $('#cl-tax').textContent = (county?county+' County, ':'') + geo.state + ' property tax search';
   $('#cl-walk').href = 'https://www.walkscore.com/score/'+encodeURIComponent(addr.replace(/[, ]+/g,'-'));
 });
 
 function showError(msg){ const e=$('#err'); if(!msg){e.classList.add('hide');e.textContent='';return;} e.classList.remove('hide');e.textContent=msg;}
-function escape(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]); }
 
-// ---------- Geocoding ----------
+// ---------- Geocoding via Census (JSONP, no CORS needed) ----------
 async function geocode(addr){
-  const u = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+  const url = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
     + '?address=' + encodeURIComponent(addr)
-    + '&benchmark=Public_AR_Current&vintage=Current_Current&layers=all&format=json';
-  const r = await fetch(u);
-  if (!r.ok) throw new Error('geocoder ' + r.status);
-  const j = await r.json();
+    + '&benchmark=Public_AR_Current&vintage=Current_Current&layers=all&format=jsonp';
+  const j = await jsonp(url, 'callback');
   const m = j.result?.addressMatches?.[0];
-  if (!m) throw new Error('No match');
+  if (!m) throw new Error('No address match');
   const g = m.geographies;
   const usd = g['Unified School Districts']?.[0];
   const esd = g['Elementary School Districts']?.[0];
@@ -289,10 +353,10 @@ async function geocode(addr){
 function renderLocation(g){
   $('#locInfo').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-      <div><div class="kpi" style="padding:12px"><div class="l">Address</div><div class="v" style="font-size:14px">${escape(g.matched)}</div></div></div>
-      <div><div class="kpi" style="padding:12px"><div class="l">School District</div><div class="v" style="font-size:16px">${escape(g.districtName)}</div><div class="h">LEAID ${g.leaid||'—'}</div></div></div>
-      <div><div class="kpi" style="padding:12px"><div class="l">County</div><div class="v" style="font-size:16px">${escape(g.county)}, ${g.state}</div><div class="h">FIPS ${g.countyFips||'—'}</div></div></div>
-      <div><div class="kpi" style="padding:12px"><div class="l">Census Tract</div><div class="v mono" style="font-size:13px">${g.tractGeoid||'—'}</div><div class="h">ZIP ${g.zip||'—'}</div></div></div>
+      <div class="kpi" style="padding:12px"><div class="l">Address</div><div class="v" style="font-size:14px">${escape(g.matched)}</div></div>
+      <div class="kpi" style="padding:12px"><div class="l">School District</div><div class="v" style="font-size:16px">${escape(g.districtName)}</div><div class="h">LEAID ${g.leaid||'—'}</div></div>
+      <div class="kpi" style="padding:12px"><div class="l">County</div><div class="v" style="font-size:16px">${escape(g.county)}, ${g.state}</div><div class="h">FIPS ${g.countyFips||'—'}</div></div>
+      <div class="kpi" style="padding:12px"><div class="l">Census Tract</div><div class="v mono" style="font-size:13px">${g.tractGeoid||'—'}</div><div class="h">ZIP ${g.zip||'—'}</div></div>
     </div>`;
 }
 
@@ -307,7 +371,7 @@ function renderMap(g){
   marker = L.marker([g.lat,g.lon]).addTo(map).bindPopup(escape(g.matched)).openPopup();
 }
 
-// ---------- Schools (NCES SABS + Urban Institute) ----------
+// ---------- Schools (NCES SABS, CORS OK) ----------
 async function findSchools(g){
   const svc = 'https://nces.ed.gov/opengis/rest/services/K12_School_Locations/SABS_1516/MapServer/0/query';
   const u = svc + '?geometry=' + g.lon + ',' + g.lat
@@ -317,17 +381,12 @@ async function findSchools(g){
   if (!r.ok) throw new Error('SABS '+r.status);
   const j = await r.json();
   const feats = (j.features||[]).map(f=>f.attributes).filter(a=>a && a.ncessch);
-  // dedupe by ncessch
   const seen={}; const list=[];
   for (const a of feats) { if (!seen[a.ncessch]){seen[a.ncessch]=1; list.push(a);} }
-  // sort: elementary, middle, high
   const order = {'1':1,'2':2,'3':3};
   list.sort((a,b)=>(order[a.level]||9)-(order[b.level]||9));
-
-  // Fetch race breakdown for each
   await Promise.all(list.map(async (a)=>{
     a.race = await fetchSchoolRace(a.ncessch).catch(()=>null);
-    a.dir  = await fetchSchoolDirectory(a.ncessch).catch(()=>null);
   }));
   return list;
 }
@@ -344,19 +403,8 @@ async function fetchSchoolRace(ncessch){
   }
   return null;
 }
-async function fetchSchoolDirectory(ncessch){
-  for (const y of RACE_YEARS){
-    try {
-      const u = `https://educationdata.urban.org/api/v1/schools/ccd/directory/${y}/?ncessch=${ncessch}`;
-      const r = await fetch(u); if (!r.ok) continue;
-      const j = await r.json();
-      if (j.results?.length) return j.results[0];
-    } catch {}
-  }
-  return null;
-}
 
-function levelLabel(l){ return ({'1':'Elementary','2':'Middle','3':'High','4':'Other','5':'Adult','M':'Mixed'})[l]||'School'; }
+function levelLabel(l){ return ({'1':'Elementary','2':'Middle','3':'High','4':'Other','M':'Mixed'})[l]||'School'; }
 
 function renderSchools(list){
   if (!list.length){
@@ -393,69 +441,39 @@ function renderSchoolCard(s){
   </div>`;
 }
 
-// ---------- ACS ----------
+// ---------- ACS via Census Reporter (CORS OK, no key) ----------
 async function fetchACS(g){
-  const key = getKey();
-  if (!key) throw new Error('Need a free Census API key. Click 🔑 in the search bar.');
   if (!g.tractGeoid) throw new Error('No tract for this address');
-  const state = g.tractGeoid.slice(0,2);
-  const county = g.tractGeoid.slice(2,5);
-  const tract = g.tractGeoid.slice(5,11);
-  const vars = [
-    'NAME',
-    'B01003_001E', // total pop
-    'B19013_001E', // median household income
-    'B25077_001E', // median home value
-    'B25064_001E', // median gross rent
-    'B25088_002E', // median monthly mortgage owner cost (with mortgage)
-    'B01002_001E', // median age
-    'B25081_002E', // owner occupied with mortgage
-    'B25081_001E', // tenure base
-    'B25003_002E', // owner-occupied
-    'B25003_003E', // renter-occupied
-    'B23025_002E', // labor force
-    'B23025_005E', // unemployed
-    'B15003_001E', // edu denom (25+)
-    'B15003_022E', // bachelor's
-    'B15003_023E', // master's
-    'B15003_024E', // professional
-    'B15003_025E', // doctorate
-    'B08303_001E', // commute denom
-    'B08303_013E', // 90+ min commute
-    'B08303_012E'  // 60–89 min commute
-  ];
-  const u = 'https://api.census.gov/data/2022/acs/acs5'
-    + '?get=' + vars.join(',')
-    + '&for=tract:' + tract + '&in=state:' + state + '+county:' + county
-    + '&key=' + encodeURIComponent(key);
+  const tables = ['B01003','B19013','B25077','B25064','B25088','B01002','B25003','B23025','B15003','B08303'];
+  const u = 'https://api.censusreporter.org/1.0/data/show/latest'
+    + '?table_ids=' + tables.join(',')
+    + '&geo_ids=14000US' + g.tractGeoid;
   const r = await fetch(u);
-  if (!r.ok){
-    if (r.status===401||r.status===403) throw new Error('Census API key invalid or rate-limited');
-    throw new Error('ACS '+r.status);
-  }
+  if (!r.ok) throw new Error('Census Reporter '+r.status);
   const j = await r.json();
-  const headers = j[0], row = j[1];
-  const o = {}; headers.forEach((h,i)=>o[h]=row[i]);
-  const num = (k)=> o[k]==null||o[k]==='-666666666' ? null : Number(o[k]);
+  const tract = j.data?.['14000US'+g.tractGeoid];
+  if (!tract) throw new Error('No tract data returned');
+  const get = (table, code) => tract[table]?.estimate?.[table+code];
   return {
-    name: o.NAME,
-    pop: num('B01003_001E'),
-    medIncome: num('B19013_001E'),
-    medHomeValue: num('B25077_001E'),
-    medRent: num('B25064_001E'),
-    medMortgage: num('B25088_002E'),
-    medAge: num('B01002_001E'),
-    ownerOcc: num('B25003_002E'),
-    renterOcc: num('B25003_003E'),
-    laborForce: num('B23025_002E'),
-    unemployed: num('B23025_005E'),
-    eduBase: num('B15003_001E'),
-    eduBach: num('B15003_022E'),
-    eduMast: num('B15003_023E'),
-    eduProf: num('B15003_024E'),
-    eduDoc: num('B15003_025E'),
-    commuteBase: num('B08303_001E'),
-    longCommute: (num('B08303_013E')||0) + (num('B08303_012E')||0)
+    name: j.geography?.['14000US'+g.tractGeoid]?.name || 'Census Tract',
+    pop: get('B01003','001'),
+    medIncome: get('B19013','001'),
+    medHomeValue: get('B25077','001'),
+    medRent: get('B25064','001'),
+    medMortgage: get('B25088','002'),
+    medAge: get('B01002','001'),
+    ownerOcc: get('B25003','002'),
+    renterOcc: get('B25003','003'),
+    laborForce: get('B23025','002'),
+    unemployed: get('B23025','005'),
+    eduBase: get('B15003','001'),
+    eduBach: get('B15003','022'),
+    eduMast: get('B15003','023'),
+    eduProf: get('B15003','024'),
+    eduDoc: get('B15003','025'),
+    commuteBase: get('B08303','001'),
+    long6089: get('B08303','012'),
+    long90:   get('B08303','013')
   };
 }
 
@@ -463,8 +481,9 @@ function renderDemographics(g, a){
   if (!a){ $('#demoBox').innerHTML = '<div class="source">No demographic data.</div>'; return; }
   const ownerPct = a.ownerOcc && a.renterOcc ? a.ownerOcc/(a.ownerOcc+a.renterOcc) : null;
   const unemploymentPct = a.laborForce ? a.unemployed/a.laborForce : null;
-  const bachPlus = a.eduBase ? (a.eduBach+a.eduMast+a.eduProf+a.eduDoc)/a.eduBase : null;
-  const longCommutePct = a.commuteBase ? a.longCommute/a.commuteBase : null;
+  const bachPlus = a.eduBase ? ((a.eduBach||0)+(a.eduMast||0)+(a.eduProf||0)+(a.eduDoc||0))/a.eduBase : null;
+  const longCommute = (a.long6089||0)+(a.long90||0);
+  const longCommutePct = a.commuteBase ? longCommute/a.commuteBase : null;
 
   $('#demoBox').innerHTML = `
     <div class="grid-kpi">
@@ -502,8 +521,8 @@ function buildKpis(g, schools, acs){
     items.push({l:'Median Income', v: fmtMoney(acs.medIncome), h:'tract'});
     items.push({l:'Median Home Value', v: fmtMoney(acs.medHomeValue), h:'tract'});
   } else {
-    items.push({l:'Median Income', v:'—', h:'API key needed'});
-    items.push({l:'Median Home Value', v:'—', h:'API key needed'});
+    items.push({l:'Median Income', v:'—', h:''});
+    items.push({l:'Median Home Value', v:'—', h:''});
   }
   $('#kpis').innerHTML = items.map(it=>`<div class="kpi"><div class="l">${it.l}</div><div class="v" style="font-size:18px">${escape(it.v)}</div><div class="h">${escape(it.h||'')}</div></div>`).join('');
 }
