@@ -152,11 +152,16 @@
     </div>
 
     <div class="panel">
-      <h2>🎓 Schools in this district (NCES CCD)</h2>
+      <h2>🎯 Assigned schools — find for this exact address</h2>
+      <div id="assignedBox"></div>
+      <div class="source">⚠️ <b>No free public API reliably maps a US address to its assigned elementary / middle / high school.</b> NCES's SABS attendance-boundary service was a one-time 2015–16 pilot and is now dead. Districts publish their own boundary maps and update zones every few years. The links below open the most accurate sources in one click — Zillow shows assigned schools right on the listing, and the district's own School Finder is authoritative.</div>
+    </div>
+
+    <div class="panel">
+      <h2>🎓 All schools in this district (NCES CCD reference)</h2>
       <h2>🎓 Schools in this district (NCES CCD)</h2>
       <div id="schoolsBox"><div class="source">Querying schools in district…</div></div>
-      <div class="source">All public schools listed in this district per NCES Common Core of Data, with race/ethnicity from latest CCD enrollment data via Urban Institute Education Data API.
-      ⚠️ Exact attendance assignment depends on the district's current boundary map — confirm specific elementary/middle/high zone with the district transportation office.</div>
+      <div class="source">All public schools listed in this district per NCES Common Core of Data, with race/ethnicity from latest CCD enrollment data via Urban Institute Education Data API. <b>This is district-wide reference — your assigned schools are a subset (use the panel above to find them).</b></div>
     </div>
 
     <div class="panel">
@@ -311,6 +316,7 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#lotBox').innerHTML = '<div class="source"><span class="spinner"></span> Looking up parcel boundary…</div>';
   $('#realtyBox').innerHTML = '';
   $('#electionBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading election results…</div>';
+  $('#assignedBox').innerHTML = '';
   $('#kpis').innerHTML = '';
   $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
 
@@ -321,6 +327,7 @@ $('#form').addEventListener('submit', async (e)=>{
   renderMap(geo);
   buildKpis(geo, null, null);
   renderRealty(addr, geo);
+  renderAssigned(addr, geo);
 
   const electionP = lookupElection(geo)
     .then(e => renderElection(e, geo))
@@ -399,6 +406,33 @@ function renderMap(g){
   if (marker) marker.remove();
   marker = L.marker([g.lat,g.lon]).addTo(map).bindPopup(escape(g.matched)).openPopup();
   if (lotLayer){ lotLayer.remove(); lotLayer = null; }
+}
+
+// ---------- Assigned schools (deep-link panel) ----------
+// Registry of district-published school-finder URLs (most accurate source per district).
+// Keyed by NCES LEAID. Add entries as users encounter new districts.
+const DISTRICT_FINDERS = {
+  '4202310': { name:'Central Bucks SD School Finder', url:'https://www.cbsd.org/Page/4#calendar2/20240701/month' }, // CBSD publishes boundary maps under "School Finder"
+  // add more as needed
+};
+function renderAssigned(addr, g){
+  const slug = encodeURIComponent(addr);
+  const zillowSlug = encodeURIComponent(addr.replace(/[,]/g,'').replace(/\s+/g,'-'));
+  const finder = DISTRICT_FINDERS[g.leaid];
+  const links = [];
+  // Zillow lists assigned ES/MS/HS on every listing page — most reliable nationwide
+  links.push({label:`Zillow listing (shows assigned ES/MS/HS)`, url:`https://www.zillow.com/homes/${zillowSlug}_rb/`, color:'#006aff'});
+  links.push({label:'GreatSchools — find by address', url:`https://www.greatschools.org/search/search.page?q=${slug}`, color:'#fa6400'});
+  links.push({label:'Niche.com — find by address', url:`https://www.niche.com/k12/search/?q=${slug}`, color:'#7c3aed'});
+  if (finder) links.push({label:`✓ ${finder.name} (district authoritative)`, url:finder.url, color:'#10b981'});
+  links.push({label:`Search "${shortDist(g.districtName)} school finder"`, url:`https://www.google.com/search?q=${encodeURIComponent((g.districtName||'')+' school finder boundary map')}`, color:'#475569'});
+
+  const html = `
+    <div style="margin-bottom:10px;color:var(--text-dim);font-size:13px">For <span class="mono">${escape(addr)}</span> in <b>${escape(shortDist(g.districtName))}</b></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      ${links.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:${l.color};color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">🎯 ${escape(l.label)}</a>`).join('')}
+    </div>`;
+  $('#assignedBox').innerHTML = html;
 }
 
 // ---------- Realty deep links ----------
