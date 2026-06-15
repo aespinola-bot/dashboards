@@ -707,9 +707,39 @@ async function listDistrictSchools(g){
       enrollment: s.enrollment
     }));
   list.sort((a,b)=>(a.level||9)-(b.level||9) || (a.schnam||'').localeCompare(b.schnam||''));
-  // Fetch race breakdown for each (parallel)
+  // Fetch race breakdown for each (parallel) + bulk-fetch state assessment proficiency
+  const ratingsP = fetchDistrictRatings(g.leaid);
   await Promise.all(list.map(async s => { s.race = await fetchSchoolRace(s.ncessch).catch(()=>null); }));
-  return { schools: list, year: dirYear };
+  const ratings = await ratingsP;
+  for (const s of list) s.rating = ratings.byNcessch[s.ncessch] || null;
+  return { schools: list, year: dirYear, ratingYear: ratings.year };
+}
+
+// Bulk-fetch EdFacts state-assessment proficiency for an entire district in 1 call.
+// Returns the most recent year that has data. Source: U.S. Dept of Education EDFacts via Urban Institute.
+const RATING_YEARS = [2018, 2019, 2017, 2016, 2015];
+async function fetchDistrictRatings(leaid){
+  for (const y of RATING_YEARS){
+    try {
+      const r = await fetch(`https://educationdata.urban.org/api/v1/schools/edfacts/assessments/${y}/grade-99/?leaid=${leaid}`);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j.results?.length){
+        const byNcessch = {};
+        for (const row of j.results){
+          // pick the all-students-all-races row (race=99)
+          if (row.race !== 99 && row.race !== undefined) continue;
+          byNcessch[row.ncessch] = {
+            read: row.read_test_pct_prof_midpt,
+            math: row.math_test_pct_prof_midpt,
+            year: row.year
+          };
+        }
+        if (Object.keys(byNcessch).length) return { byNcessch, year: y };
+      }
+    } catch {}
+  }
+  return { byNcessch: {}, year: null };
 }
 
 async function fetchSchoolRace(ncessch){
@@ -740,7 +770,12 @@ function renderSchools(payload){
     html += `<h3 style="margin-top:18px">${levelLabel(lvl)} schools (${subset.length})</h3>`;
     html += `<div class="schools">${subset.map(renderSchoolCard).join('')}</div>`;
   }
-  html += `<div class="source" style="margin-top:14px">Showing all ${payload.schools.length} public schools in this district (NCES CCD ${payload.year}). Exact attendance assignment depends on the district's current boundary map — confirm the specific elementary/middle/high zone with the district transportation office.</div>`;
+  html += `<div class="source" style="margin-top:14px">
+    <b>Sources:</b> NCES Common Core of Data ${payload.year} (school directory & race/ethnicity); 
+    U.S. Dept of Education <b>EDFacts ${payload.ratingYear||'—'}</b> via Urban Institute Education Data API (state-assessment % proficient = "State Test Rating", a free government-sourced quality signal); 
+    GreatSchools and Niche links open each site's own proprietary 1-10 ratings for comparison.
+    Showing all ${payload.schools.length} public schools in this district. Use the <b>Assigned Schools</b> panel above to find the specific ES/MS/HS for your address.
+  </div>`;
   $('#schoolsBox').innerHTML = html;
 }
 
@@ -765,11 +800,44 @@ function renderSchoolCard(s){
       }).join('') + '</div>';
     }
   }
+  // Rating block (state-assessment proficiency)
+  let rating = '';
+  if (s.rating && (s.rating.read != null || s.rating.math != null)){
+    const r = s.rating;
+    const composite = (r.read != null && r.math != null) ? Math.round((r.read + r.math)/2) : (r.read ?? r.math);
+    const cBand = composite>=80 ? '#10b981' : composite>=65 ? '#84cc16' : composite>=50 ? '#f59e0b' : composite>=35 ? '#f97316' : '#ef4444';
+    const bar = (label, pct, color) => pct == null ? '' : `
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px">
+        <span style="width:36px;color:var(--text-dim)">${label}</span>
+        <div style="flex:1;background:#1a2240;height:8px;border-radius:4px;overflow:hidden"><div style="width:${pct}%;background:${color};height:100%"></div></div>
+        <span class="mono" style="width:32px;text-align:right;font-weight:700">${pct}%</span>
+      </div>`;
+    rating = `
+      <div style="margin-top:10px;padding:8px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.18);border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px">State Test Rating · ${r.year}</span>
+          <span style="padding:2px 8px;border-radius:6px;background:${cBand};color:#fff;font-weight:700;font-size:12px">${composite}%</span>
+        </div>
+        ${bar('Reading', r.read, '#06b6d4')}
+        ${bar('Math', r.math, '#8b5cf6')}
+      </div>`;
+  } else {
+    rating = `<div style="margin-top:8px;font-size:11px;color:var(--text-dim)">📊 Rating: data not reported in EDFacts for this school</div>`;
+  }
+  // External rating links
+  const gsLink = `https://www.greatschools.org/search/search.page?q=${encodeURIComponent((s.schnam||'')+' '+(s.leanm||''))}`;
+  const nicheLink = `https://www.niche.com/k12/search/?q=${encodeURIComponent(s.schnam||'')}`;
   return `<div class="school">
     <div class="lvl">${levelLabel(s.level)} · grades ${gradeLabel(s.gslo)}–${gradeLabel(s.gshi)}</div>
     <div class="nm">${escape(s.schnam||'(unnamed)')}</div>
     ${chart}${leg}
-    <div class="meta" style="margin-top:8px">Enrollment: <b>${total}</b>${year?` · ${year}`:''} ${s.ncessch?` · <a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow)">NCES profile →</a>`:''}</div>
+    ${rating}
+    <div class="meta" style="margin-top:8px">Enrollment: <b>${total}</b>${year?` · ${year}`:''}</div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
+      ${s.ncessch?`<a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow);text-decoration:none">NCES →</a>`:''}
+      <a href="${gsLink}" target="_blank" style="color:#fa6400;text-decoration:none">GreatSchools →</a>
+      <a href="${nicheLink}" target="_blank" style="color:#7c3aed;text-decoration:none">Niche →</a>
+    </div>
   </div>`;
 }
 
