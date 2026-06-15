@@ -102,6 +102,57 @@ def _strip_wiki_links(s: str) -> str:
     return s.strip()
 
 
+GOAL_TEMPLATE_RE = re.compile(r"\{\{goal\|([^{}]+)\}\}", re.IGNORECASE)
+
+
+def _parse_goal_line(line: str) -> list[dict]:
+    """Parse one bullet line from a goals block. Returns one dict per goal.
+    Supports both formats:
+      *[[Player|Display]] 9' (pen.)
+      *[[Player|Display]] {{goal|9}} {{goal|45+1|pen.}}
+      *[[Player]] {{goal|9|45+1|o.g.}}
+    """
+    text = line.lstrip("*").strip()
+    if not text:
+        return []
+    # Pull out all {{goal|...}} occurrences first
+    goal_chunks = GOAL_TEMPLATE_RE.findall(text)
+    # Remove the goal templates from the line so the remainder is just the player name (+ refs)
+    name_text = GOAL_TEMPLATE_RE.sub("", text)
+    name_only = _strip_wiki_links(name_text).strip(" ,;:")
+    out: list[dict] = []
+    if goal_chunks:
+        for chunk in goal_chunks:
+            parts = [p.strip() for p in chunk.split("|") if p.strip()]
+            mins: list[str] = []
+            tag = ""
+            for p in parts:
+                if re.fullmatch(r"\d+(\+\d+)?", p):
+                    mins.append(p)
+                else:
+                    pl = p.lower().rstrip(".")
+                    if "pen" in pl: tag = "pen"
+                    elif pl in ("o.g", "og") or "own goal" in pl: tag = "og"
+            for mn in mins:
+                out.append({"p": name_only, "m": mn + "'", **({"t": tag} if tag else {})})
+        return out
+    # Fallback: legacy literal "9'" format (possibly multiple minutes per line)
+    stripped = _strip_wiki_links(text)
+    # Pull out player name (everything before first minute)
+    first = re.search(r"\d+(?:\+\d+)?'", stripped)
+    if not first:
+        return []
+    player = stripped[:first.start()].strip(" ,;:")
+    rest = stripped[first.start():]
+    rest_lc = rest.lower()
+    base_tag = ""
+    if "pen" in rest_lc: base_tag = "pen"
+    elif "o.g." in rest_lc or "own goal" in rest_lc: base_tag = "og"
+    for mn in re.findall(r"(\d+(?:\+\d+)?)'", rest):
+        out.append({"p": player, "m": mn + "'", **({"t": base_tag} if base_tag else {})})
+    return out
+
+
 def parse_match_report(body: str) -> dict | None:
     """Extract match report fields (goals per side, stadium, attendance,
     referee, FIFA report URL) from a {{#invoke:football box}} body."""
@@ -111,20 +162,9 @@ def parse_match_report(body: str) -> dict | None:
         gb = gm.group("body")
         goals: list[dict] = []
         for line in gb.splitlines():
-            ln = line.strip()
-            if not ln.startswith("*"):
+            if not line.strip().startswith("*"):
                 continue
-            stripped = _strip_wiki_links(ln.lstrip("*").strip())
-            mm = re.search(r"^(.*?)\s+(\d+(?:\+\d+)?)'", stripped)
-            if mm:
-                player = mm.group(1).strip(" ,;:")
-                minute = mm.group(2) + "'"
-                # Detect penalty / own goal markers
-                tag = ""
-                rest = stripped[mm.end():].lower()
-                if "pen" in rest: tag = "pen"
-                elif "o.g." in rest or "own goal" in rest: tag = "og"
-                goals.append({"p": player, "m": minute, **({"t": tag} if tag else {})})
+            goals.extend(_parse_goal_line(line))
         if goals:
             out[f"goals_{side}"] = goals
     sm = STADIUM_RE.search(body)
