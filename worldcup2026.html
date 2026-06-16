@@ -674,11 +674,12 @@
   }
   .rpt-link:hover { text-decoration: underline; }
   .report-empty {
-    padding: 14px;
+    padding: 18px 14px;
     text-align: center;
     color: var(--muted);
-    font-size: 12px;
   }
+  .rpt-empty-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .rpt-empty-sub   { font-size: 11px; color: var(--muted); }
 
   /* Highlights row: allow wrap so two buttons sit cleanly */
   /* Highlights row: allow wrap so two buttons sit cleanly */
@@ -1189,8 +1190,8 @@ const MATCHES = [
   {id:12, group:'F', date:'2026-06-14', timePT:'19:00', venue:'Estadio BBVA, Guadalupe (Monterrey)',   home:'Sweden',                 away:'Tunisia',                tv:'FS1 · Universo',      pred:[2,0], highlight:'F47z0suCV7Y', actual:[5,1], note:"Isak-Gyökeres firepower (39 club goals last season). Tunisia compact but limited going forward."},
   {id:13, group:'H', date:'2026-06-15', timePT:'09:00', venue:'Mercedes-Benz Stadium, Atlanta',        home:'Spain',                  away:'Cape Verde',             tv:'FOX · Telemundo',     pred:[3,0], actual:[0,0], note:"Yamal-Olmo-N.Williams attacking trident · Rodri-Pedri midfield. Cape Verde debut."},
   {id:14, group:'G', date:'2026-06-15', timePT:'12:00', venue:'Lumen Field, Seattle',                  home:'Belgium',                away:'Egypt',                  tv:'FOX · Telemundo',     pred:[2,1], actual:[1,1], note:"De Bruyne–Doku just edge Salah. Belgian golden generation tail-end; Egypt's possession game troubles BEL midfield."},
-  {id:15, group:'H', date:'2026-06-15', timePT:'15:00', venue:'Hard Rock Stadium, Miami Gardens',      home:'Saudi Arabia',           away:'Uruguay',                tv:'FS1 · Universo',      pred:[0,2], note:"Núñez-Valverde too much. Bielsa's high-press perfect for KSA's deep block."},
-  {id:16, group:'G', date:'2026-06-15', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'Iran',                   away:'New Zealand',            tv:'FS1 · Universo',      pred:[2,0], note:"Taremi-Azmoun front pair experienced. NZ debut atmosphere; OFC level gap shows."},
+  {id:15, group:'H', date:'2026-06-15', timePT:'15:00', venue:'Hard Rock Stadium, Miami Gardens',      home:'Saudi Arabia',           away:'Uruguay',                tv:'FS1 · Universo',      pred:[0,2], actual:[1,1], note:"Núñez-Valverde too much. Bielsa's high-press perfect for KSA's deep block."},
+  {id:16, group:'G', date:'2026-06-15', timePT:'18:00', venue:'SoFi Stadium, Inglewood',               home:'Iran',                   away:'New Zealand',            tv:'FS1 · Universo',      pred:[2,0], actual:[2,2], note:"Taremi-Azmoun front pair experienced. NZ debut atmosphere; OFC level gap shows."},
   {id:17, group:'I', date:'2026-06-16', timePT:'12:00', venue:'MetLife Stadium, East Rutherford',      home:'France',                 away:'Senegal',                tv:'FOX · Telemundo',     pred:[2,1], note:"⚠️ Sharp eyes here. Mbappé-Dembélé pace · Tchouaméni-Camavinga midfield. Senegal still strong (Sarr-Mané-Jackson); FRA Elo edge ~120 pts."},
   {id:18, group:'I', date:'2026-06-16', timePT:'15:00', venue:'Gillette Stadium, Foxborough',          home:'Iraq',                   away:'Norway',                 tv:'FS1 · Universo',      pred:[0,3], note:"Haaland-Ødegaard demolition. Iraq's first WC — gulf in finishing immense."},
   {id:19, group:'J', date:'2026-06-16', timePT:'18:00', venue:'Arrowhead Stadium, Kansas City',        home:'Argentina',              away:'Algeria',                tv:'FOX · Telemundo',     pred:[2,0], note:"Messi-Álvarez routine. Algeria's reset under Petković; Mahrez creative spark but ARG midfield controls tempo."},
@@ -1284,7 +1285,7 @@ const IOC_TO_NAME = {
 };
 
 // __MATCH_REPORTS_START__
-const MATCH_REPORTS = {"1": {"goals_home": [{"p": "Quiñones", "m": "9'"}, {"p": "Jiménez", "m": "67'"}], "stadium": "Estadio Azteca, Mexico City", "attendance": "80,824", "referee": "Wilton Sampaio (Brazil)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021443", "stats": {"home": {"team": "Mexico", "rows": [{"k": "Possession", "v": "60.5%"}, {"k": "Shots", "v": "16"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "12"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "1"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "520"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "South Africa", "rows": [{"k": "Possession", "v": "39.5%"}, {"k": "Shots", "v": "3"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "0"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "11"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "2"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "334"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "2": {"goals_home": [{"p": "Hwang In-beom", "m": "67'"}, {"p": "Oh Hyeon-gyu", "m": "80'"}], "stadium": "Estadio Akron, Zapopan", "attendance": "44,985", "referee": "Amin Mohamed Omar (Egypt)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021441", "stats": {"home": {"team": "South Korea", "rows": [{"k": "Possession", "v": "61.5%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "9"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "541"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Czech Republic", "rows": [{"k": "Possession", "v": "38.5%"}, {"k": "Shots", "v": "7"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "16"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "327"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "3": {"goals_home": [{"p": "Larin", "m": "78'"}], "goals_away": [{"p": "Lukić", "m": "21'"}], "stadium": "BMO Field, Toronto", "attendance": "43,002", "referee": "Facundo Tello (Argentina)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021449", "stats": {"home": {"team": "Canada", "rows": [{"k": "Possession", "v": "61.1%"}, {"k": "Shots", "v": "13"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "9"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "421"}, {"k": "Pass accuracy", "v": "70%"}]}, "away": {"team": "Bosnia & Herzegovina", "rows": [{"k": "Possession", "v": "38.9%"}, {"k": "Shots", "v": "8"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "20"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "271"}, {"k": "Pass accuracy", "v": "60%"}]}}}, "4": {"goals_home": [{"p": "Bobadilla", "m": "7'", "t": "og"}, {"p": "Balogun", "m": "31'"}, {"p": "Balogun", "m": "45+5'"}, {"p": "Reyna", "m": "90+8'"}], "goals_away": [{"p": "Maurício", "m": "73'"}], "stadium": "SoFi Stadium, Inglewood", "attendance": "70,492", "referee": "Danny Makkelie (Netherlands)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021458", "stats": {"home": {"team": "United States", "rows": [{"k": "Possession", "v": "65.3%"}, {"k": "Shots", "v": "16"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "13"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "598"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Paraguay", "rows": [{"k": "Possession", "v": "34.7%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "17"}, {"k": "Yellow cards", "v": "5"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "319"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "6": {"goals_home": [{"p": "Vinícius", "m": "32'"}], "goals_away": [{"p": "Saibari", "m": "21'"}], "stadium": "MetLife Stadium, East Rutherford", "attendance": "80,663", "referee": "Slavko Vinčić (Slovenia)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021456", "stats": {"home": {"team": "Brazil", "rows": [{"k": "Possession", "v": "51.4%"}, {"k": "Shots", "v": "12"}, {"k": "Shots on target", "v": "5"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "6"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "16"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "514"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Morocco", "rows": [{"k": "Possession", "v": "48.6%"}, {"k": "Shots", "v": "14"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "6"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "14"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "486"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "7": {"goals_away": [{"p": "McGinn", "m": "28'"}], "stadium": "Gillette Stadium, Foxborough", "attendance": "64,146", "referee": "Mustapha Ghorbal (Algeria)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021453", "stats": {"home": {"team": "Haiti", "rows": [{"k": "Possession", "v": "53.7%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "23"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "431"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Scotland", "rows": [{"k": "Possession", "v": "46.3%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "2"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "21"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "374"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "8": {"goals_home": [{"p": "Irankunda", "m": "27'"}, {"p": "Metcalfe", "m": "75'"}], "stadium": "BC Place, Vancouver", "attendance": "52,497", "referee": "Jesús Valenzuela (Venezuela)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021463", "stats": {"home": {"team": "Australia", "rows": [{"k": "Possession", "v": "28.4%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "12"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "8"}, {"k": "Passes", "v": "271"}, {"k": "Pass accuracy", "v": "70%"}]}, "away": {"team": "Turkey", "rows": [{"k": "Possession", "v": "71.6%"}, {"k": "Shots", "v": "30"}, {"k": "Shots on target", "v": "8"}, {"k": "Shots blocked", "v": "12"}, {"k": "Corners", "v": "8"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "4"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "704"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "9": {"goals_home": [{"p": "Nmecha", "m": "6'"}, {"p": "Schlotterbeck", "m": "38'"}, {"p": "Havertz", "m": "45+5'", "t": "pen"}, {"p": "Havertz", "m": "88'", "t": "pen"}, {"p": "Musiala", "m": "47'"}, {"p": "Brown", "m": "68'"}, {"p": "Undav", "m": "78'"}], "goals_away": [{"p": "Comenencia", "m": "21'"}], "stadium": "NRG Stadium, Houston", "attendance": "68,021", "referee": "Jalal Jayed (Morocco)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021464", "stats": {"home": {"team": "Germany", "rows": [{"k": "Possession", "v": "64.6%"}, {"k": "Shots", "v": "26"}, {"k": "Shots on target", "v": "12"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "8"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "18"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "637"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Curaçao", "rows": [{"k": "Possession", "v": "35.4%"}, {"k": "Shots", "v": "8"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "0"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "11"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "343"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "10": {"goals_home": [{"p": "Van Dijk", "m": "50'"}, {"p": "Summerville", "m": "64'"}], "goals_away": [{"p": "Nakamura", "m": "57'"}, {"p": "Kamada", "m": "88'"}], "stadium": "AT&T Stadium, Arlington", "attendance": "69,285", "referee": "Ismail Elfath (United States)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021470", "stats": {"home": {"team": "Netherlands", "rows": [{"k": "Possession", "v": "59.8%"}, {"k": "Shots", "v": "10"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "7"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "524"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Japan", "rows": [{"k": "Possession", "v": "40.2%"}, {"k": "Shots", "v": "10"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "7"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "341"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "11": {"goals_home": [{"p": "A. Diallo", "m": "90'"}], "stadium": "Lincoln Financial Field, Philadelphia", "attendance": "68,274", "referee": "François Letexier (France){{efn-ua|Michael Oliver was originally appointed to the Ivory Coast vs Ecuador match, but he pulled out due to a minor injury.", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021467", "stats": {"home": {"team": "Ivory Coast", "rows": [{"k": "Possession", "v": "48.4%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "470"}, {"k": "Pass accuracy", "v": "80%"}]}, "away": {"team": "Ecuador", "rows": [{"k": "Possession", "v": "51.6%"}, {"k": "Shots", "v": "12"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "6"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "13"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "492"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "12": {"goals_home": [{"p": "Ayari", "m": "7'"}, {"p": "Ayari", "m": "90+6'"}, {"p": "Isak", "m": "30'"}, {"p": "Gyökeres", "m": "59'"}, {"p": "Svanberg", "m": "84'"}], "goals_away": [{"p": "Rekik", "m": "43'"}], "stadium": "Estadio BBVA, Guadalupe", "attendance": "50,987", "referee": "Yael Falcón (Argentina)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021474", "stats": {"home": {"team": "Sweden", "rows": [{"k": "Possession", "v": "48.7%"}, {"k": "Shots", "v": "13"}, {"k": "Shots on target", "v": "7"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "356"}, {"k": "Pass accuracy", "v": "80%"}]}, "away": {"team": "Tunisia", "rows": [{"k": "Possession", "v": "51.3%"}, {"k": "Shots", "v": "6"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "6"}, {"k": "Fouls", "v": "8"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "371"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "13": {"stadium": "Mercedes-Benz Stadium, Atlanta", "attendance": "67,640", "referee": "Adham Makhadmeh (Jordan)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021482", "stats": {"home": {"team": "Spain", "rows": [{"k": "Possession", "v": "74.3%"}, {"k": "Shots", "v": "27"}, {"k": "Shots on target", "v": "7"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "11"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "800"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Cape Verde", "rows": [{"k": "Possession", "v": "25.7%"}, {"k": "Shots", "v": "6"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "2"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "1"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "7"}, {"k": "Passes", "v": "278"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "14": {"goals_home": [{"p": "Hany", "m": "66'", "t": "og"}], "goals_away": [{"p": "Ashour", "m": "19'"}], "stadium": "Lumen Field, Seattle", "attendance": "66,775", "referee": "Ramon Abatti (Brazil)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021478", "stats": {"home": {"team": "Belgium", "rows": [{"k": "Possession", "v": "53.6%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "15"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "453"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Egypt", "rows": [{"k": "Possession", "v": "46.4%"}, {"k": "Shots", "v": "14"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "7"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "15"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "397"}, {"k": "Pass accuracy", "v": "80%"}]}}}};
+const MATCH_REPORTS = {"1": {"goals_home": [{"p": "Quiñones", "m": "9'"}, {"p": "Jiménez", "m": "67'"}], "stadium": "Estadio Azteca, Mexico City", "attendance": "80,824", "referee": "Wilton Sampaio (Brazil)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021443", "stats": {"home": {"team": "Mexico", "rows": [{"k": "Possession", "v": "60.5%"}, {"k": "Shots", "v": "16"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "12"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "1"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "520"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "South Africa", "rows": [{"k": "Possession", "v": "39.5%"}, {"k": "Shots", "v": "3"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "0"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "11"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "2"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "334"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "2": {"goals_home": [{"p": "Hwang In-beom", "m": "67'"}, {"p": "Oh Hyeon-gyu", "m": "80'"}], "stadium": "Estadio Akron, Zapopan", "attendance": "44,985", "referee": "Amin Mohamed Omar (Egypt)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021441", "stats": {"home": {"team": "South Korea", "rows": [{"k": "Possession", "v": "61.5%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "9"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "541"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Czech Republic", "rows": [{"k": "Possession", "v": "38.5%"}, {"k": "Shots", "v": "7"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "16"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "327"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "3": {"goals_home": [{"p": "Larin", "m": "78'"}], "goals_away": [{"p": "Lukić", "m": "21'"}], "stadium": "BMO Field, Toronto", "attendance": "43,002", "referee": "Facundo Tello (Argentina)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021449", "stats": {"home": {"team": "Canada", "rows": [{"k": "Possession", "v": "61.1%"}, {"k": "Shots", "v": "13"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "9"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "421"}, {"k": "Pass accuracy", "v": "70%"}]}, "away": {"team": "Bosnia & Herzegovina", "rows": [{"k": "Possession", "v": "38.9%"}, {"k": "Shots", "v": "8"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "20"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "271"}, {"k": "Pass accuracy", "v": "60%"}]}}}, "4": {"goals_home": [{"p": "Bobadilla", "m": "7'", "t": "og"}, {"p": "Balogun", "m": "31'"}, {"p": "Balogun", "m": "45+5'"}, {"p": "Reyna", "m": "90+8'"}], "goals_away": [{"p": "Maurício", "m": "73'"}], "stadium": "SoFi Stadium, Inglewood", "attendance": "70,492", "referee": "Danny Makkelie (Netherlands)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021458", "stats": {"home": {"team": "United States", "rows": [{"k": "Possession", "v": "65.3%"}, {"k": "Shots", "v": "16"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "13"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "598"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Paraguay", "rows": [{"k": "Possession", "v": "34.7%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "17"}, {"k": "Yellow cards", "v": "5"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "319"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "6": {"goals_home": [{"p": "Vinícius", "m": "32'"}], "goals_away": [{"p": "Saibari", "m": "21'"}], "stadium": "MetLife Stadium, East Rutherford", "attendance": "80,663", "referee": "Slavko Vinčić (Slovenia)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021456", "stats": {"home": {"team": "Brazil", "rows": [{"k": "Possession", "v": "51.4%"}, {"k": "Shots", "v": "12"}, {"k": "Shots on target", "v": "5"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "6"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "16"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "514"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Morocco", "rows": [{"k": "Possession", "v": "48.6%"}, {"k": "Shots", "v": "14"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "6"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "14"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "486"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "7": {"goals_away": [{"p": "McGinn", "m": "28'"}], "stadium": "Gillette Stadium, Foxborough", "attendance": "64,146", "referee": "Mustapha Ghorbal (Algeria)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021453", "stats": {"home": {"team": "Haiti", "rows": [{"k": "Possession", "v": "53.7%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "4"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "23"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "431"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Scotland", "rows": [{"k": "Possession", "v": "46.3%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "2"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "21"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "374"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "8": {"goals_home": [{"p": "Irankunda", "m": "27'"}, {"p": "Metcalfe", "m": "75'"}], "stadium": "BC Place, Vancouver", "attendance": "52,497", "referee": "Jesús Valenzuela (Venezuela)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021463", "stats": {"home": {"team": "Australia", "rows": [{"k": "Possession", "v": "28.4%"}, {"k": "Shots", "v": "9"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "12"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "8"}, {"k": "Passes", "v": "271"}, {"k": "Pass accuracy", "v": "70%"}]}, "away": {"team": "Turkey", "rows": [{"k": "Possession", "v": "71.6%"}, {"k": "Shots", "v": "30"}, {"k": "Shots on target", "v": "8"}, {"k": "Shots blocked", "v": "12"}, {"k": "Corners", "v": "8"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "4"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "704"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "9": {"goals_home": [{"p": "Nmecha", "m": "6'"}, {"p": "Schlotterbeck", "m": "38'"}, {"p": "Havertz", "m": "45+5'", "t": "pen"}, {"p": "Havertz", "m": "88'", "t": "pen"}, {"p": "Musiala", "m": "47'"}, {"p": "Brown", "m": "68'"}, {"p": "Undav", "m": "78'"}], "goals_away": [{"p": "Comenencia", "m": "21'"}], "stadium": "NRG Stadium, Houston", "attendance": "68,021", "referee": "Jalal Jayed (Morocco)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021464", "stats": {"home": {"team": "Germany", "rows": [{"k": "Possession", "v": "64.6%"}, {"k": "Shots", "v": "26"}, {"k": "Shots on target", "v": "12"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "8"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "18"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "637"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Curaçao", "rows": [{"k": "Possession", "v": "35.4%"}, {"k": "Shots", "v": "8"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "0"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "11"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "343"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "10": {"goals_home": [{"p": "Van Dijk", "m": "50'"}, {"p": "Summerville", "m": "64'"}], "goals_away": [{"p": "Nakamura", "m": "57'"}, {"p": "Kamada", "m": "88'"}], "stadium": "AT&T Stadium, Arlington", "attendance": "69,285", "referee": "Ismail Elfath (United States)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021470", "stats": {"home": {"team": "Netherlands", "rows": [{"k": "Possession", "v": "59.8%"}, {"k": "Shots", "v": "10"}, {"k": "Shots on target", "v": "6"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "5"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "7"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "524"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Japan", "rows": [{"k": "Possession", "v": "40.2%"}, {"k": "Shots", "v": "10"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "7"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "4"}, {"k": "Passes", "v": "341"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "11": {"goals_home": [{"p": "A. Diallo", "m": "90'"}], "stadium": "Lincoln Financial Field, Philadelphia", "attendance": "68,274", "referee": "François Letexier (France){{efn-ua|Michael Oliver was originally appointed to the Ivory Coast vs Ecuador match, but he pulled out due to a minor injury.", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021467", "stats": {"home": {"team": "Ivory Coast", "rows": [{"k": "Possession", "v": "48.4%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "3"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "3"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "470"}, {"k": "Pass accuracy", "v": "80%"}]}, "away": {"team": "Ecuador", "rows": [{"k": "Possession", "v": "51.6%"}, {"k": "Shots", "v": "12"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "6"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "13"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "492"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "12": {"goals_home": [{"p": "Ayari", "m": "7'"}, {"p": "Ayari", "m": "90+6'"}, {"p": "Isak", "m": "30'"}, {"p": "Gyökeres", "m": "59'"}, {"p": "Svanberg", "m": "84'"}], "goals_away": [{"p": "Rekik", "m": "43'"}], "stadium": "Estadio BBVA, Guadalupe", "attendance": "50,987", "referee": "Yael Falcón (Argentina)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021474", "stats": {"home": {"team": "Sweden", "rows": [{"k": "Possession", "v": "48.7%"}, {"k": "Shots", "v": "13"}, {"k": "Shots on target", "v": "7"}, {"k": "Shots blocked", "v": "3"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "356"}, {"k": "Pass accuracy", "v": "80%"}]}, "away": {"team": "Tunisia", "rows": [{"k": "Possession", "v": "51.3%"}, {"k": "Shots", "v": "6"}, {"k": "Shots on target", "v": "2"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "6"}, {"k": "Fouls", "v": "8"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "371"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "13": {"stadium": "Mercedes-Benz Stadium, Atlanta", "attendance": "67,640", "referee": "Adham Makhadmeh (Jordan)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021482", "stats": {"home": {"team": "Spain", "rows": [{"k": "Possession", "v": "74.3%"}, {"k": "Shots", "v": "27"}, {"k": "Shots on target", "v": "7"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "11"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "1"}, {"k": "Passes", "v": "800"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Cape Verde", "rows": [{"k": "Possession", "v": "25.7%"}, {"k": "Shots", "v": "6"}, {"k": "Shots on target", "v": "1"}, {"k": "Shots blocked", "v": "2"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "3"}, {"k": "Fouls", "v": "1"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "7"}, {"k": "Passes", "v": "278"}, {"k": "Pass accuracy", "v": "70%"}]}}}, "14": {"goals_home": [{"p": "Hany", "m": "66'", "t": "og"}], "goals_away": [{"p": "Ashour", "m": "19'"}], "stadium": "Lumen Field, Seattle", "attendance": "66,775", "referee": "Ramon Abatti (Brazil)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021478", "stats": {"home": {"team": "Belgium", "rows": [{"k": "Possession", "v": "53.6%"}, {"k": "Shots", "v": "15"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "2"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "15"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "455"}, {"k": "Pass accuracy", "v": "90%"}]}, "away": {"team": "Egypt", "rows": [{"k": "Possession", "v": "46.4%"}, {"k": "Shots", "v": "14"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "8"}, {"k": "Corners", "v": "7"}, {"k": "Offsides", "v": "1"}, {"k": "Fouls", "v": "15"}, {"k": "Yellow cards", "v": "2"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "3"}, {"k": "Passes", "v": "398"}, {"k": "Pass accuracy", "v": "80%"}]}}}, "15": {"goals_home": [{"p": "Al-Amri", "m": "41'"}], "goals_away": [{"p": "M. Araújo", "m": "80'"}], "stadium": "Hard Rock Stadium, Miami Gardens", "attendance": "62,764", "referee": "Maurizio Mariani (Italy)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021486", "stats": {"home": {"team": "Saudi Arabia", "rows": [{"k": "Possession", "v": "33.2%"}, {"k": "Shots", "v": "7"}, {"k": "Shots on target", "v": "3"}, {"k": "Shots blocked", "v": "1"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "11"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "9"}, {"k": "Passes", "v": "322"}, {"k": "Pass accuracy", "v": "70%"}]}, "away": {"team": "Uruguay", "rows": [{"k": "Possession", "v": "66.8%"}, {"k": "Shots", "v": "27"}, {"k": "Shots on target", "v": "10"}, {"k": "Shots blocked", "v": "7"}, {"k": "Corners", "v": "14"}, {"k": "Offsides", "v": "6"}, {"k": "Fouls", "v": "6"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "612"}, {"k": "Pass accuracy", "v": "90%"}]}}}, "16": {"goals_home": [{"p": "Rezaeian", "m": "32'"}, {"p": "Mohebi", "m": "64'"}], "goals_away": [{"p": "Just", "m": "7'"}, {"p": "Just", "m": "54'"}], "stadium": "SoFi Stadium, Inglewood", "attendance": "70,108", "referee": "César Arturo Ramos (Mexico)", "fifa": "https://www.fifa.com/en/match-centre/match/17/285023/289273/400021476", "stats": {"home": {"team": "Iran", "rows": [{"k": "Possession", "v": "48.5%"}, {"k": "Shots", "v": "17"}, {"k": "Shots on target", "v": "4"}, {"k": "Shots blocked", "v": "5"}, {"k": "Corners", "v": "4"}, {"k": "Offsides", "v": "2"}, {"k": "Fouls", "v": "10"}, {"k": "Yellow cards", "v": "1"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "6"}, {"k": "Passes", "v": "409"}, {"k": "Pass accuracy", "v": "80%"}]}, "away": {"team": "New Zealand", "rows": [{"k": "Possession", "v": "51.5%"}, {"k": "Shots", "v": "14"}, {"k": "Shots on target", "v": "8"}, {"k": "Shots blocked", "v": "2"}, {"k": "Corners", "v": "1"}, {"k": "Offsides", "v": "0"}, {"k": "Fouls", "v": "8"}, {"k": "Yellow cards", "v": "0"}, {"k": "Red cards", "v": "0"}, {"k": "Saves", "v": "2"}, {"k": "Passes", "v": "446"}, {"k": "Pass accuracy", "v": "80%"}]}}}};
 // __MATCH_REPORTS_END__
 
 async function fetchGroupResults(groupLetter) {
@@ -1367,39 +1368,168 @@ function _matchesNeedingHighlight() {
   return MATCHES.filter(m => m.actual && (!m.highlight || bad.has(m.highlight)));
 }
 
+function _matchesNeedingReport() {
+  return MATCHES.filter(m => m.actual && !MATCH_REPORTS[m.id]);
+}
+
+// ESPN team-name aliases mirror the Python side.
+const ESPN_TEAM_ALIASES = {
+  "south korea":["korea republic"], "korea republic":["south korea"],
+  "ivory coast":["côte d'ivoire","cote d'ivoire"], "côte d'ivoire":["ivory coast"],
+  "cape verde":["cabo verde"], "cabo verde":["cape verde"],
+  "iran":["ir iran"], "united states":["usa"], "usa":["united states"],
+  "czech republic":["czechia"], "czechia":["czech republic"],
+  "bosnia & herzegovina":["bosnia-herzegovina","bosnia and herzegovina"],
+  "bosnia-herzegovina":["bosnia & herzegovina"],
+  "turkey":["türkiye","turkiye"], "türkiye":["turkey"],
+  "curacao":["curaçao"], "curaçao":["curacao"],
+};
+function _teamMatch(a, b) {
+  a = (a||'').trim().toLowerCase(); b = (b||'').trim().toLowerCase();
+  if (a === b) return true;
+  for (const k in ESPN_TEAM_ALIASES) {
+    if ((a === k && ESPN_TEAM_ALIASES[k].includes(b)) ||
+        (b === k && ESPN_TEAM_ALIASES[k].includes(a))) return true;
+  }
+  return false;
+}
+const ESPN_STAT_LABELS = [
+  ["possessionPct","Possession","%"],
+  ["totalShots","Shots",""],
+  ["shotsOnTarget","Shots on target",""],
+  ["blockedShots","Shots blocked",""],
+  ["wonCorners","Corners",""],
+  ["offsides","Offsides",""],
+  ["foulsCommitted","Fouls",""],
+  ["yellowCards","Yellow cards",""],
+  ["redCards","Red cards",""],
+  ["saves","Saves",""],
+  ["totalPasses","Passes",""],
+  ["passPct","Pass accuracy","pct"],
+];
+async function fetchEspnReport(date, home, away) {
+  const tryDates = [date];
+  try {
+    const d = new Date(date + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    tryDates.push(d.toISOString().slice(0,10));
+  } catch (_) {}
+  let event = null, homeFirst = true;
+  for (const dt of tryDates) {
+    const yyyymmdd = dt.replace(/-/g, '');
+    let sb;
+    try {
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${yyyymmdd}`);
+      if (!r.ok) continue;
+      sb = await r.json();
+    } catch (_) { continue; }
+    for (const e of (sb.events || [])) {
+      const comps = (e.competitions?.[0]?.competitors) || [];
+      const names = comps.map(c => c.team?.displayName || '');
+      if (names.length !== 2) continue;
+      if ((_teamMatch(home, names[0]) && _teamMatch(away, names[1])) ||
+          (_teamMatch(home, names[1]) && _teamMatch(away, names[0]))) {
+        if (!e.status?.type?.completed) return null;
+        event = e; homeFirst = _teamMatch(home, names[0]); break;
+      }
+    }
+    if (event) break;
+  }
+  if (!event) return null;
+  const sumR = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${event.id}`);
+  if (!sumR.ok) return null;
+  const summary = await sumR.json();
+  const teams = summary.boxscore?.teams || [];
+  if (teams.length !== 2) return null;
+  const dicts = teams.map(t => {
+    const d = {}; (t.statistics||[]).forEach(s => { d[s.name] = s.displayValue; });
+    return d;
+  });
+  const ordered = homeFirst ? dicts : [dicts[1], dicts[0]];
+  const norm = (key, v) => {
+    if (v == null) return null;
+    let s = String(v).trim();
+    if (key === 'passPct') {
+      const f = parseFloat(s.replace('%','')); if (isNaN(f)) return s;
+      return Math.round(f <= 1.5 ? f*100 : f) + '%';
+    }
+    if (key === 'possessionPct' && !s.endsWith('%')) return s + '%';
+    return s;
+  };
+  const out = { home:{team:home, rows:[]}, away:{team:away, rows:[]} };
+  for (const [key, label] of ESPN_STAT_LABELS) {
+    const h = ordered[0][key], a = ordered[1][key];
+    if (h == null && a == null) continue;
+    out.home.rows.push({k:label, v:norm(key, h)});
+    out.away.rows.push({k:label, v:norm(key, a)});
+  }
+  // Pull goals from key events too (best-effort)
+  const homeGoals = [], awayGoals = [];
+  const events = summary.keyEvents || summary.commentary || [];
+  for (const ev of events) {
+    if (!/goal/i.test(ev.type?.text || ev.type?.id || '')) continue;
+    const minute = (ev.clock?.displayValue || ev.time?.displayValue || '').replace(/\s/g,'') || '';
+    const player = ev.athletesInvolved?.[0]?.displayName || ev.scorer?.displayName || '';
+    const teamId = ev.team?.id || ev.scoringTeam?.id;
+    if (!minute || !player) continue;
+    const sideHome = ordered === dicts ? teams[0]?.team?.id : teams[1]?.team?.id;
+    (teamId == sideHome ? homeGoals : awayGoals).push({p: player.split(' ').slice(-1)[0], m: minute});
+  }
+  if (homeGoals.length) out.goals_home = homeGoals;
+  if (awayGoals.length) out.goals_away = awayGoals;
+  return { ...(homeGoals.length?{goals_home:homeGoals}:{}), ...(awayGoals.length?{goals_away:awayGoals}:{}), stats: out };
+}
+
+async function pollReportsOnce() {
+  const needing = _matchesNeedingReport();
+  if (!needing.length) return false;
+  let any = false;
+  for (const m of needing) {
+    try {
+      const rep = await fetchEspnReport(m.date, m.home, m.away);
+      if (rep && rep.stats) {
+        MATCH_REPORTS[m.id] = rep;
+        any = true;
+        console.log(`[report-poll] fetched M${m.id} ${m.home} vs ${m.away}`);
+      }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 600));
+  }
+  return any;
+}
+
 async function pollHighlightsOnce() {
   if (_highlightPollInFlight) return;
-  const needing = _matchesNeedingHighlight();
-  if (!needing.length) {
-    if (_highlightPollTimer) { clearInterval(_highlightPollTimer); _highlightPollTimer = null; }
-    return;
-  }
   _highlightPollInFlight = true;
-  const bad = getBadHighlights();
-  const hCache = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
-  let anyFound = false;
+  let anyChange = false;
   try {
-    for (const m of needing) {
-      try {
-        const vid = await findYouTubeHighlight(m.home, m.away, bad);
-        if (vid) {
-          m.highlight = vid;
-          hCache[m.id] = vid;
-          anyFound = true;
-          console.log(`[highlight-poll] found ${vid} for M${m.id} ${m.home} vs ${m.away}`);
-        }
-      } catch (_) { /* keep trying next match */ }
-      await new Promise(res => setTimeout(res, 700));
-    }
-    if (anyFound) {
+    // 1. Reports (cheap, single API host)
+    if (await pollReportsOnce()) anyChange = true;
+    // 2. Highlights (proxied YouTube)
+    const needing = _matchesNeedingHighlight();
+    if (needing.length) {
+      const bad = getBadHighlights();
+      const hCache = JSON.parse(localStorage.getItem(HIGHLIGHTS_CACHE_KEY) || '{}');
+      for (const m of needing) {
+        try {
+          const vid = await findYouTubeHighlight(m.home, m.away, bad);
+          if (vid) {
+            m.highlight = vid;
+            hCache[m.id] = vid;
+            anyChange = true;
+            console.log(`[highlight-poll] found ${vid} for M${m.id} ${m.home} vs ${m.away}`);
+          }
+        } catch (_) {}
+        await new Promise(res => setTimeout(res, 700));
+      }
       localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(hCache));
-      try { render(); } catch (_) {}
     }
-    // Stop the timer if nothing's left to find
-    if (_matchesNeedingHighlight().length === 0 && _highlightPollTimer) {
+    if (anyChange) { try { render(); } catch (_) {} }
+    // Stop the timer when nothing's left to find
+    if (!_matchesNeedingHighlight().length && !_matchesNeedingReport().length && _highlightPollTimer) {
       clearInterval(_highlightPollTimer);
       _highlightPollTimer = null;
-      console.log('[highlight-poll] all matches have highlights — stopped polling');
+      console.log('[poll] all caught up — stopped polling');
     }
   } finally {
     _highlightPollInFlight = false;
@@ -1408,15 +1538,14 @@ async function pollHighlightsOnce() {
 
 function startHighlightPolling() {
   if (_highlightPollTimer) return;
-  // First run: 8s after load so we don't compete with initial render
   setTimeout(pollHighlightsOnce, 8000);
   _highlightPollTimer = setInterval(pollHighlightsOnce, HIGHLIGHT_POLL_INTERVAL_MS);
-  // Stop polling when tab is hidden, resume when visible — saves battery & quota
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (_highlightPollTimer) { clearInterval(_highlightPollTimer); _highlightPollTimer = null; }
     } else {
-      if (!_highlightPollTimer && _matchesNeedingHighlight().length) {
+      const need = _matchesNeedingHighlight().length || _matchesNeedingReport().length;
+      if (!_highlightPollTimer && need) {
         pollHighlightsOnce();
         _highlightPollTimer = setInterval(pollHighlightsOnce, HIGHLIGHT_POLL_INTERVAL_MS);
       }
@@ -1688,11 +1817,9 @@ function renderMatchCard(m) {
           <button class="highlights-btn" data-highlights="${m.id}" type="button">
             <span class="yt-icon">▶</span> Watch Highlights
           </button>
-          ${MATCH_REPORTS[m.id] ? `
-            <button class="report-btn" data-report="${m.id}" type="button">
-              <span class="rpt-icon">📊</span> Match Report
-            </button>
-          ` : ''}
+          <button class="report-btn" data-report="${m.id}" type="button">
+            <span class="rpt-icon">📊</span> Match Report
+          </button>
         </div>
         <div class="match-panes">
           <div class="highlights-embed" data-embed="${m.id}"></div>
@@ -2002,7 +2129,11 @@ function escapeText(s) {
 }
 
 function buildReportCard(m, rep) {
-  if (!rep) return '<div class="report-empty">No match details available.</div>';
+  if (!rep) return `
+    <div class="report-empty">
+      <div class="rpt-empty-title">📊 Stats syncing…</div>
+      <div class="rpt-empty-sub">Match just finished. We auto-refresh every few minutes — come back soon.</div>
+    </div>`;
   const goalsHome = rep.goals_home || [];
   const goalsAway = rep.goals_away || [];
   const goalRow = (g) => {
