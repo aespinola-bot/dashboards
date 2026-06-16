@@ -2782,6 +2782,36 @@ document.addEventListener('DOMContentLoaded', () => {
   /* Push body content above dock so last cards aren't hidden */
   body { padding-bottom: 70px; }
   body.standings-open { padding-bottom: 0; }
+
+  /* --- Match Report panel: mobile-tuned ---
+     On narrow cards we MUST stack highlights + report vertically (already
+     done by :has() at 540px, but force it here for safety on older browsers
+     that don't support :has()). Also tighten paddings & fonts. */
+  body .match-panes { grid-template-columns: 1fr !important; gap: 8px; }
+  body .highlights-row {
+    gap: 6px;
+    margin-top: 6px;
+    /* Two buttons on a single line, both growing to fill width */
+  }
+  body .highlights-btn,
+  body .report-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  body .report-card { padding: 9px 10px; }
+  body .rpt-final  { font-size: 16px; }
+  body .rpt-vs     { font-size: 10px; }
+  body .goal-team  { font-size: 10px; }
+  body .goal-list li { font-size: 11px; }
+  body .goal-min   { min-width: 26px; font-size: 10px; }
+  body .stat-vals  { grid-template-columns: minmax(0,28px) 1fr minmax(0,28px); }
+  body .stat-label { font-size: 9px; }
+  body .stat-h, body .stat-a { font-size: 10px; }
+  body .rpt-link   { font-size: 10px; }
 }
 
 /* Default: dock is hidden on desktop (no need for a desktop-side selector;
