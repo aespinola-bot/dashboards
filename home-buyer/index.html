@@ -141,6 +141,11 @@
     </div>
 
     <div class="panel">
+      <h2>💵 Property tax estimate</h2>
+      <div id="taxBox"><div class="source">Property tax requires parcel assessed value — loading lot data first…</div></div>
+    </div>
+
+    <div class="panel">
       <h2>📐 Lot / parcel</h2>
       <div id="lotBox"><div class="source"><span class="spinner"></span> Looking up parcel boundary…</div></div>
     </div>
@@ -317,6 +322,7 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#realtyBox').innerHTML = '';
   $('#electionBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading election results…</div>';
   $('#assignedBox').innerHTML = '';
+  $('#taxBox').innerHTML = '<div class="source"><span class="spinner"></span> Computing property tax…</div>';
   $('#kpis').innerHTML = '';
   $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
 
@@ -334,7 +340,7 @@ $('#form').addEventListener('submit', async (e)=>{
     .catch(e => { $('#electionBox').innerHTML = '<div class="source">⚠️ Election results unavailable: '+escape(e?.message||'unknown')+'</div>'; });
 
   const lotP = lookupLot(geo)
-    .then(lot => { renderLot(lot, geo); window.__lastLot = lot; buildKpis(geo, window.__lastSchools, window.__lastAcs, lot); })
+    .then(lot => { renderLot(lot, geo); window.__lastLot = lot; renderTax(lot, geo); buildKpis(geo, window.__lastSchools, window.__lastAcs, lot); })
     .catch(e => { $('#lotBox').innerHTML = '<div class="source">⚠️ Lot lookup unavailable: '+escape(e?.message||'unknown')+'</div>'; });
 
   // Fire both fetches independently — render each as it resolves
@@ -555,6 +561,110 @@ function renderLot(lot, g){
 }
 
 // Spherical polygon area on WGS84 ellipsoid; rings are [[lon,lat],...] in degrees
+// ---------- Property tax estimator ----------
+// Millage rates in mills (1 mill = $1 per $1,000 of assessed value).
+// Verified Bucks County 2024-2025 rates. Tax = assessed_value × (sum of mills) / 1000.
+// Add other counties as needed.
+const COUNTY_MILLS = {
+  'Bucks': 27.45,                  // Bucks County 2024
+};
+const MUNI_MILLS = {
+  // Bucks County municipalities (2024)
+  'Doylestown Borough': 11.94,
+  'Doylestown Township': 13.84,
+  'Buckingham Township': 8.13,
+  'New Britain Township': 4.65,
+  'New Britain Borough': 7.65,
+  'Warrington Township': 5.50,
+  'Warwick Township': 8.10,
+  'Plumstead Township': 4.85,
+  'Chalfont Borough': 3.50,
+  'Solebury Township': 7.79,
+  'Hilltown Township': 4.71,
+};
+const SCHOOL_MILLS = {
+  // PA school districts (2024-25)
+  'Central Bucks SD': 127.5570,
+  'Council Rock SD': 134.42,
+  'Pennridge SD': 142.90,
+  'Quakertown Community SD': 174.00,
+  'New Hope-Solebury SD': 124.13,
+  'Palisades SD': 158.27,
+};
+
+function lookupMillage(g, lot){
+  // Bucks County logic
+  const county = (g.county||'').replace(/County$/i,'').trim();
+  const muniRaw = (lot?.muni||'').trim();
+  const districtRaw = (g.districtName||'').trim();
+  const districtKey = districtRaw.replace(/School District/i,'SD').replace(/\s+/g,' ').trim();
+
+  const cm = COUNTY_MILLS[county];
+  const mm = MUNI_MILLS[muniRaw];
+  const sm = SCHOOL_MILLS[districtKey];
+
+  return {
+    county, muni: muniRaw, district: districtKey,
+    countyMill: cm, muniMill: mm, schoolMill: sm,
+    totalMill: (cm||0) + (mm||0) + (sm||0),
+    complete: cm != null && mm != null && sm != null,
+  };
+}
+
+function renderTax(lot, g){
+  if (!lot || !lot.totalValue){
+    $('#taxBox').innerHTML = `<div class="source">Property tax estimate requires parcel assessed value. ${(g.county||'').toLowerCase().includes('bucks') ? 'Bucks County parcel data was found but no assessed value attached to this record.' : 'No parcel data available outside our county adapters (currently Bucks County PA).' }
+    <br><br>Search the actual tax bill: <a href="https://www.google.com/search?q=${encodeURIComponent((g.county||'')+' '+(g.state||'')+' property tax search '+(g.matched||''))}" target="_blank" style="color:var(--cyan)">Google search →</a></div>`;
+    return;
+  }
+  const m = lookupMillage(g, lot);
+  const av = lot.totalValue;
+  const mil = (rate) => rate ? Math.round(av * rate / 1000) : null;
+  const cTax = mil(m.countyMill);
+  const mTax = mil(m.muniMill);
+  const sTax = mil(m.schoolMill);
+  const tot = (cTax||0) + (mTax||0) + (sTax||0);
+  const monthly = Math.round(tot/12);
+
+  const row = (label, mills, amt, color) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div>
+        <div style="font-weight:600;font-size:13px">${escape(label)}</div>
+        <div style="color:var(--text-dim);font-size:11px">${mills != null ? mills.toFixed(3)+' mills' : '⚠️ rate not in our table'}</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:${color}">${amt != null ? '$'+amt.toLocaleString('en-US') : '—'}</div>
+    </div>`;
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px">
+      <div class="kpi"><div class="l">Estimated Annual Tax</div><div class="v" style="color:#f97316">$${tot.toLocaleString('en-US')}</div><div class="h">${m.totalMill.toFixed(2)} total mills</div></div>
+      <div class="kpi"><div class="l">Monthly</div><div class="v">$${monthly.toLocaleString('en-US')}</div><div class="h">÷ 12</div></div>
+      <div class="kpi"><div class="l">Effective Rate</div><div class="v">${(tot/av*100).toFixed(2)}%</div><div class="h">of assessed value</div></div>
+      <div class="kpi"><div class="l">Assessed Value</div><div class="v" style="font-size:18px">$${av.toLocaleString('en-US')}</div><div class="h">tax basis</div></div>
+    </div>
+    <div style="margin-bottom:10px">
+      ${row(`${m.county||'County'} County`, m.countyMill, cTax, '#06b6d4')}
+      ${row(m.muni||'Municipality', m.muniMill, mTax, '#8b5cf6')}
+      ${row(m.district||'School District', m.schoolMill, sTax, '#10b981')}
+    </div>`;
+
+  // Disclaimers + verification
+  const looksUnderAssessed = av < 200000; // PA Bucks uses 1972 base year; ~16% of market
+  html += `<div class="source">
+    <b>Source:</b> Bucks County, PA 2024–25 millage rates published by the County Treasurer, municipality, and school district.<br>
+    <b>Formula:</b> annual tax = assessed value × total millage ÷ 1000.<br>
+    ${!m.complete ? '⚠️ <b>One or more rates not in our table — total above is partial.</b> Add more municipalities/districts as needed. ' : ''}
+    ${looksUnderAssessed ? '⚠️ <b>Note:</b> Bucks County uses a 1972 base-year assessment, so assessed value ≈ <b>~12-16% of fair market value</b>. The tax is real, but the assessed value won\'t match what you\'d pay for the home. ' : ''}
+    <br>For the actual bill, look up the parcel on the 
+    <a href="https://propertyrecords.buckscountyonline.org/" target="_blank" style="color:var(--cyan)">Bucks County Property Records</a> 
+    or 
+    <a href="https://www.google.com/search?q=${encodeURIComponent((lot.pin||'')+' Bucks County tax bill')}" target="_blank" style="color:var(--cyan)">search by parcel ID ${escape(lot.pin||'')}</a>.
+  </div>`;
+
+  $('#taxBox').innerHTML = html;
+}
+
+// ---------- Geocoder bbox/county area helpers ----------
 function ringsAreaAcres(rings){
   const R = 6378137; // meters
   const D2R = Math.PI/180;
@@ -833,10 +943,12 @@ function renderSchoolCard(s){
     ${chart}${leg}
     ${rating}
     <div class="meta" style="margin-top:8px">Enrollment: <b>${total}</b>${year?` · ${year}`:''}</div>
+    <div style="margin-top:6px">
+      <a href="${gsLink}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#fa6400,#ff8c1a);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;width:100%;justify-content:center;box-sizing:border-box">⭐ See 1-10 rating on GreatSchools →</a>
+    </div>
     <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;font-size:11px">
-      ${s.ncessch?`<a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow);text-decoration:none">NCES →</a>`:''}
-      <a href="${gsLink}" target="_blank" style="color:#fa6400;text-decoration:none">GreatSchools →</a>
-      <a href="${nicheLink}" target="_blank" style="color:#7c3aed;text-decoration:none">Niche →</a>
+      ${s.ncessch?`<a href="https://nces.ed.gov/ccd/schoolsearch/school_detail.asp?ID=${s.ncessch}" target="_blank" style="color:var(--accent-glow);text-decoration:none">NCES profile →</a>`:''}
+      <a href="${nicheLink}" target="_blank" style="color:#7c3aed;text-decoration:none">Niche ratings →</a>
     </div>
   </div>`;
 }
