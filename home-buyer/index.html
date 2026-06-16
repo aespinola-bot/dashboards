@@ -428,8 +428,8 @@ function renderAssigned(addr, g){
   const links = [];
   // Zillow lists assigned ES/MS/HS on every listing page — most reliable nationwide
   links.push({label:`Zillow listing (shows assigned ES/MS/HS)`, url:`https://www.zillow.com/homes/${zillowSlug}_rb/`, color:'#006aff'});
-  links.push({label:'GreatSchools — find by address', url:`https://www.greatschools.org/search/search.page?q=${slug}`, color:'#fa6400'});
-  links.push({label:'Niche.com — find by address', url:`https://www.niche.com/k12/search/?q=${slug}`, color:'#7c3aed'});
+  links.push({label:'GreatSchools — find by address', url:`https://www.google.com/search?q=${encodeURIComponent('"'+addr+'" site:greatschools.org')}`, color:'#fa6400'});
+  links.push({label:'Niche.com — find by address', url:`https://www.google.com/search?q=${encodeURIComponent('"'+addr+'" site:niche.com')}`, color:'#7c3aed'});
   if (finder) links.push({label:`✓ ${finder.name} (district authoritative)`, url:finder.url, color:'#10b981'});
   links.push({label:`Search "${shortDist(g.districtName)} school finder"`, url:`https://www.google.com/search?q=${encodeURIComponent((g.districtName||'')+' school finder boundary map')}`, color:'#475569'});
 
@@ -934,9 +934,12 @@ function renderSchoolCard(s){
   } else {
     rating = `<div style="margin-top:8px;font-size:11px;color:var(--text-dim)">📊 Rating: data not reported in EDFacts for this school</div>`;
   }
-  // External rating links
-  const gsLink = `https://www.greatschools.org/search/search.page?q=${encodeURIComponent((s.schnam||'')+' '+(s.leanm||''))}`;
-  const nicheLink = `https://www.niche.com/k12/search/?q=${encodeURIComponent(s.schnam||'')}`;
+  // Use Google site-restricted search — GS's own search fails on abbreviations like "HS"/"SD"
+  // and Google reliably returns the exact GS school page as the top hit.
+  const fullName = (s.schnam||'').replace(/\bHS\b/gi,'High School').replace(/\bMS\b/gi,'Middle School').replace(/\bES\b/gi,'Elementary School');
+  const district = (s.leanm||'').replace(/\bSD\b/gi,'School District');
+  const gsLink = `https://www.google.com/search?q=${encodeURIComponent('"'+fullName+'" "'+district+'" site:greatschools.org')}&btnI=1`;
+  const nicheLink = `https://www.google.com/search?q=${encodeURIComponent('"'+fullName+'" "'+district+'" site:niche.com')}&btnI=1`;
   return `<div class="school">
     <div class="lvl">${levelLabel(s.level)} · grades ${gradeLabel(s.gslo)}–${gradeLabel(s.gshi)}</div>
     <div class="nm">${escape(s.schnam||'(unnamed)')}</div>
