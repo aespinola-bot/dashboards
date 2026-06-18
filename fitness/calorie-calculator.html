@@ -398,5 +398,48 @@ recompute();
 <script src="../assets/chat-widget.js" defer></script>
 
 <script src="../assets/feedback-widget.js" defer></script>
+<script>
+/* ========== Per-browser preference persistence ==========
+   Saves any <input id> (numeric/text/select/checkbox/radio) to localStorage and
+   restores on next visit. First-time users see the page defaults; subsequent
+   visits show whatever they last entered. Storage is per-browser, per-domain. */
+(function(){
+  const NS = 'pref-calorie-calculator-v1';
+  function selector(){
+    return Array.from(document.querySelectorAll('input[id], select[id]'))
+      .filter(el => ['number','text','range','checkbox','radio'].includes(el.type) || el.tagName === 'SELECT');
+  }
+  function save(){
+    const o = {};
+    selector().forEach(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') o[el.id] = el.checked;
+      else o[el.id] = el.value;
+    });
+    try { localStorage.setItem(NS, JSON.stringify(o)); } catch(_){}
+  }
+  function restore(){
+    let j;
+    try { j = JSON.parse(localStorage.getItem(NS) || '{}'); } catch(_) { return; }
+    if (!j || typeof j !== 'object') return;
+    selector().forEach(el => {
+      if (el.id in j) {
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = !!j[el.id];
+        else el.value = j[el.id];
+        el.dispatchEvent(new Event('input',  {bubbles:true}));
+        el.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    });
+  }
+  function wire(){
+    selector().forEach(el => {
+      el.addEventListener('change', save);
+      el.addEventListener('input',  save);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { restore(); wire(); });
+  } else { restore(); wire(); }
+})();
+</script>
 </body>
 </html>
