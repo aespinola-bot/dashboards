@@ -2399,6 +2399,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   document.getElementById('refresh-results').addEventListener('click', refreshResults);
+  // Auto-refresh on every page open — pull latest results in the background so the
+  // calendar always shows the freshest scores without the user clicking the button.
+  // We delay slightly so the calendar renders first, then results merge in when ready.
+  setTimeout(() => { try { refreshResults(); } catch (_) {} }, 800);
   document.getElementById('open-standings').addEventListener('click', () => {
     document.getElementById('standings-panel').classList.add('open');
     document.body.classList.add('standings-open');
