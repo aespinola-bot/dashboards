@@ -1334,6 +1334,20 @@ async function fetchGroupResults(groupLetter) {
 
 const HIGHLIGHTS_CACHE_KEY = 'wc2026_highlights_v1';
 const BAD_HIGHLIGHTS_KEY  = 'wc2026_bad_highlights_v1';
+const REPORTS_CACHE_KEY   = 'wc2026_reports_v1';
+
+// Hydrate any previously-fetched match reports so a page reload doesn't lose them.
+(function hydrateCachedReports() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(REPORTS_CACHE_KEY) || '{}');
+    if (cached && typeof cached === 'object') {
+      Object.keys(cached).forEach(id => { if (!MATCH_REPORTS[id]) MATCH_REPORTS[id] = cached[id]; });
+    }
+  } catch (e) { /* ignore */ }
+})();
+function persistMatchReports() {
+  try { localStorage.setItem(REPORTS_CACHE_KEY, JSON.stringify(MATCH_REPORTS)); } catch (_) {}
+}
 
 // Track YouTube IDs that proved un-embeddable (FIFA-blocked, removed, etc.)
 // so we don't keep re-suggesting them and so refresh picks a different one.
@@ -1507,16 +1521,20 @@ async function pollReportsOnce() {
     } catch (_) {}
     await new Promise(r => setTimeout(r, 600));
   }
+  if (any) persistMatchReports();
   return any;
 }
 
 async function pollHighlightsOnce() {
   if (_highlightPollInFlight) return;
   _highlightPollInFlight = true;
-  let anyChange = false;
+  let highlightsChanged = false;
   try {
-    // 1. Reports (cheap, single API host)
-    if (await pollReportsOnce()) anyChange = true;
+    // 1. Reports (cheap, single API host) — these don't affect the rendered
+    //    card layout (the Match Stats button is always present for finished
+    //    matches), so we DON'T trigger a full re-render when they arrive.
+    //    Persistence + on-click fetch handles freshness.
+    await pollReportsOnce();
     // 2. Highlights (proxied YouTube)
     const needing = _matchesNeedingHighlight();
     if (needing.length) {
@@ -1528,7 +1546,7 @@ async function pollHighlightsOnce() {
           if (vid) {
             m.highlight = vid;
             hCache[m.id] = vid;
-            anyChange = true;
+            highlightsChanged = true;
             console.log(`[highlight-poll] found ${vid} for M${m.id} ${m.home} vs ${m.away}`);
           }
         } catch (_) {}
@@ -1536,7 +1554,9 @@ async function pollHighlightsOnce() {
       }
       localStorage.setItem(HIGHLIGHTS_CACHE_KEY, JSON.stringify(hCache));
     }
-    if (anyChange) { try { render(); } catch (_) {} }
+    // Only re-render when the visible card layout actually changed.
+    // (Reports just populate the in-memory map; their content shows on click.)
+    if (highlightsChanged) { try { render(); } catch (_) {} }
     // Stop the timer when nothing's left to find
     if (!_matchesNeedingHighlight().length && !_matchesNeedingReport().length && _highlightPollTimer) {
       clearInterval(_highlightPollTimer);
@@ -1550,7 +1570,9 @@ async function pollHighlightsOnce() {
 
 function startHighlightPolling() {
   if (_highlightPollTimer) return;
-  setTimeout(pollHighlightsOnce, 8000);
+  // Kick off the first poll quickly so a freshly-opened tab catches up
+  // (was 8s — too long; users were hitting Match Stats before the first fetch).
+  setTimeout(pollHighlightsOnce, 1000);
   _highlightPollTimer = setInterval(pollHighlightsOnce, HIGHLIGHT_POLL_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -2063,8 +2085,10 @@ async function tryEmbedHighlight(embed, m) {
   }
   // YouTube's onError is unreliable for FIFA-style embed-blocked videos: the
   // iframe just shows "Video unavailable" without firing JS errors. So if
-  // onReady hasn't fired within 3.5s, assume the embed failed and fall back.
-  setTimeout(() => { if (!ready) fallback('timeout'); }, 3500);
+  // onReady hasn't fired within a reasonable window, assume the embed failed
+  // and fall back. Bumped from 3.5s -> 6s to avoid false-positives on slow
+  // connections (videos that ARE embeddable were getting blacklisted).
+  setTimeout(() => { if (!ready) fallback('timeout'); }, 6000);
 }
 
 function onHighlightsClick(e) {
@@ -2222,11 +2246,43 @@ function onReportClick(e) {
     pane.classList.remove('open');
     pane.innerHTML = '';
     btn.innerHTML = '<span class="rpt-icon">📊</span> Match Stats';
-  } else {
-    pane.classList.add('open');
-    pane.innerHTML = buildReportCard(m, MATCH_REPORTS[id]);
-    btn.innerHTML = '<span class="rpt-icon">📊</span> Hide Stats';
+    return;
   }
+  pane.classList.add('open');
+  btn.innerHTML = '<span class="rpt-icon">📊</span> Hide Stats';
+  if (MATCH_REPORTS[id]) {
+    pane.innerHTML = buildReportCard(m, MATCH_REPORTS[id]);
+    return;
+  }
+  // No cached report — show a real loader and fetch on demand instead of waiting
+  // for the next 5-minute poll cycle. ESPN call usually returns in <2s.
+  pane.innerHTML = `
+    <div class="report-empty">
+      <div class="rpt-empty-title">📊 Loading match stats…</div>
+      <div class="rpt-empty-sub">Pulling possession, shots, cards and goals from ESPN. This usually takes a couple of seconds.</div>
+    </div>`;
+  fetchEspnReport(m.date, m.home, m.away).then(rep => {
+    if (rep && rep.stats) {
+      MATCH_REPORTS[id] = rep;
+      persistMatchReports();
+      // Only update the pane if it's still open and on the same match
+      if (pane.classList.contains('open')) pane.innerHTML = buildReportCard(m, rep);
+    } else if (pane.classList.contains('open')) {
+      pane.innerHTML = `
+        <div class="report-empty">
+          <div class="rpt-empty-title">📊 Stats not available yet</div>
+          <div class="rpt-empty-sub">ESPN hasn't published this match yet (or returned an unexpected response). We'll keep retrying in the background.</div>
+        </div>`;
+    }
+  }).catch(() => {
+    if (pane.classList.contains('open')) {
+      pane.innerHTML = `
+        <div class="report-empty">
+          <div class="rpt-empty-title">⚠️ Couldn't reach ESPN</div>
+          <div class="rpt-empty-sub">Try again in a minute. The auto-refresh will also retry.</div>
+        </div>`;
+    }
+  });
 }
 
 function onScoreChange(e) {
