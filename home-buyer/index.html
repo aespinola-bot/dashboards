@@ -1043,5 +1043,8 @@ function buildKpis(g, schools, acs, lot){
 function shortDist(n){ return (n||'').replace(/School District/i,'SD').replace(/\s+/g,' ').trim(); }
 function shortName(n){ return (n||'').replace(/Central\s+/i,'').replace(/High School/i,'HS').replace(/Elementary School/i,'ES').replace(/Middle School/i,'MS'); }
 </script>
+<script>
+(function(){try{var K='visit-tracked-home-buyer';if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');fetch('https://abacus.jasoncameron.dev/hit/aespinola-bot-dashboards/home-buyer').catch(function(){});}catch(e){}})();
+</script>
 </body>
 </html>
