@@ -151,6 +151,14 @@
     </div>
 
     <div class="panel">
+      <h2>🏔️ Topography & slope <span style="font-size:12px;font-weight:500;color:var(--text-dim,#94a3b8);margin-left:8px">USGS 3DEP DEM, live</span></h2>
+      <div id="topoBox"><div class="source">Topography loads after the address is geocoded…</div></div>
+      <div id="topoPlot" style="width:100%;height:520px;display:none;margin-top:8px"></div>
+      <div id="topoSection" style="width:100%;height:240px;display:none;margin-top:4px"></div>
+      <div class="source" id="topoNote" style="display:none">USGS 3DEP 1-meter DEM, sampled live on a 6×6 grid (~225 ft × 225 ft) centered on the geocoded address. Z-axis is 4× exaggerated for visibility; the cross-section is true-scale.</div>
+    </div>
+
+    <div class="panel">
       <h2>💰 Listing status & price (Zillow / Redfin / Realtor)</h2>
       <div id="realtyBox"></div>
       <div class="source">⚠️ Zillow killed their public API in 2021. None of the three sites allow scraping from a static page (CORS + WAF). The links below open the listing for this exact address — status (For Sale / Pending / Under Contract / Sold), price, photos, and Zestimate are visible there in one click.</div>
@@ -197,6 +205,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
 // ---------- Race code mapping (NCES CCD) ----------
 const RACE = {
@@ -325,6 +334,10 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#taxBox').innerHTML = '<div class="source"><span class="spinner"></span> Computing property tax…</div>';
   $('#kpis').innerHTML = '';
   $('#locInfo').innerHTML = '<div class="source"><span class="spinner"></span> Geocoding…</div>';
+  $('#topoBox').innerHTML = '<div class="source"><span class="spinner"></span> Will sample USGS elevation grid after geocoding…</div>';
+  document.getElementById('topoPlot').style.display = 'none';
+  document.getElementById('topoSection').style.display = 'none';
+  document.getElementById('topoNote').style.display = 'none';
 
   let geo;
   try { geo = await geocode(addr); }
@@ -334,6 +347,7 @@ $('#form').addEventListener('submit', async (e)=>{
   buildKpis(geo, null, null);
   renderRealty(addr, geo);
   renderAssigned(addr, geo);
+  renderTopo(geo);
 
   const electionP = lookupElection(geo)
     .then(e => renderElection(e, geo))
@@ -1042,6 +1056,158 @@ function buildKpis(g, schools, acs, lot){
 }
 function shortDist(n){ return (n||'').replace(/School District/i,'SD').replace(/\s+/g,' ').trim(); }
 function shortName(n){ return (n||'').replace(/Central\s+/i,'').replace(/High School/i,'HS').replace(/Elementary School/i,'ES').replace(/Middle School/i,'MS'); }
+
+// ---------- Topography (USGS 3DEP DEM, live) ----------
+async function renderTopo(geo){
+  const lat = geo.lat, lon = geo.lon;
+  if (lat == null || lon == null) {
+    $('#topoBox').innerHTML = '<div class="source">⚠️ No coordinates available — topography skipped.</div>';
+    return;
+  }
+  const N = 6;                                  // 6x6 = 36 samples
+  const SPAN_FT = 225;                          // half-window in feet (gives ~450 ft total — typical residential lot)
+  const FT_PER_DEG_LAT = 364200;
+  const FT_PER_DEG_LON = 364200 * Math.cos(lat * Math.PI/180);
+  const dLat = SPAN_FT / FT_PER_DEG_LAT;
+  const dLon = SPAN_FT / FT_PER_DEG_LON;
+  const lats = []; const lons = [];
+  for (let i = 0; i < N; i++) {
+    lats.push(lat - dLat + (2*dLat) * (i/(N-1)));
+    lons.push(lon - dLon + (2*dLon) * (i/(N-1)));
+  }
+  $('#topoBox').innerHTML = `<div class="source"><span class="spinner"></span> Sampling ${N*N} USGS 3DEP elevation points around the address (this takes ~15s)…</div>`;
+
+  async function fetchOne(la, lo) {
+    try {
+      const r = await fetch(`https://epqs.nationalmap.gov/v1/json?x=${lo}&y=${la}&units=Feet&wkid=4326`);
+      if (!r.ok) return null;
+      const j = await r.json();
+      const v = (j && typeof j.value === 'number') ? j.value : (j && j.value != null ? Number(j.value) : null);
+      return (v != null && isFinite(v)) ? v : null;
+    } catch (_) { return null; }
+  }
+
+  // throttled parallel fetch — 5 in flight at a time
+  const FT = Array.from({length:N}, () => Array(N).fill(null));
+  const tasks = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) tasks.push({r,c});
+  let cursor = 0, completed = 0;
+  async function worker(){
+    while (cursor < tasks.length) {
+      const t = tasks[cursor++];
+      const v = await fetchOne(lats[t.r], lons[t.c]);
+      FT[t.r][t.c] = v;
+      completed++;
+      if (completed % 6 === 0) {
+        $('#topoBox').innerHTML = `<div class="source"><span class="spinner"></span> Sampled ${completed} / ${N*N} elevation points…</div>`;
+      }
+    }
+  }
+  await Promise.all([worker(),worker(),worker(),worker(),worker()]);
+
+  // Fill any holes by neighbor average
+  const flatVals = FT.flat().filter(v => v != null);
+  if (flatVals.length < N*N*0.6) {
+    $('#topoBox').innerHTML = '<div class="source">⚠️ USGS 3DEP returned too few samples (DEM may not cover this area).</div>';
+    return;
+  }
+  const mean = flatVals.reduce((a,b)=>a+b,0) / flatVals.length;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (FT[r][c] == null) FT[r][c] = mean;
+
+  // Stats
+  let lo=Infinity, hi=-Infinity;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    if (FT[r][c] < lo) lo = FT[r][c];
+    if (FT[r][c] > hi) hi = FT[r][c];
+  }
+  const relief = hi - lo;
+  const X_FT = lons.map(l => (l - lons[0]) * FT_PER_DEG_LON);
+  const Y_FT = lats.map(l => (l - lats[0]) * FT_PER_DEG_LAT);
+  const lenFt = X_FT[N-1] - X_FT[0];
+  const widFt = Y_FT[N-1] - Y_FT[0];
+  // average grade west->east and south->north
+  const wMean = FT.reduce((s,row)=>s+row[0],0)/N;
+  const eMean = FT.reduce((s,row)=>s+row[N-1],0)/N;
+  const sMean = FT[0].reduce((s,v)=>s+v,0)/N;
+  const nMean = FT[N-1].reduce((s,v)=>s+v,0)/N;
+  const gradeEW = Math.abs(wMean - eMean) / lenFt * 100;
+  const gradeNS = Math.abs(sMean - nMean) / widFt * 100;
+  const gradeMax = Math.max(gradeEW, gradeNS);
+  const dirEW = eMean > wMean ? 'W→E uphill' : 'E→W uphill';
+  const dirNS = nMean > sMean ? 'S→N uphill' : 'N→S uphill';
+
+  // Category
+  let cat, catColor;
+  if (relief < 3)       { cat='Practically flat';   catColor='#10b981'; }
+  else if (relief < 8)  { cat='Gentle slope';       catColor='#34d399'; }
+  else if (relief < 15) { cat='Moderate slope';     catColor='#fbbf24'; }
+  else if (relief < 25) { cat='Notable slope';      catColor='#f97316'; }
+  else                  { cat='Steep / hillside';   catColor='#ef4444'; }
+
+  $('#topoBox').innerHTML = `
+    <div class="kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px">
+      <div class="kpi"><div class="l">Verdict</div><div class="v" style="font-size:18px;color:${catColor}">${cat}</div><div class="h">based on relief + grade</div></div>
+      <div class="kpi"><div class="l">Relief</div><div class="v">${relief.toFixed(1)} ft</div><div class="h">high − low</div></div>
+      <div class="kpi"><div class="l">Max grade</div><div class="v">${gradeMax.toFixed(1)}%</div><div class="h">EW or NS</div></div>
+      <div class="kpi"><div class="l">High point</div><div class="v">${hi.toFixed(1)} ft</div></div>
+      <div class="kpi"><div class="l">Low point</div><div class="v">${lo.toFixed(1)} ft</div></div>
+      <div class="kpi"><div class="l">Direction</div><div class="v" style="font-size:14px">${dirEW}<br>${dirNS}</div></div>
+    </div>
+    <div class="source">USGS 3DEP DEM · sampled live · drag the 3D surface to rotate, scroll to zoom · cross-section below is true-scale</div>
+  `;
+
+  document.getElementById('topoPlot').style.display = 'block';
+  document.getElementById('topoSection').style.display = 'block';
+  document.getElementById('topoNote').style.display = 'block';
+
+  // 3D surface (4x exaggerated)
+  const EXAG = 4;
+  const FT_EX = FT.map(row => row.map(v => (v - lo) * EXAG));
+  const surface = {
+    type:'surface', x:X_FT, y:Y_FT, z:FT_EX,
+    colorscale:[[0,'#0f3057'],[0.2,'#0e7490'],[0.4,'#10b981'],[0.6,'#fbbf24'],[0.8,'#f97316'],[1,'#ef4444']],
+    contours:{ z:{show:true, usecolormap:true, highlightcolor:'#22d3ee', project:{z:true}}},
+    hovertemplate:'East: %{x:.0f} ft<br>North: %{y:.0f} ft<br>Elev: %{customdata:.1f} ft<extra></extra>',
+    customdata:FT,
+    colorbar:{ title:{text:'Δ ft (×4)', font:{color:'#e8ecf5',size:11}}, tickfont:{color:'#e8ecf5'}, x:1.02 }
+  };
+  const cx = (X_FT[0]+X_FT[N-1])/2;
+  const cy = (Y_FT[0]+Y_FT[N-1])/2;
+  const cz = ((FT[Math.floor(N/2)][Math.floor(N/2)]-lo))*EXAG + 4;
+  const marker = {
+    type:'scatter3d', mode:'markers+text', x:[cx], y:[cy], z:[cz],
+    marker:{size:8, color:'#22d3ee', line:{color:'#fff',width:2}},
+    text:['Property'], textposition:'top center',
+    textfont:{color:'#e8ecf5', size:12}, hoverinfo:'text', showlegend:false
+  };
+  Plotly.newPlot('topoPlot', [surface, marker], {
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{l:0,r:0,t:0,b:0},
+    scene:{
+      xaxis:{title:'East →   feet', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true},
+      yaxis:{title:'North →   feet', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true},
+      zaxis:{title:'Elev (×4 exag)', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true},
+      camera:{eye:{x:1.6,y:-1.6,z:0.9}},
+      aspectmode:'manual', aspectratio:{x:1.6,y:0.85,z:0.55}
+    }
+  }, {displaylogo:false, responsive:true});
+
+  // True-scale cross-section: average each east-west column
+  const ys = X_FT.map((_,c)=> FT.reduce((s,row)=>s+row[c],0)/N);
+  Plotly.newPlot('topoSection', [{
+    type:'scatter', mode:'lines+markers', x:X_FT, y:ys,
+    line:{color:'#22d3ee', width:3},
+    marker:{size:7, color:'#8b5cf6', line:{color:'#fff', width:1}},
+    fill:'tozeroy', fillcolor:'rgba(139,92,246,0.10)',
+    hovertemplate:'%{x:.0f} ft east<br>%{y:.1f} ft elev<extra></extra>',
+    name:'Avg N-S elevation'
+  }], {
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{l:60,r:30,t:10,b:50}, font:{color:'#e8ecf5'},
+    xaxis:{title:'Distance west → east (feet)', gridcolor:'#2a3556', zerolinecolor:'#2a3556', range:[0, lenFt+5]},
+    yaxis:{title:'Elevation (feet, true scale)', gridcolor:'#2a3556', zerolinecolor:'#2a3556', range:[lo-5, hi+5], scaleanchor:'x', scaleratio:1}
+  }, {displaylogo:false, responsive:true});
+}
 </script>
 <script>
 (function(){try{var K='visit-tracked-home-buyer';if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');fetch('https://abacus.jasoncameron.dev/hit/aespinola-bot-dashboards/home-buyer').catch(function(){});}catch(e){}})();
