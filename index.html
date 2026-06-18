@@ -385,6 +385,26 @@
   }
   .card.coming-soon .visit-counter { display: none; }
 
+  /* Private dashboard lock badge */
+  .lock-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.18);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    backdrop-filter: blur(8px);
+    z-index: 3;
+  }
+  .card.private { border-color: rgba(139, 92, 246, 0.35); }
+  .card.private:hover { border-color: rgba(139, 92, 246, 0.65); }
+
   .card.coming-soon {
     opacity: 0.65;
     pointer-events: none;
@@ -523,6 +543,7 @@
       features: ['7 scans · 22 months', 'Trend charts', 'Segmental analysis', 'Coach insights'],
       url: 'fitness/evolt-progression.html',
       meta: 'updated jun 11, 2026',
+      private: true,
       live: true
     },
     {
@@ -646,15 +667,17 @@
   }
 
   function renderCard(d) {
-    const tag = `<a class="card ${d.live?'':'coming-soon'}" href="${d.url}" style="--card-color: ${d.color}" data-slug="${d.slug || ''}"`;
+    const tag = `<a class="card ${d.live?'':'coming-soon'}${d.private?' private':''}" href="${d.url}" style="--card-color: ${d.color}" data-slug="${d.slug || ''}"`;
     const counter = d.live && d.slug ? `
       <div class="visit-counter" title="Lifetime visits">
         <span class="vc-dot"></span>
         <span class="vc-num loading" data-count-for="${d.slug}">···</span>
         <span class="vc-label">visits</span>
       </div>` : '';
+    const lock = d.private ? `<span class="lock-badge" title="Password-protected">🔒</span>` : '';
     return `${tag}>
       ${counter}
+      ${lock}
       <div class="card-header">
         <div class="card-icon">${d.iconImg ? `<img src="${d.iconImg}" alt="${d.title} logo" onerror="this.replaceWith(document.createTextNode('${d.icon}'))">` : d.icon}</div>
         <div class="card-title-block">

@@ -154,6 +154,48 @@
 </style>
 </head>
 <body>
+<div id="lock-overlay" style="position:fixed;inset:0;background:#0a0e1a;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,sans-serif;padding:20px">
+  <div style="background:linear-gradient(135deg,#0f1424,#161c30);border:1px solid #2a3556;border-radius:16px;padding:36px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="font-size:48px;margin-bottom:12px">🔒</div>
+    <h1 style="color:#e8ecf5;font-size:22px;margin:0 0 8px;font-weight:800">Private dashboard</h1>
+    <p style="color:#94a3b8;font-size:14px;margin:0 0 22px;line-height:1.5">This dashboard contains personal body-composition data of Tomas Espinola. Enter the password to continue.</p>
+    <input id="lock-pwd" type="password" placeholder="Password" style="width:100%;padding:12px 14px;border-radius:10px;background:#0a0e1a;border:1px solid #2a3556;color:#e8ecf5;font-size:15px;margin-bottom:12px;outline:none;font-family:inherit" autofocus>
+    <button id="lock-btn" style="width:100%;padding:12px;border-radius:10px;background:#8b5cf6;color:#fff;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Unlock</button>
+    <div id="lock-err" style="color:#ef4444;font-size:13px;margin-top:10px;min-height:18px"></div>
+    <a href="../" style="display:inline-block;margin-top:16px;color:#94a3b8;font-size:13px;text-decoration:none">← Back to dashboards</a>
+  </div>
+</div>
+<script>
+(async function(){
+  // SHA-256 hash gate. Source code does NOT contain the plaintext password.
+  // This is obfuscation, not real security — anyone with the password can unlock; without it the DOM stays empty.
+  const HASH = 'ae8d4bf68ab5d2ab1f2cda85ab358c004701c91b2c0d17f2e2a014cdbe0d3ead';
+  const KEY  = 'unlock-evolt-progression';
+  async function sha256(s){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  function unlock(){
+    const o = document.getElementById('lock-overlay');
+    if (o) o.remove();
+    document.body.style.overflow = '';
+  }
+  if (sessionStorage.getItem(KEY) === '1') { unlock(); return; }
+  document.body.style.overflow = 'hidden';
+  async function tryPwd(){
+    const v = (document.getElementById('lock-pwd').value || '').trim();
+    if (!v) return;
+    const h = await sha256(v);
+    if (h === HASH) { sessionStorage.setItem(KEY, '1'); unlock(); }
+    else {
+      document.getElementById('lock-err').textContent = 'Incorrect password';
+      document.getElementById('lock-pwd').select();
+    }
+  }
+  document.getElementById('lock-btn').addEventListener('click', tryPwd);
+  document.getElementById('lock-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') tryPwd(); });
+})();
+</script>
 <a href="../" class="home-pill" aria-label="Back to dashboards home">
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
   <span>Dashboards</span>
