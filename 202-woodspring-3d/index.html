@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>202 Woodspring Cir — 3D Topography</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root{
+  --bg-0:#0a0e1a; --bg-1:#0f1424; --bg-2:#161c30; --border:#2a3556;
+  --text:#e8ecf5; --text-dim:#94a3b8; --accent:#8b5cf6; --cyan:#06b6d4;
+  --green:#10b981; --orange:#f97316; --red:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg-0);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}
+body{
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(139,92,246,.18), transparent 50%),
+    radial-gradient(ellipse at 80% 30%, rgba(6,182,212,.12), transparent 50%),
+    var(--bg-0);
+}
+.wrap{max-width:1300px;margin:0 auto;padding:32px 24px 60px}
+.title{font-size:34px;font-weight:900;letter-spacing:-.02em;margin:0 0 6px;
+  background:linear-gradient(135deg,#fff 0%,#a78bfa 50%,#22d3ee 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--text-dim);font-size:14px;margin-bottom:18px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 22px}
+.pill{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600;
+  border:1px solid var(--border);background:rgba(255,255,255,.04)}
+.pill.or{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.4);color:#fdba74}
+.pill.cy{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.4);color:#67e8f9}
+.pill.gr{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4);color:#6ee7b7}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.kpi{padding:16px;border-radius:14px;background:linear-gradient(135deg,var(--bg-1),var(--bg-2));border:1px solid var(--border)}
+.kpi .l{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim)}
+.kpi .v{font-size:24px;font-weight:800;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.kpi .h{font-size:11px;color:var(--text-dim);margin-top:2px}
+.panel{background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px}
+.panel h2{margin:0 0 12px;font-size:18px;font-weight:700}
+#plot{width:100%;height:620px}
+#section{width:100%;height:300px}
+.note{font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.5}
+.home-pill{position:fixed;top:18px;right:18px;display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:99px;background:rgba(20,24,40,.72);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08);color:var(--text);text-decoration:none;font-weight:600;font-size:13px;z-index:50}
+.home-pill:hover{background:rgba(40,46,72,.85)}
+@media print { .home-pill{display:none} }
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
+.foot a{color:var(--cyan)}
+</style>
+</head>
+<body>
+<a href="https://aespinola-bot.github.io/dashboards/" class="home-pill">← Back to Dashboards</a>
+<div class="wrap">
+  <h1 class="title">202 Woodspring Circle — 3D Topography</h1>
+  <div class="sub">Doylestown Borough, PA · Bucks County parcel <span style="font-family:'JetBrains Mono',monospace">08-008-506</span> · 63 elevation samples · USGS 3DEP 1-meter DEM</div>
+
+  <div class="pills">
+    <span class="pill or">Gentle slope · ~6% grade W→E</span>
+    <span class="pill cy">~13 ft of relief across ~205 ft</span>
+    <span class="pill gr">Drag to rotate · scroll to zoom</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Highest point</div><div class="v" id="kHi">–</div><div class="h">NW corner</div></div>
+    <div class="kpi"><div class="l">Lowest point</div><div class="v" id="kLo">–</div><div class="h">SE corner</div></div>
+    <div class="kpi"><div class="l">Total relief</div><div class="v" id="kRel">–</div><div class="h">peak − valley</div></div>
+    <div class="kpi"><div class="l">Avg grade W→E</div><div class="v" id="kGrade">–</div><div class="h">drops east</div></div>
+    <div class="kpi"><div class="l">Lot length</div><div class="v" id="kLen">–</div><div class="h">east-west</div></div>
+    <div class="kpi"><div class="l">Lot width</div><div class="v" id="kWid">–</div><div class="h">north-south</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>🏔️ 3D surface (vertical exaggeration 4×)</h2>
+    <div id="plot"></div>
+    <div class="note">Z-axis is exaggerated <b>4×</b> so the 13 ft of relief is visible against the ~205 ft length. Without exaggeration the surface looks nearly flat. Drag to rotate · scroll to zoom · double-click to reset. The cyan dot marks the approximate center of the lot.</div>
+  </div>
+
+  <div class="panel">
+    <h2>📉 Cross-section (true scale, no exaggeration)</h2>
+    <div id="section"></div>
+    <div class="note">Same elevation data drawn with Z and X on the same scale. This is what the slope <i>actually</i> looks like — gentle, walkable, definitely not "completely plain" but well within the range typically described as "level lot" by listings.</div>
+  </div>
+
+  <div class="foot">
+    <b>Verdict:</b> the lot drops about 13 ft over its 205 ft east-west length — a gentle ~6% grade. Listings calling it a "level lot" are reasonable; saying "completely plain" overstates it.<br>
+    <b>Sources:</b> elevations sampled from <a href="https://nationalmap.gov/3DEP/" target="_blank">USGS 3DEP 1-meter DEM</a> via the National Map elevation point query service. Parcel boundary from <a href="https://services3.arcgis.com/SP47Tddf7RK32lBU/arcgis/rest/services/Bucks_County_Parcels/FeatureServer/0" target="_blank">Bucks County Parcels FeatureServer</a>.<br>
+    Renderer: <a href="https://plotly.com/javascript/3d-surface-plots/" target="_blank">Plotly.js</a>.
+  </div>
+</div>
+
+<script>
+// 7 latitudes × 9 longitudes = 63 samples
+const LATS = [40.3040792, 40.3041282, 40.3041773, 40.3042263, 40.3042753, 40.3043244, 40.3043734];
+const LONS = [-75.1313274, -75.1312347, -75.1311420, -75.1310493, -75.1309566, -75.1308639, -75.1307711, -75.1306784, -75.1305857];
+const FT = [
+  [325.91, 326.44, 325.81, 324.20, 322.49, 320.53, 319.44, 318.70, 318.27],
+  [326.37, 327.56, 326.94, 324.25, 322.53, 320.68, 319.62, 318.92, 318.31],
+  [327.00, 328.74, 328.02, 324.83, 322.63, 321.06, 319.90, 319.39, 318.99],
+  [327.46, 328.34, 327.37, 325.02, 323.16, 321.51, 320.09, 319.59, 319.18],
+  [327.89, 328.26, 327.36, 325.18, 323.74, 321.91, 320.50, 319.92, 319.50],
+  [328.72, 329.87, 328.07, 325.80, 323.86, 322.29, 321.11, 320.20, 319.92],
+  [329.50, 331.12, 329.58, 326.85, 324.52, 322.75, 321.50, 320.72, 319.85]
+];
+
+// Convert grid to feet relative to the SW corner so the plot is in real-world feet
+const meanLat = LATS.reduce((a,b)=>a+b,0)/LATS.length;
+const FT_PER_DEG_LAT = 364200;
+const FT_PER_DEG_LON = 364200 * Math.cos(meanLat*Math.PI/180);
+const X_FT = LONS.map(l => (l - LONS[0]) * FT_PER_DEG_LON);     // east-west, 0 → ~205 ft
+const Y_FT = LATS.map(l => (l - LATS[0]) * FT_PER_DEG_LAT);     // south-north, 0 → ~107 ft
+
+// Stats
+let lo=Infinity, hi=-Infinity, loCorner='', hiCorner='';
+for (let r=0; r<FT.length; r++){
+  for (let c=0; c<FT[r].length; c++){
+    const z = FT[r][c];
+    if (z<lo){ lo=z; loCorner = (r<3?'S':r>4?'N':'mid')+(c<3?'W':c>5?'E':'mid'); }
+    if (z>hi){ hi=z; hiCorner = (r<3?'S':r>4?'N':'mid')+(c<3?'W':c>5?'E':'mid'); }
+  }
+}
+const relief = hi - lo;
+const lenFt = X_FT[X_FT.length-1] - X_FT[0];
+const widFt = Y_FT[Y_FT.length-1] - Y_FT[0];
+// Avg grade west to east using mean Z of west-most vs east-most columns
+const wMean = FT.reduce((s,row)=>s+row[0],0)/FT.length;
+const eMean = FT.reduce((s,row)=>s+row[row.length-1],0)/FT.length;
+const grade = (wMean - eMean)/lenFt * 100;
+
+const fmt = (v,u)=>v.toFixed(2)+' '+u;
+document.getElementById('kHi').textContent  = hi.toFixed(1)+' ft';
+document.getElementById('kLo').textContent  = lo.toFixed(1)+' ft';
+document.getElementById('kRel').textContent = relief.toFixed(1)+' ft';
+document.getElementById('kGrade').textContent = grade.toFixed(1)+'%';
+document.getElementById('kLen').textContent = Math.round(lenFt)+' ft';
+document.getElementById('kWid').textContent = Math.round(widFt)+' ft';
+
+// Surface (exaggerated)
+const EXAG = 4;
+const FT_EX = FT.map(row => row.map(v => (v - lo) * EXAG));
+
+const surface = {
+  type: 'surface',
+  x: X_FT, y: Y_FT, z: FT_EX,
+  colorscale: [
+    [0.0, '#0f3057'],
+    [0.2, '#0e7490'],
+    [0.4, '#10b981'],
+    [0.6, '#fbbf24'],
+    [0.8, '#f97316'],
+    [1.0, '#ef4444']
+  ],
+  contours: { z: { show: true, usecolormap: true, highlightcolor:'#22d3ee', project: { z: true } } },
+  hovertemplate: 'East: %{x:.0f} ft<br>North: %{y:.0f} ft<br>Elev: %{customdata:.1f} ft<extra></extra>',
+  customdata: FT,
+  showscale: true,
+  colorbar: { title: { text: 'Δ ft from low (×4)', font:{color:'#e8ecf5', size:11} }, tickfont:{color:'#e8ecf5'}, x:1.02 }
+};
+
+// Center marker on the parcel (approximate)
+const cx = (X_FT[0]+X_FT[X_FT.length-1])/2;
+const cy = (Y_FT[0]+Y_FT[Y_FT.length-1])/2;
+const cz = ((FT[3][4]-lo))*EXAG + 4;
+const center = {
+  type:'scatter3d', mode:'markers+text',
+  x:[cx], y:[cy], z:[cz],
+  marker:{ size:8, color:'#22d3ee', line:{color:'#fff', width:2} },
+  text:['202 Woodspring'], textposition:'top center',
+  textfont:{ color:'#e8ecf5', size:12 },
+  hoverinfo:'text', showlegend:false
+};
+
+const layout3d = {
+  paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+  margin:{l:0,r:0,t:0,b:0},
+  scene: {
+    xaxis:{ title:'East →   feet', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true },
+    yaxis:{ title:'North →   feet', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true },
+    zaxis:{ title:'Elevation (×4 exag)', color:'#e8ecf5', gridcolor:'#2a3556', backgroundcolor:'rgba(15,20,36,0.4)', showbackground:true },
+    camera: { eye:{ x:1.6, y:-1.6, z:0.9 } },
+    aspectmode:'manual',
+    aspectratio:{ x:1.6, y:0.85, z:0.55 }
+  }
+};
+Plotly.newPlot('plot', [surface, center], layout3d, {displaylogo:false, responsive:true});
+
+// True-scale cross-section: average each east-west column
+const xs = X_FT;
+const ys = X_FT.map((_,c) => FT.reduce((s,row)=>s+row[c],0)/FT.length);
+const minTrue = lo - 5, maxTrue = hi + 5;
+const layout2d = {
+  paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+  margin:{l:60,r:30,t:10,b:50},
+  font:{ color:'#e8ecf5' },
+  xaxis:{ title:'Distance west → east (feet)', gridcolor:'#2a3556', zerolinecolor:'#2a3556', range:[0, lenFt+5] },
+  yaxis:{ title:'Elevation (feet, true scale)', gridcolor:'#2a3556', zerolinecolor:'#2a3556', range:[minTrue, maxTrue], scaleanchor:'x', scaleratio:1 }
+};
+const profile = {
+  type:'scatter', mode:'lines+markers', x:xs, y:ys,
+  line:{ color:'#22d3ee', width:3 },
+  marker:{ size:7, color:'#8b5cf6', line:{color:'#fff', width:1} },
+  fill:'tozeroy', fillcolor:'rgba(139,92,246,0.10)',
+  hovertemplate:'%{x:.0f} ft east<br>%{y:.1f} ft elev<extra></extra>',
+  name:'Avg N-S elevation'
+};
+Plotly.newPlot('section', [profile], layout2d, {displaylogo:false, responsive:true});
+</script>
+</body>
+</html>
