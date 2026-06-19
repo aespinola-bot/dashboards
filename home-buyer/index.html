@@ -165,12 +165,6 @@
     </div>
 
     <div class="panel">
-      <h2>🏘️ Find similar homes <span style="font-size:12px;font-weight:500;color:var(--text-dim,#94a3b8);margin-left:8px">customize the criteria, search nearby</span></h2>
-      <div id="similarBox"></div>
-      <div class="source">Tweak the criteria (beds, sqft, price, radius) — clicking a site button opens its search results pre-filtered around this address. Reference home defaults are based on the address you searched; edit any field to find homes "alike".</div>
-    </div>
-
-    <div class="panel">
       <h2>🎯 Assigned schools — find for this exact address</h2>
       <div id="assignedBox"></div>
       <div class="source">⚠️ <b>No free public API reliably maps a US address to its assigned elementary / middle / high school.</b> NCES's SABS attendance-boundary service was a one-time 2015–16 pilot and is now dead. Districts publish their own boundary maps and update zones every few years. The links below open the most accurate sources in one click — Zillow shows assigned schools right on the listing, and the district's own School Finder is authoritative.</div>
@@ -335,7 +329,6 @@ $('#form').addEventListener('submit', async (e)=>{
   $('#demoBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading ACS demographics…</div>';
   $('#lotBox').innerHTML = '<div class="source"><span class="spinner"></span> Looking up parcel boundary…</div>';
   $('#realtyBox').innerHTML = '';
-  $('#similarBox').innerHTML = '';
   $('#electionBox').innerHTML = '<div class="source"><span class="spinner"></span> Loading election results…</div>';
   $('#assignedBox').innerHTML = '';
   $('#taxBox').innerHTML = '<div class="source"><span class="spinner"></span> Computing property tax…</div>';
@@ -353,7 +346,6 @@ $('#form').addEventListener('submit', async (e)=>{
   renderMap(geo);
   buildKpis(geo, null, null);
   renderRealty(addr, geo);
-  renderSimilar(addr, geo);
   renderAssigned(addr, geo);
   renderTopo(geo);
 
@@ -477,134 +469,6 @@ function renderRealty(addr, g){
   $('#realtyBox').innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:10px">' +
     links.map(l => `<a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:${l.color};color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">🔗 Open in ${l.name}</a>`).join('') +
     '</div>';
-}
-
-// ---------- Find similar homes (customizable comp search) ----------
-function renderSimilar(addr, g){
-  const lat = g.lat, lon = g.lon, zip = g.zip || '';
-  const city = (g.matched || addr).split(',')[1]?.trim() || '';
-  const state = g.state || '';
-
-  // Sensible defaults — user edits to taste
-  const defaults = {
-    minBeds: 4,
-    minSqft: 3000,
-    maxSqft: 5500,
-    maxPrice: 1300000,
-    radius: 5,
-    style: 'Colonial'
-  };
-
-  const refLine = `<div style="font-size:13px;color:var(--text-dim);margin-bottom:14px">Reference home: <strong style="color:var(--text)">${escape(g.matched||addr)}</strong> · adjust the criteria below to find homes alike.</div>`;
-
-  const formHtml = `
-    <div class="similar-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px">
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Min beds
-        <input id="sm-beds" type="number" min="1" max="8" value="${defaults.minBeds}" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Min sqft
-        <input id="sm-minsqft" type="number" min="500" step="100" value="${defaults.minSqft}" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Max sqft
-        <input id="sm-maxsqft" type="number" min="500" step="100" value="${defaults.maxSqft}" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Max price ($)
-        <input id="sm-maxprice" type="number" min="100000" step="25000" value="${defaults.maxPrice}" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Radius (mi)
-        <input id="sm-radius" type="number" min="0.5" max="25" step="0.5" value="${defaults.radius}" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-dim)">Style keyword
-        <input id="sm-style" type="text" value="${defaults.style}" placeholder="Colonial, Ranch, Cape" style="background:var(--bg-2,#161c30);border:1px solid var(--border,#2a3556);color:var(--text,#e8ecf5);padding:8px 10px;border-radius:8px;font-size:14px">
-      </label>
-    </div>
-    <div id="sm-buttons" style="display:flex;flex-wrap:wrap;gap:10px"></div>
-  `;
-
-  $('#similarBox').innerHTML = refLine + formHtml;
-
-  function rebuildLinks(){
-    const beds = +($('#sm-beds').value || defaults.minBeds);
-    const minSqft = +($('#sm-minsqft').value || defaults.minSqft);
-    const maxSqft = +($('#sm-maxsqft').value || defaults.maxSqft);
-    const maxPrice = +($('#sm-maxprice').value || defaults.maxPrice);
-    const radius = +($('#sm-radius').value || defaults.radius);
-    const style = ($('#sm-style').value || '').trim();
-
-    // Approx degree offsets for radius (1 deg lat ~ 69 mi, 1 deg lon ~ cos(lat) * 69 mi)
-    const dLat = radius / 69;
-    const dLon = radius / (69 * Math.cos(lat * Math.PI / 180));
-
-    // Zillow searchQueryState
-    const zSqs = {
-      pagination: {},
-      isMapVisible: true,
-      mapBounds: {
-        north: lat + dLat, south: lat - dLat,
-        east: lon + dLon, west: lon - dLon
-      },
-      filterState: {
-        sqft:  { min: minSqft, max: maxSqft },
-        beds:  { min: beds },
-        price: { max: maxPrice },
-        mp:    { max: Math.round(maxPrice / 250) }, // monthly est, optional
-        sf:    { value: true }, // single family
-        tow:   { value: false },
-        con:   { value: false },
-        apa:   { value: false },
-        manu:  { value: false },
-        apco:  { value: false }
-      },
-      isListVisible: true
-    };
-    if (style) zSqs.filterState.keywords = { value: style };
-    const zillowUrl = `https://www.zillow.com/homes/?searchQueryState=${encodeURIComponent(JSON.stringify(zSqs))}`;
-
-    // Redfin filtered search by zip
-    const redfinFilter = `min-beds=${beds},min-sqft=${minSqft},max-sqft=${maxSqft},max-price=${maxPrice},property-type=house`;
-    const redfinUrl = zip
-      ? `https://www.redfin.com/zipcode/${zip}/filter/${redfinFilter}`
-      : `https://www.redfin.com/city/PA/filter/${redfinFilter}`;
-
-    // Realtor.com — uses URL path segments
-    const realtorBase = zip
-      ? `https://www.realtor.com/realestateandhomes-search/${zip}`
-      : `https://www.realtor.com/realestateandhomes-search/${encodeURIComponent((city||'')+'_'+(state||''))}`;
-    const realtorUrl = `${realtorBase}/beds-${beds}/price-na-${maxPrice}/sqft-${minSqft}-${maxSqft}/type-single-family-home/radius-${radius}`;
-
-    // Trulia — basic filter
-    const truliaUrl = zip
-      ? `https://www.trulia.com/for_sale/${zip}_zip/${beds}p_beds/0-${maxPrice}_price/${minSqft}-${maxSqft}_sqft/SINGLE-FAMILY_HOME_type/`
-      : `https://www.trulia.com/for_sale/${encodeURIComponent((city||'')+','+(state||''))}/${beds}p_beds/`;
-
-    const links = [
-      { name: 'Zillow',      url: zillowUrl,  color: '#006aff' },
-      { name: 'Redfin',      url: redfinUrl,  color: '#a02021' },
-      { name: 'Realtor.com', url: realtorUrl, color: '#bc3133' },
-      { name: 'Trulia',      url: truliaUrl,  color: '#5eaa22' }
-    ];
-
-    $('#sm-buttons').innerHTML = links.map(l =>
-      `<a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:${l.color};color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">🔍 Search ${l.name}</a>`
-    ).join('') +
-    `<button id="sm-reset" type="button" style="padding:10px 16px;background:transparent;border:1px solid var(--border,#2a3556);color:var(--text-dim);border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">↺ Reset</button>`;
-
-    document.getElementById('sm-reset').onclick = () => {
-      $('#sm-beds').value = defaults.minBeds;
-      $('#sm-minsqft').value = defaults.minSqft;
-      $('#sm-maxsqft').value = defaults.maxSqft;
-      $('#sm-maxprice').value = defaults.maxPrice;
-      $('#sm-radius').value = defaults.radius;
-      $('#sm-style').value = defaults.style;
-      rebuildLinks();
-    };
-  }
-
-  // Wire input listeners — rebuild URLs on every keystroke
-  ['sm-beds','sm-minsqft','sm-maxsqft','sm-maxprice','sm-radius','sm-style'].forEach(id => {
-    document.getElementById(id).addEventListener('input', rebuildLinks);
-  });
-  rebuildLinks();
 }
 
 // ---------- Lot / parcel ----------
