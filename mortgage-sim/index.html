@@ -521,6 +521,42 @@ const STATE_INS = { /* avg annual premium / $1k of home value, 2025 (per state $
   AL:15.5,AK:4.4,AZ:8.2,AR:16.8,CA:4.5,CO:13.6,CT:8.4,DE:3.3,DC:5.0,FL:34.1,GA:9.2,HI:2.0,ID:6.8,IL:12.3,IN:9.2,IA:9.5,KS:14.6,KY:14.0,LA:28.3,ME:5.9,MD:7.9,MA:8.9,MI:8.8,MN:9.8,MS:17.2,MO:12.2,MT:16.4,NE:20.9,NV:4.0,NH:3.8,NJ:5.9,NM:15.8,NY:9.5,NC:11.4,ND:13.1,OH:6.7,OK:25.6,OR:3.6,PA:6.0,RI:5.2,SC:10.4,SD:12.1,TN:11.7,TX:22.8,UT:6.0,VT:3.5,VA:6.4,WA:5.0,WV:6.9,WI:4.6,WY:6.7
 };
 
+/* County-level effective property tax rate overrides (2024 SmartAsset / county records).
+   Only states with high intra-state variation are listed; falls back to STATE_TAX otherwise. */
+const COUNTY_TAX = {
+  PA: {
+    'Adams':1.34,'Allegheny':2.00,'Armstrong':1.76,'Beaver':1.66,'Bedford':0.99,'Berks':1.85,'Blair':1.37,'Bradford':1.54,
+    'Bucks':1.49,'Butler':1.20,'Cambria':1.51,'Cameron':1.43,'Carbon':1.55,'Centre':1.45,'Chester':1.58,'Clarion':1.40,
+    'Clearfield':1.21,'Clinton':1.63,'Columbia':1.56,'Crawford':1.37,'Cumberland':1.30,'Dauphin':1.51,'Delaware':1.95,'Elk':1.51,
+    'Erie':1.65,'Fayette':1.20,'Forest':1.16,'Franklin':1.21,'Fulton':1.04,'Greene':1.44,'Huntingdon':1.16,'Indiana':1.56,
+    'Jefferson':1.31,'Juniata':0.97,'Lackawanna':1.99,'Lancaster':1.54,'Lawrence':1.39,'Lebanon':1.36,'Lehigh':1.83,'Luzerne':1.41,
+    'Lycoming':1.51,'McKean':1.37,'Mercer':1.57,'Mifflin':1.23,'Monroe':1.95,'Montgomery':1.31,'Montour':1.03,'Northampton':1.83,
+    'Northumberland':1.34,'Perry':1.41,'Philadelphia':0.83,'Pike':1.85,'Potter':1.31,'Schuylkill':1.51,'Snyder':1.30,'Somerset':0.94,
+    'Sullivan':1.18,'Susquehanna':1.44,'Tioga':1.13,'Union':1.30,'Venango':1.62,'Warren':1.22,'Washington':1.41,'Wayne':1.47,
+    'Westmoreland':1.41,'Wyoming':1.61,'York':1.63
+  },
+  NJ: { /* major variation */
+    'Atlantic':2.21,'Bergen':2.31,'Burlington':2.55,'Camden':3.13,'Cape May':1.36,'Cumberland':2.81,'Essex':2.55,'Gloucester':3.11,
+    'Hudson':1.86,'Hunterdon':2.39,'Mercer':2.69,'Middlesex':2.21,'Monmouth':1.93,'Morris':2.04,'Ocean':1.83,'Passaic':2.99,
+    'Salem':2.94,'Somerset':2.05,'Sussex':2.78,'Union':2.59,'Warren':2.69
+  },
+  TX: { /* counties with biggest variation */
+    'Harris':2.03,'Dallas':1.93,'Travis':1.69,'Bexar':1.92,'Collin':1.68,'Tarrant':2.00,'Denton':1.83,'Fort Bend':2.23,
+    'Williamson':1.95,'Hays':1.68,'Montgomery':1.78,'Galveston':1.94
+  }
+};
+
+function lookupTaxRate(state, county){
+  if(!state) return null;
+  if(county && COUNTY_TAX[state]){
+    // strip "County" suffix and trim
+    const key = county.replace(/\s*County\s*$/i,'').trim();
+    if(COUNTY_TAX[state][key] != null) return {rate:COUNTY_TAX[state][key], scope:`${key} County, ${state}`};
+  }
+  if(STATE_TAX[state] != null) return {rate:STATE_TAX[state], scope:`${state} state avg`};
+  return null;
+}
+
 function detectState(addr){
   if(!addr) return null;
   const m = addr.toUpperCase().match(/\b([A-Z]{2})\b\s*\d{5}/) || addr.toUpperCase().match(/,\s*([A-Z]{2})\b/);
@@ -572,7 +608,7 @@ function formatAcNominatim(f){
   const main = street || a.road || a.neighbourhood || (f.display_name||'').split(',')[0] || '';
   const sub  = [city, stateAbbr, a.postcode].filter(Boolean).join(', ');
   const full = [street || a.road, city, stateAbbr, a.postcode].filter(Boolean).join(', ');
-  return { main, sub, full, state: stateAbbr };
+  return { main, sub, full, state: stateAbbr, county: a.county || '' };
 }
 function paintAc(){
   if(!acItems.length){ hideAc(); return; }
@@ -581,32 +617,60 @@ function paintAc(){
   acList.querySelectorAll('.ac-row').forEach(r=>{ r.onclick = ()=>pickAc(+r.dataset.i); });
 }
 function hideAc(){ acList.classList.remove('show'); acList.innerHTML=''; acItems=[]; acIndex=-1; }
+
+// Cache of last resolved location: {state, county}
+let lastGeo = null;
+
+function applyEstimate(state, county){
+  const found = lookupTaxRate(state, county);
+  if(!found) return false;
+  const price = +$('homePrice').value || 0;
+  if(taxMode==='pct') $('taxValue').value = found.rate.toFixed(2);
+  else $('taxValue').value = Math.round(price * found.rate/100);
+  $('insAnnual').value = Math.round(price/1000 * (STATE_INS[state]||0));
+  $('taxHelp').innerHTML = `Source: <b>${found.scope}</b> · ${found.rate.toFixed(2)}% effective rate. Toggle to <b>$/yr</b> for exact bill.`;
+  lastGeo = {state, county};
+  recalc();
+  return true;
+}
+
 function pickAc(i){
   const it = acItems[i]; if(!it) return;
   acInput.value = it.full;
   hideAc();
-  // Auto-trigger state-based estimate so user gets tax + insurance instantly
-  if(it.state && STATE_TAX[it.state]){
-    const price = +$('homePrice').value || 0;
-    if(taxMode==='pct') $('taxValue').value = STATE_TAX[it.state].toFixed(2);
-    else $('taxValue').value = Math.round(price * STATE_TAX[it.state]/100);
-    $('insAnnual').value = Math.round(price/1000 * STATE_INS[it.state]);
-    recalc();
-  }
+  if(it.state) applyEstimate(it.state, it.county);
 }
 
-$('lookupBtn').addEventListener('click', ()=>{
-  const st = detectState($('address').value);
-  if(!st){ alert('Could not detect a US state from address. Use format "City, ST 12345".'); return; }
-  const price = +$('homePrice').value || 0;
-  // Set tax in current mode
-  if(taxMode==='pct'){
-    $('taxValue').value = STATE_TAX[st].toFixed(2);
-  } else {
-    $('taxValue').value = Math.round(price * STATE_TAX[st]/100);
+async function reverseGeocode(addr){
+  // For typed addresses with no autocomplete pick: ask Nominatim once
+  try{
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=1&q=' + encodeURIComponent(addr);
+    const r = await fetch(u, {headers:{'Accept':'application/json'}});
+    if(!r.ok) return null;
+    const arr = await r.json();
+    if(!arr || !arr.length) return null;
+    const a = arr[0].address || {};
+    const state = (a['ISO3166-2-lvl4']||'').replace('US-','') || a.state || detectState(addr);
+    return { state, county: a.county || '' };
+  } catch(e){ return null; }
+}
+
+$('lookupBtn').addEventListener('click', async ()=>{
+  const addr = $('address').value.trim();
+  if(!addr){ alert('Enter an address first.'); return; }
+  // Prefer cached geo from autocomplete pick; else reverse-geocode for accurate county
+  let state = lastGeo?.state, county = lastGeo?.county;
+  if(!state){
+    $('lookupBtn').textContent = '…'; $('lookupBtn').disabled = true;
+    const g = await reverseGeocode(addr);
+    $('lookupBtn').textContent = 'Estimate'; $('lookupBtn').disabled = false;
+    if(g){ state = g.state; county = g.county; }
+    else { state = detectState(addr); }
   }
-  $('insAnnual').value = Math.round(price/1000 * STATE_INS[st]);
-  recalc();
+  if(!state || !STATE_TAX[state]){
+    alert('Could not detect a US state from that address. Try the autocomplete suggestions.'); return;
+  }
+  applyEstimate(state, county);
 });
 
 // ---------- property tax mode (% or $/yr) ----------
