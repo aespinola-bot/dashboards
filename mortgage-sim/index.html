@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mortgage Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#0a0e1a; --bg-1:#0f1424; --bg-2:#161c30; --bg-3:#1d2541;
+  --border:#2a3556; --border-soft:#1f2a48;
+  --text:#e8ecf5; --text-dim:#9aa3bf; --text-mute:#6b7596;
+  --accent:#8b5cf6; --accent-2:#a78bfa;
+  --cyan:#06b6d4; --green:#10b981; --orange:#f97316; --red:#ef4444; --yellow:#eab308;
+  --radius:14px; --radius-sm:10px;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg-0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(800px 500px at 12% 8%, rgba(139,92,246,.18), transparent 60%),
+    radial-gradient(900px 600px at 92% 92%, rgba(6,182,212,.15), transparent 60%),
+    radial-gradient(700px 500px at 50% 50%, rgba(167,139,250,.07), transparent 70%),
+    var(--bg-0);
+  background-attachment:fixed;
+}
+.home-pill{position:fixed;top:14px;right:14px;z-index:50;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:rgba(15,20,36,.7);backdrop-filter:blur(10px);border:1px solid var(--border);color:var(--text);text-decoration:none;font-size:12px;font-weight:600}
+.home-pill:hover{border-color:var(--accent);color:var(--accent-2)}
+@media print{.home-pill{display:none}}
+
+.wrap{max-width:1400px;margin:0 auto;padding:32px 22px 60px}
+header.hero{margin-bottom:26px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(15,20,36,.55)}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent)}
+h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.02em;margin:14px 0 6px;background:linear-gradient(135deg,#fff 0%,var(--accent-2) 60%,var(--cyan) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--text-dim);max-width:780px;font-size:15px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr);gap:22px}
+@media (max-width:1024px){.layout{grid-template-columns:1fr}}
+
+.card{background:linear-gradient(180deg,rgba(22,28,48,.85),rgba(15,20,36,.85));border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card h2{font-size:14px;font-weight:700;margin:0 0 14px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:3px;height:14px;background:linear-gradient(180deg,var(--accent),var(--cyan));border-radius:2px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media (max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+label{display:block;font-size:11px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.help{display:block;font-size:11px;color:var(--text-mute);margin-top:4px}
+input[type=text],input[type=number],select,textarea{width:100%;padding:10px 12px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font:inherit;font-size:13px;transition:border-color .15s, box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.18)}
+input[readonly]{background:var(--bg-2);color:var(--text-dim)}
+
+.field{margin-bottom:14px}
+.field-row{display:flex;gap:8px;align-items:stretch}
+.field-row input{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-2);color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent-2)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#7c3aed);border-color:transparent;color:#fff}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+.seg{display:inline-flex;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;width:100%}
+.seg button{flex:1;padding:8px 10px;font-size:12px;font-weight:600;border:none;background:transparent;color:var(--text-dim);border-radius:7px;cursor:pointer}
+.seg button.on{background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px}
+.kpi .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-mute);font-weight:600}
+.kpi .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-top:4px;color:#fff}
+.kpi .sub2{font-size:11px;color:var(--text-dim);margin-top:2px}
+.kpi.accent .val{color:var(--accent-2)}
+.kpi.cyan .val{color:var(--cyan)}
+.kpi.green .val{color:var(--green)}
+.kpi.orange .val{color:var(--orange)}
+.kpi.red .val{color:var(--red)}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:var(--bg-2);border:1px solid var(--border);color:var(--text-dim)}
+.badge.green{color:var(--green);border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.08)}
+.badge.red{color:var(--red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)}
+.badge.orange{color:var(--orange);border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.08)}
+.badge.cyan{color:var(--cyan);border-color:rgba(6,182,212,.4);background:rgba(6,182,212,.08)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border-soft)}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-mute);font-weight:600}
+td.num,th.num{text-align:right;font-family:'JetBrains Mono',monospace}
+.tbl-wrap{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+
+.bar{height:10px;border-radius:6px;background:var(--bg-1);overflow:hidden;border:1px solid var(--border)}
+.bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--cyan))}
+
+details{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
+details > summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--text);list-style:none;display:flex;align-items:center;justify-content:space-between}
+details > summary::after{content:"+";font-size:18px;color:var(--text-dim)}
+details[open] > summary::after{content:"–"}
+details > div{margin-top:12px}
+
+.note{font-size:11.5px;color:var(--text-mute);margin-top:8px;line-height:1.5}
+.note b{color:var(--text-dim)}
+.divider{height:1px;background:var(--border-soft);margin:14px 0}
+
+.scenario{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:760px){.scenario{grid-template-columns:1fr}}
+.scen-card{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px}
+.scen-card .t{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-mute);font-weight:700}
+.scen-card .v{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#fff;margin-top:4px}
+.scen-card .d{font-size:11.5px;color:var(--text-dim);margin-top:4px}
+
+footer{margin-top:30px;font-size:11.5px;color:var(--text-mute);text-align:center}
+footer code{background:var(--bg-2);padding:2px 6px;border-radius:4px;font-size:11px;color:var(--text-dim)}
+
+canvas{display:block;width:100%;height:auto}
+
+.row-stack > * + *{margin-top:14px}
+
+.tier-pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--bg-2);color:var(--text-dim);margin-left:6px}
+
+.alert{padding:12px 14px;border-radius:var(--radius-sm);font-size:12.5px;margin-top:10px;border:1px solid var(--border)}
+.alert.ok{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.4);color:#a7f3d0}
+.alert.warn{background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.4);color:#fed7aa}
+.alert.bad{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.4);color:#fecaca}
+
+/* tooltip system */
+.lbl-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.lbl-row label{margin:0}
+.tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--border);color:var(--text-mute);font-size:9px;font-weight:700;cursor:help;user-select:none;background:var(--bg-1);font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0}
+.tip:hover,.tip:focus{color:var(--accent-2);border-color:var(--accent);outline:none}
+.tip::after{
+  content:attr(data-tip);
+  position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+  min-width:220px;max-width:320px;width:max-content;
+  background:#0d1226;color:var(--text);
+  border:1px solid var(--accent);border-radius:8px;
+  padding:10px 12px;font-size:11.5px;font-weight:400;line-height:1.5;letter-spacing:0;text-align:left;
+  white-space:normal;
+  box-shadow:0 12px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(139,92,246,.1);
+  opacity:0;pointer-events:none;transition:opacity .12s ease, transform .12s ease;
+  transform:translateX(-50%) translateY(4px);
+  z-index:100;
+}
+.tip::before{
+  content:"";position:absolute;left:50%;bottom:calc(100% + 2px);transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--accent);
+  opacity:0;transition:opacity .12s ease;z-index:101;
+}
+.tip:hover::after,.tip:focus::after{opacity:1;transform:translateX(-50%) translateY(0)}
+.tip:hover::before,.tip:focus::before{opacity:1}
+/* flip near right edge */
+.tip.r::after{left:auto;right:0;transform:translateX(0) translateY(4px)}
+.tip.r:hover::after,.tip.r:focus::after{transform:translateX(0) translateY(0)}
+.tip.r::before{left:auto;right:6px;transform:none}
+@media (max-width:640px){
+  .tip::after{min-width:180px;max-width:260px;font-size:11px}
+}
+
+/* address autocomplete (Nominatim/OSM) */
+.search-wrap{flex:1;position:relative}
+.ac-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.55);z-index:60;max-height:300px;overflow-y:auto;display:none}
+.ac-list.show{display:block}
+.ac-row{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border-soft);font-size:13px;display:flex;flex-direction:column;gap:2px}
+.ac-row:last-child{border-bottom:none}
+.ac-row:hover,.ac-row.active{background:rgba(139,92,246,.14)}
+.ac-row b{color:var(--text);font-weight:600}
+.ac-row span{color:var(--text-mute);font-size:11px}
+.ac-spin{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:none}
+.ac-spin.on{display:block}
+@keyframes spin{to{transform:translateY(-50%) rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<a class="home-pill" href="../" title="Back to Dashboards">← Dashboards</a>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow"><span class="dot"></span> Mortgage Simulator · Local Build</div>
+  <h1>Mortgage Eligibility &amp; Affordability Simulator</h1>
+  <p class="sub">Enter property + buyer details to compute a live monthly payment, debt-to-income ratio, and loan eligibility. Use <b>simulate</b> mode to reverse-solve the down payment, credit score, or home price needed to qualify.</p>
+</header>
+
+<div class="layout">
+
+  <!-- ============ LEFT: INPUTS ============ -->
+  <section class="card row-stack">
+
+    <div>
+      <h2>Property</h2>
+      <div class="field">
+        <label>Home Price (USD)</label>
+        <input type="number" id="homePrice" value="650000" min="0" step="1000" />
+      </div>
+      <div class="field">
+        <label>Property Address</label>
+        <div class="field-row">
+          <div class="search-wrap">
+            <input type="text" id="address" placeholder="Start typing… e.g. 202 Woodspring Cir, Doylestown, PA" autocomplete="off" />
+            <div class="ac-spin" id="acSpin"></div>
+            <div id="acList" class="ac-list"></div>
+          </div>
+          <button class="btn" id="lookupBtn" type="button">Estimate</button>
+        </div>
+        <span class="help">Type any U.S. address — auto-suggests via OpenStreetMap. Click <b>Estimate</b> to fill property tax + insurance from state defaults.</span>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Property Tax <span id="taxModeLabel" style="text-transform:none;color:var(--text-dim);font-weight:500">(% / yr)</span></label>
+          <div class="field-row">
+            <input type="number" id="taxValue" value="1.10" step="0.01" />
+            <div class="seg" style="width:auto;flex:0 0 auto" id="taxMode">
+              <button data-v="pct" class="on" type="button">%</button>
+              <button data-v="usd" type="button">$/yr</button>
+            </div>
+          </div>
+          <span class="help" id="taxHelp">Annual rate. Toggle to <b>$/yr</b> if you know the exact tax bill.</span>
+        </div>
+        <div class="field">
+          <label>Insurance ($ / yr)</label>
+          <input type="number" id="insAnnual" value="1800" step="50" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>HOA ($ / month)</label>
+          <input type="number" id="hoa" value="0" step="10" />
+        </div>
+        <div class="field">
+          <label>Occupancy</label>
+          <select id="occupancy">
+            <option value="primary">Primary residence</option>
+            <option value="secondary">Second home</option>
+            <option value="investment">Investment property</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Borrower</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label>Credit Score (FICO)</label>
+          <input type="number" id="fico" value="740" min="300" max="850" step="1" />
+          <span class="help" id="ficoTier"></span>
+        </div>
+        <div class="field">
+          <label>Down Payment (USD)</label>
+          <input type="number" id="downPay" value="130000" step="1000" />
+          <span class="help" id="dpPct"></span>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Gross Annual Income (USD)</label>
+          <input type="number" id="income" value="180000" step="1000" />
+        </div>
+        <div class="field">
+          <label>Credit Behavior</label>
+          <select id="behavior">
+            <option value="excellent">Excellent (no late, low util)</option>
+            <option value="good" selected>Good (occasional util &gt; 30%)</option>
+            <option value="fair">Fair (1-2 lates 24mo)</option>
+            <option value="poor">Poor (collections / 30+ lates)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Existing Debts (Monthly)</h2>
+      <div class="grid-3">
+        <div class="field">
+          <label>Other Mortgage / Rent</label>
+          <input type="number" id="dbtHousing" value="0" step="50" />
+        </div>
+        <div class="field">
+          <label>Auto / Student Loans</label>
+          <input type="number" id="dbtLoans" value="450" step="50" />
+        </div>
+        <div class="field">
+          <label>Credit Card Min</label>
+          <input type="number" id="dbtCards" value="120" step="10" />
+        </div>
+      </div>
+      <span class="help">Use the minimum monthly payment from your credit report for each line.</span>
+    </div>
+
+    <div>
+      <h2>Loan Product</h2>
+      <div class="field">
+        <label>Term &amp; Type</label>
+        <div class="seg" id="loanType">
+          <button data-v="30fix" class="on">30y Fixed</button>
+          <button data-v="20fix">20y Fixed</button>
+          <button data-v="15fix">15y Fixed</button>
+          <button data-v="10fix">10y Fixed</button>
+          <button data-v="7arm">7/1 ARM</button>
+          <button data-v="5arm">5/1 ARM</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Base 30y Conforming Rate (%)<span class="tier-pill" id="rateAsOf"></span></label>
+          <input type="number" id="baseRate" value="6.85" step="0.01" />
+          <span class="help">Edit if you have a quote. All other terms derive from this base + adjusters.</span>
+        </div>
+        <div class="field">
+          <label>Effective Rate for this Loan</label>
+          <input type="number" id="effRate" readonly />
+          <span class="help" id="rateBreakdown"></span>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Discount Points</label>
+          <input type="number" id="points" value="0" step="0.125" min="0" max="4" />
+          <span class="help">Each point = 1% of loan, lowers rate ~0.25%.</span>
+        </div>
+        <div class="field">
+          <label>Closing Costs (% of price)</label>
+          <input type="number" id="closingPct" value="2.5" step="0.1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn primary" id="runBtn">Recalculate</button>
+      <button class="btn" id="resetBtn">Reset Defaults</button>
+      <button class="btn ghost" id="printBtn">Print / PDF</button>
+    </div>
+
+  </section>
+
+  <!-- ============ RIGHT: RESULTS ============ -->
+  <section class="row-stack">
+
+    <div class="card">
+      <h2>Monthly Payment Breakdown</h2>
+      <div class="kpis">
+        <div class="kpi accent"><div class="lbl">Total PITIA</div><div class="val" id="kPitia">—</div><div class="sub2" id="kPitiaSub"></div></div>
+        <div class="kpi"><div class="lbl">P&amp;I</div><div class="val" id="kPi">—</div><div class="sub2" id="kPiSub"></div></div>
+        <div class="kpi cyan"><div class="lbl">Loan Amount</div><div class="val" id="kLoan">—</div><div class="sub2" id="kLoanSub"></div></div>
+        <div class="kpi"><div class="lbl">Cash to Close</div><div class="val" id="kCash">—</div><div class="sub2" id="kCashSub"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="grid-2">
+        <div>
+          <table>
+            <tbody>
+              <tr><td>Principal &amp; Interest</td><td class="num" id="rPi">—</td></tr>
+              <tr><td>Property Tax</td><td class="num" id="rTax">—</td></tr>
+              <tr><td>Homeowners Insurance</td><td class="num" id="rIns">—</td></tr>
+              <tr><td>HOA</td><td class="num" id="rHoa">—</td></tr>
+              <tr><td>PMI / MIP</td><td class="num" id="rPmi">—</td></tr>
+              <tr style="font-weight:700"><td>Total Monthly</td><td class="num" id="rTotal">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <canvas id="pieCanvas" width="320" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Eligibility</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Front-End DTI</div><div class="val" id="kFe">—</div><div class="sub2">Housing only · target ≤ 28%</div></div>
+        <div class="kpi"><div class="lbl">Back-End DTI</div><div class="val" id="kBe">—</div><div class="sub2">All debts · target ≤ 43%</div></div>
+        <div class="kpi"><div class="lbl">LTV</div><div class="val" id="kLtv">—</div><div class="sub2">Loan / value · ≤ 80% to skip PMI</div></div>
+        <div class="kpi"><div class="lbl">Reserves</div><div class="val" id="kRes">—</div><div class="sub2">Months PITIA</div></div>
+      </div>
+      <div class="row-stack" style="margin-top:14px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-bottom:4px"><span>Back-End DTI</span><span id="dtiPct"></span></div>
+          <div class="bar"><span id="dtiBar" style="width:0%"></span></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-bottom:4px"><span>LTV</span><span id="ltvPct"></span></div>
+          <div class="bar"><span id="ltvBar" style="width:0%"></span></div>
+        </div>
+      </div>
+      <div id="verdict"></div>
+    </div>
+
+    <div class="card">
+      <h2>Reverse Simulator — "What Do I Need?"</h2>
+      <p class="sub" style="font-size:13px;margin:0 0 12px">Hold every other input fixed, solve for one variable to clear lender thresholds (43% DTI, 80% LTV no-PMI).</p>
+      <div class="scenario">
+        <div class="scen-card">
+          <div class="t">Min Down Payment</div>
+          <div class="v" id="solveDp">—</div>
+          <div class="d" id="solveDpD">to keep back-end DTI ≤ 43%</div>
+        </div>
+        <div class="scen-card">
+          <div class="t">Down Payment for No PMI</div>
+          <div class="v" id="solvePmi">—</div>
+          <div class="d">20% of home price</div>
+        </div>
+        <div class="scen-card">
+          <div class="t">Max Affordable Home Price</div>
+          <div class="v" id="solvePrice">—</div>
+          <div class="d">at current down + rate + DTI 43%</div>
+        </div>
+        <div class="scen-card">
+          <div class="t">Min Income Required</div>
+          <div class="v" id="solveInc">—</div>
+          <div class="d">to qualify at current loan</div>
+        </div>
+        <div class="scen-card">
+          <div class="t">Min FICO for ≤ 6.5%</div>
+          <div class="v" id="solveFico">—</div>
+          <div class="d">based on tier-based rate adders</div>
+        </div>
+        <div class="scen-card">
+          <div class="t">5-Year Total Interest</div>
+          <div class="v" id="solveInt5">—</div>
+          <div class="d">if you sell / refi at year 5</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Amortization Schedule</h2>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn" data-amort="annual">Yearly</button>
+        <button class="btn" data-amort="monthly">Monthly</button>
+        <button class="btn ghost" id="amortCsv">Export CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="amortTbl">
+          <thead><tr><th>#</th><th>Date</th><th class="num">Payment</th><th class="num">Principal</th><th class="num">Interest</th><th class="num">Balance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Assumptions &amp; Notes</h2>
+      <details>
+        <summary>Rate model (tier &amp; loan-type adjusters)</summary>
+        <div>
+          <p class="note">Effective rate = base 30y conforming rate + tier adjuster + loan-type adjuster + occupancy adjuster − points credit.</p>
+          <table>
+            <thead><tr><th>FICO</th><th class="num">Adder</th><th>Loan Type</th><th class="num">Adder</th><th>Occupancy</th><th class="num">Adder</th></tr></thead>
+            <tbody>
+              <tr><td>760+</td><td class="num">−0.125%</td><td>30y Fixed</td><td class="num">+0.000%</td><td>Primary</td><td class="num">+0.000%</td></tr>
+              <tr><td>740-759</td><td class="num">+0.000%</td><td>20y Fixed</td><td class="num">−0.125%</td><td>Second home</td><td class="num">+0.500%</td></tr>
+              <tr><td>720-739</td><td class="num">+0.125%</td><td>15y Fixed</td><td class="num">−0.500%</td><td>Investment</td><td class="num">+0.875%</td></tr>
+              <tr><td>700-719</td><td class="num">+0.250%</td><td>10y Fixed</td><td class="num">−0.625%</td><td></td><td></td></tr>
+              <tr><td>680-699</td><td class="num">+0.500%</td><td>7/1 ARM</td><td class="num">−0.375%</td><td></td><td></td></tr>
+              <tr><td>660-679</td><td class="num">+0.875%</td><td>5/1 ARM</td><td class="num">−0.500%</td><td></td><td></td></tr>
+              <tr><td>640-659</td><td class="num">+1.250%</td><td></td><td></td><td></td><td></td></tr>
+              <tr><td>620-639</td><td class="num">+1.625%</td><td></td><td></td><td></td><td></td></tr>
+              <tr><td>&lt; 620</td><td class="num">FHA only</td><td></td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+          <p class="note">Behavior modifier: Excellent −0.125%, Good 0%, Fair +0.250%, Poor +0.625%. PMI applied when LTV &gt; 80% on conventional, ranging 0.30%-1.50% of loan/yr based on FICO &amp; LTV.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Property tax &amp; insurance state defaults</summary>
+        <div><p class="note" id="stateNotes">Lookup uses 2025 average effective property tax rates by state. Always verify with the county assessor and a real insurance quote.</p></div>
+      </details>
+      <details>
+        <summary>DTI thresholds</summary>
+        <div><p class="note">Conventional Fannie Mae caps back-end DTI at 45-50% with compensating factors. FHA allows up to 56.99%. This simulator uses 43% as the conservative qualified-mortgage threshold; 28% front-end is a borrower comfort guideline (not a lender hard cap).</p></div>
+      </details>
+      <p class="note" style="margin-top:14px"><b>Disclaimer:</b> This is an educational estimator. Actual rates &amp; eligibility depend on lender overlays, loan program (FHA/VA/USDA/Jumbo), reserves, property type, and full underwriting. Always get a Loan Estimate from a licensed lender.</p>
+    </div>
+
+  </section>
+
+</div>
+
+<footer>
+  Mortgage Simulator · Built locally · <span id="ts"></span> · Outputs use mm/dd/yyyy
+</footer>
+
+</div>
+
+<script>
+// ---------- helpers ----------
+const $ = (id)=>document.getElementById(id);
+const fmt$ = (n)=> isFinite(n)? n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}) : '—';
+const fmt$2 = (n)=> isFinite(n)? n.toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+const fmtPct = (n,d=1)=> isFinite(n)? (n*100).toFixed(d)+'%' : '—';
+const todayMDY = ()=>{ const d=new Date(); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`; };
+const addMonths = (d,m)=>{ const x=new Date(d); x.setMonth(x.getMonth()+m); return x; };
+const mdy = (d)=> `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+
+$('ts').textContent = 'Generated ' + todayMDY();
+$('rateAsOf').textContent = 'as of ' + todayMDY();
+
+// ---------- live rate fetch (rates.json refreshed daily 6:00 AM PST) ----------
+(async function loadLiveRates(){
+  try{
+    const res = await fetch('rates.json?_=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) return;
+    const j = await res.json();
+    if(j && typeof j.rate30 === 'number' && j.rate30 > 0){
+      $('baseRate').value = j.rate30.toFixed(3);
+      $('rateAsOf').textContent = `as of ${j.asOf} · ${j.source||'live'}`;
+      recalc();
+    }
+  }catch(e){ /* offline or file missing — keep default */ }
+})();
+
+// ---------- state property tax + insurance defaults (2025 effective) ----------
+const STATE_TAX = {
+  AL:0.40,AK:1.04,AZ:0.63,AR:0.62,CA:0.75,CO:0.55,CT:2.15,DE:0.61,DC:0.62,FL:0.91,GA:0.92,HI:0.32,ID:0.69,IL:2.08,IN:0.84,IA:1.52,KS:1.41,KY:0.83,LA:0.56,ME:1.24,MD:1.05,MA:1.20,MI:1.38,MN:1.11,MS:0.79,MO:0.97,MT:0.74,NE:1.63,NV:0.59,NH:1.93,NJ:2.23,NM:0.80,NY:1.40,NC:0.82,ND:0.98,OH:1.59,OK:0.89,OR:0.93,PA:1.49,RI:1.40,SC:0.57,SD:1.17,TN:0.67,TX:1.68,UT:0.57,VT:1.83,VA:0.87,WA:0.94,WV:0.57,WI:1.73,WY:0.61
+};
+const STATE_INS = { /* per $1k of value, rough avg /yr */
+  AL:0.45,AK:0.20,AZ:0.18,AR:0.40,CA:0.18,CO:0.30,CT:0.22,DE:0.16,DC:0.20,FL:0.55,GA:0.30,HI:0.12,ID:0.18,IL:0.22,IN:0.22,IA:0.28,KS:0.50,KY:0.30,LA:0.65,ME:0.16,MD:0.18,MA:0.20,MI:0.20,MN:0.30,MS:0.50,MO:0.30,MT:0.30,NE:0.55,NV:0.16,NH:0.16,NJ:0.18,NM:0.30,NY:0.20,NC:0.22,ND:0.30,OH:0.18,OK:0.65,OR:0.18,PA:0.18,RI:0.22,SC:0.30,SD:0.40,TN:0.30,TX:0.45,UT:0.16,VT:0.16,VA:0.18,WA:0.20,WV:0.20,WI:0.18,WY:0.22
+};
+
+function detectState(addr){
+  if(!addr) return null;
+  const m = addr.toUpperCase().match(/\b([A-Z]{2})\b\s*\d{5}/) || addr.toUpperCase().match(/,\s*([A-Z]{2})\b/);
+  return m && STATE_TAX[m[1]] ? m[1] : null;
+}
+
+// ---------- Nominatim address autocomplete (OSM) ----------
+const acInput = $('address');
+const acList  = $('acList');
+const acSpin  = $('acSpin');
+let acItems=[], acIndex=-1, acTimer=null, acAbort=null;
+const escAttr = (s)=> String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+acInput.addEventListener('input', ()=>{
+  clearTimeout(acTimer);
+  const q = acInput.value.trim();
+  if(q.length < 4){ hideAc(); return; }
+  acTimer = setTimeout(()=>fetchAc(q), 380);
+});
+acInput.addEventListener('keydown', (e)=>{
+  if(!acList.classList.contains('show')) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); acIndex = Math.min(acIndex+1, acItems.length-1); paintAc(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); acIndex = Math.max(acIndex-1, -1); paintAc(); }
+  else if(e.key==='Enter' && acIndex>=0){ e.preventDefault(); pickAc(acIndex); }
+  else if(e.key==='Escape'){ hideAc(); }
+});
+document.addEventListener('click', (e)=>{ if(!e.target.closest('.search-wrap')) hideAc(); });
+
+async function fetchAc(q){
+  if(acAbort) acAbort.abort();
+  acAbort = new AbortController();
+  acSpin.classList.add('on');
+  try{
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=8&q=' + encodeURIComponent(q);
+    const r = await fetch(u, {signal:acAbort.signal, headers:{'Accept':'application/json'}});
+    if(!r.ok) throw new Error(r.status);
+    const arr = await r.json();
+    acItems = (arr||[]).map(formatAcNominatim).filter(x=>x.full);
+    acIndex = -1;
+    paintAc();
+  }catch(e){ /* silent */ }
+  finally{ acSpin.classList.remove('on'); }
+}
+function formatAcNominatim(f){
+  const a = f.address || {};
+  const street = [a.house_number, a.road].filter(Boolean).join(' ');
+  const city = a.city || a.town || a.village || a.hamlet || a.county || '';
+  const stateAbbr = (a['ISO3166-2-lvl4']||'').replace('US-','') || a.state || '';
+  const main = street || a.road || a.neighbourhood || (f.display_name||'').split(',')[0] || '';
+  const sub  = [city, stateAbbr, a.postcode].filter(Boolean).join(', ');
+  const full = [street || a.road, city, stateAbbr, a.postcode].filter(Boolean).join(', ');
+  return { main, sub, full, state: stateAbbr };
+}
+function paintAc(){
+  if(!acItems.length){ hideAc(); return; }
+  acList.innerHTML = acItems.map((it,i)=>`<div class="ac-row ${i===acIndex?'active':''}" data-i="${i}"><b>${escAttr(it.main || it.sub)}</b><span>${escAttr(it.sub)}</span></div>`).join('');
+  acList.classList.add('show');
+  acList.querySelectorAll('.ac-row').forEach(r=>{ r.onclick = ()=>pickAc(+r.dataset.i); });
+}
+function hideAc(){ acList.classList.remove('show'); acList.innerHTML=''; acItems=[]; acIndex=-1; }
+function pickAc(i){
+  const it = acItems[i]; if(!it) return;
+  acInput.value = it.full;
+  hideAc();
+  // Auto-trigger state-based estimate so user gets tax + insurance instantly
+  if(it.state && STATE_TAX[it.state]){
+    const price = +$('homePrice').value || 0;
+    if(taxMode==='pct') $('taxValue').value = STATE_TAX[it.state].toFixed(2);
+    else $('taxValue').value = Math.round(price * STATE_TAX[it.state]/100);
+    $('insAnnual').value = Math.round(price/1000 * STATE_INS[it.state]);
+    recalc();
+  }
+}
+
+$('lookupBtn').addEventListener('click', ()=>{
+  const st = detectState($('address').value);
+  if(!st){ alert('Could not detect a US state from address. Use format "City, ST 12345".'); return; }
+  const price = +$('homePrice').value || 0;
+  // Set tax in current mode
+  if(taxMode==='pct'){
+    $('taxValue').value = STATE_TAX[st].toFixed(2);
+  } else {
+    $('taxValue').value = Math.round(price * STATE_TAX[st]/100);
+  }
+  $('insAnnual').value = Math.round(price/1000 * STATE_INS[st]);
+  recalc();
+});
+
+// ---------- property tax mode (% or $/yr) ----------
+let taxMode = 'pct';
+document.querySelectorAll('#taxMode button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const newMode = b.dataset.v;
+    if(newMode===taxMode) return;
+    const price = +$('homePrice').value || 0;
+    const cur = +$('taxValue').value || 0;
+    // Convert current value to the new mode so user doesn't lose intent
+    if(price>0){
+      if(taxMode==='pct' && newMode==='usd'){
+        $('taxValue').value = Math.round(price * cur/100);
+      } else if(taxMode==='usd' && newMode==='pct'){
+        $('taxValue').value = (cur/price*100).toFixed(3);
+      }
+    }
+    taxMode = newMode;
+    document.querySelectorAll('#taxMode button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    $('taxModeLabel').textContent = taxMode==='pct' ? '(% / yr)' : '($ / yr)';
+    $('taxHelp').innerHTML = taxMode==='pct'
+      ? 'Annual rate. Toggle to <b>$/yr</b> if you know the exact tax bill.'
+      : 'Exact annual tax bill. Toggle to <b>%</b> for rate-based entry.';
+    $('taxValue').step = taxMode==='pct' ? '0.01' : '50';
+    recalc();
+  });
+});
+
+// ---------- rate model ----------
+function ficoTier(f){
+  if(f>=760) return {label:'Excellent (760+)',adder:-0.125};
+  if(f>=740) return {label:'Very Good (740-759)',adder:0};
+  if(f>=720) return {label:'Good (720-739)',adder:0.125};
+  if(f>=700) return {label:'Good (700-719)',adder:0.25};
+  if(f>=680) return {label:'Fair (680-699)',adder:0.5};
+  if(f>=660) return {label:'Fair (660-679)',adder:0.875};
+  if(f>=640) return {label:'Subprime (640-659)',adder:1.25};
+  if(f>=620) return {label:'Subprime (620-639)',adder:1.625};
+  return {label:'Below 620 — FHA/VA only',adder:2.5};
+}
+const TYPE_ADDER = {'30fix':0,'20fix':-0.125,'15fix':-0.5,'10fix':-0.625,'7arm':-0.375,'5arm':-0.5};
+const TYPE_TERM  = {'30fix':360,'20fix':240,'15fix':180,'10fix':120,'7arm':360,'5arm':360};
+const TYPE_LABEL = {'30fix':'30y Fixed','20fix':'20y Fixed','15fix':'15y Fixed','10fix':'10y Fixed','7arm':'7/1 ARM','5arm':'5/1 ARM'};
+const OCC_ADDER  = {primary:0,secondary:0.5,investment:0.875};
+const BEHAVIOR   = {excellent:-0.125,good:0,fair:0.25,poor:0.625};
+
+function pmiRate(ltv, fico){
+  if(ltv<=0.80) return 0;
+  let base;
+  if(ltv<=0.85) base=0.0030;
+  else if(ltv<=0.90) base=0.0050;
+  else if(ltv<=0.95) base=0.0080;
+  else base=0.0110;
+  if(fico<660) base += 0.0040;
+  else if(fico<700) base += 0.0020;
+  else if(fico<740) base += 0.0010;
+  return base;
+}
+
+let loanType = '30fix';
+document.querySelectorAll('#loanType button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#loanType button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); loanType = b.dataset.v; recalc();
+  });
+});
+
+// ---------- math ----------
+function pmt(principal, monthlyRate, n){
+  if(monthlyRate===0) return principal/n;
+  return principal * monthlyRate / (1 - Math.pow(1+monthlyRate,-n));
+}
+
+function calcAll(){
+  const price = +$('homePrice').value || 0;
+  const dp = +$('downPay').value || 0;
+  const fico = +$('fico').value || 0;
+  const beh = $('behavior').value;
+  const occ = $('occupancy').value;
+  const inc = +$('income').value || 0;
+  const dbtH = +$('dbtHousing').value || 0;
+  const dbtL = +$('dbtLoans').value || 0;
+  const dbtC = +$('dbtCards').value || 0;
+  const taxValue = +$('taxValue').value || 0;
+  const taxR = taxMode==='pct' ? taxValue/100 : (price>0 ? taxValue/price : 0);
+  const taxAnnual = taxMode==='usd' ? taxValue : price*taxR;
+  const insA = +$('insAnnual').value || 0;
+  const hoa = +$('hoa').value || 0;
+  const baseRate = (+$('baseRate').value || 0);
+  const points = +$('points').value || 0;
+  const closingPct = (+$('closingPct').value || 0)/100;
+
+  const tier = ficoTier(fico);
+  const adders = tier.adder + (TYPE_ADDER[loanType]||0) + (OCC_ADDER[occ]||0) + (BEHAVIOR[beh]||0) - points*0.25;
+  const effRate = Math.max(0.5, baseRate + adders);
+  const term = TYPE_TERM[loanType];
+
+  const loan = Math.max(0, price - dp);
+  const ltv = price>0 ? loan/price : 0;
+  const monthlyRate = effRate/100/12;
+  const pi = loan>0 ? pmt(loan, monthlyRate, term) : 0;
+  const taxM = taxAnnual/12;
+  const insM = insA/12;
+  const pmiAnnual = pmiRate(ltv, fico) * loan;
+  const pmiM = pmiAnnual/12;
+  const pitia = pi + taxM + insM + hoa + pmiM;
+
+  const housingDebt = pitia + dbtH;
+  const totalDebt = housingDebt + dbtL + dbtC;
+  const monthlyIncome = inc/12;
+  const feDti = monthlyIncome>0 ? housingDebt/monthlyIncome : 0;
+  const beDti = monthlyIncome>0 ? totalDebt/monthlyIncome : 0;
+
+  const closing = price * closingPct + loan*points/100;
+  const cashToClose = dp + closing;
+
+  return {price,dp,fico,beh,occ,inc,dbtH,dbtL,dbtC,taxR,taxAnnual,insA,hoa,baseRate,points,closingPct,
+          tier,adders,effRate,term,loan,ltv,monthlyRate,pi,taxM,insM,pmiM,pmiAnnual,pitia,
+          housingDebt,totalDebt,monthlyIncome,feDti,beDti,closing,cashToClose};
+}
+
+// ---------- amortization ----------
+function buildAmort(loan, monthlyRate, n, startDate=new Date()){
+  const rows = []; let bal = loan;
+  const p = pmt(loan, monthlyRate, n);
+  for(let i=1;i<=n;i++){
+    const interest = bal*monthlyRate;
+    const principal = Math.min(p - interest, bal);
+    bal = Math.max(0, bal - principal);
+    rows.push({i,date:addMonths(startDate,i),pay:p,principal,interest,bal});
+  }
+  return rows;
+}
+
+let lastAmort = []; let amortMode='annual';
+function renderAmort(){
+  const tbody = document.querySelector('#amortTbl tbody');
+  tbody.innerHTML='';
+  if(!lastAmort.length){ return; }
+  if(amortMode==='monthly'){
+    lastAmort.slice(0,360).forEach(r=>{
+      tbody.insertAdjacentHTML('beforeend',`<tr><td>${r.i}</td><td>${mdy(r.date)}</td><td class="num">${fmt$2(r.pay)}</td><td class="num">${fmt$2(r.principal)}</td><td class="num">${fmt$2(r.interest)}</td><td class="num">${fmt$(r.bal)}</td></tr>`);
+    });
+  } else {
+    let yr=0,sumP=0,sumI=0,lastPay=0,lastDate=null,lastBal=0;
+    lastAmort.forEach(r=>{
+      sumP+=r.principal; sumI+=r.interest; lastPay=r.pay; lastDate=r.date; lastBal=r.bal;
+      if(r.i % 12===0 || r.i===lastAmort.length){
+        yr++;
+        tbody.insertAdjacentHTML('beforeend',`<tr><td>Year ${yr}</td><td>${mdy(lastDate)}</td><td class="num">${fmt$(lastPay*12)}</td><td class="num">${fmt$(sumP)}</td><td class="num">${fmt$(sumI)}</td><td class="num">${fmt$(lastBal)}</td></tr>`);
+        sumP=0; sumI=0;
+      }
+    });
+  }
+}
+document.querySelectorAll('[data-amort]').forEach(b=>b.addEventListener('click',()=>{amortMode=b.dataset.amort;renderAmort();}));
+$('amortCsv').addEventListener('click',()=>{
+  const lines = ['#,Date,Payment,Principal,Interest,Balance'];
+  lastAmort.forEach(r=>lines.push(`${r.i},${mdy(r.date)},${r.pay.toFixed(2)},${r.principal.toFixed(2)},${r.interest.toFixed(2)},${r.bal.toFixed(2)}`));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `amortization_${todayMDY().replace(/\//g,'-')}.csv`; a.click();
+});
+
+// ---------- pie chart (canvas) ----------
+function drawPie(parts){
+  const cv = $('pieCanvas'); const ctx = cv.getContext('2d');
+  const w = cv.width=cv.clientWidth*2, h = cv.height=440; cv.style.height='220px';
+  ctx.clearRect(0,0,w,h);
+  const cx=h/2+10, cy=h/2, r=h/2-20;
+  const total = parts.reduce((s,p)=>s+p.v,0); if(total<=0) return;
+  let a=-Math.PI/2;
+  parts.forEach(p=>{
+    const slice = p.v/total*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,a,a+slice); ctx.closePath();
+    ctx.fillStyle=p.c; ctx.fill();
+    a+=slice;
+  });
+  // legend
+  ctx.font = '600 22px Inter, sans-serif';
+  ctx.textBaseline='middle';
+  let ly = cy - (parts.length*32)/2 + 16;
+  parts.forEach(p=>{
+    ctx.fillStyle=p.c; ctx.fillRect(h+10,ly-10,20,20);
+    ctx.fillStyle='#e8ecf5';
+    ctx.fillText(`${p.l}  ${fmt$(p.v)}  (${(p.v/total*100).toFixed(0)}%)`, h+40, ly);
+    ly+=32;
+  });
+}
+
+// ---------- main render ----------
+function recalc(){
+  const r = calcAll();
+  // tier helper text
+  $('ficoTier').textContent = `${r.tier.label} · adder ${r.tier.adder>=0?'+':''}${r.tier.adder.toFixed(3)}%`;
+  $('dpPct').textContent = r.price>0 ? `${(r.dp/r.price*100).toFixed(1)}% of price` : '';
+  $('effRate').value = r.effRate.toFixed(3);
+  $('rateBreakdown').textContent = `base ${r.baseRate}% · tier ${r.tier.adder>=0?'+':''}${r.tier.adder} · ${TYPE_LABEL[loanType]} ${TYPE_ADDER[loanType]>=0?'+':''}${TYPE_ADDER[loanType]} · ${r.occ} ${OCC_ADDER[r.occ]>=0?'+':''}${OCC_ADDER[r.occ]} · ${r.beh} ${BEHAVIOR[r.beh]>=0?'+':''}${BEHAVIOR[r.beh]}${r.points?` · pts -${(r.points*0.25).toFixed(3)}`:''}`;
+
+  // KPIs
+  $('kPitia').textContent = fmt$(r.pitia);
+  $('kPitiaSub').textContent = `${fmt$(r.pitia*12)} / yr`;
+  $('kPi').textContent = fmt$(r.pi);
+  $('kPiSub').textContent = `${TYPE_LABEL[loanType]} @ ${r.effRate.toFixed(3)}%`;
+  $('kLoan').textContent = fmt$(r.loan);
+  $('kLoanSub').textContent = `LTV ${(r.ltv*100).toFixed(1)}%`;
+  $('kCash').textContent = fmt$(r.cashToClose);
+  $('kCashSub').textContent = `DP ${fmt$(r.dp)} + closing ${fmt$(r.closing)}`;
+
+  // breakdown rows
+  $('rPi').textContent  = fmt$(r.pi);
+  $('rTax').textContent = fmt$(r.taxM);
+  $('rIns').textContent = fmt$(r.insM);
+  $('rHoa').textContent = fmt$(r.hoa);
+  $('rPmi').textContent = r.pmiM>0 ? fmt$(r.pmiM) : '— (LTV ≤ 80%)';
+  $('rTotal').textContent = fmt$(r.pitia);
+
+  drawPie([
+    {l:'P&I', v:r.pi, c:'#8b5cf6'},
+    {l:'Tax', v:r.taxM, c:'#06b6d4'},
+    {l:'Insurance', v:r.insM, c:'#10b981'},
+    {l:'HOA', v:r.hoa, c:'#f97316'},
+    {l:'PMI', v:r.pmiM, c:'#ef4444'},
+  ]);
+
+  // DTI
+  $('kFe').textContent = fmtPct(r.feDti,1);
+  $('kBe').textContent = fmtPct(r.beDti,1);
+  $('kLtv').textContent = fmtPct(r.ltv,1);
+  $('kRes').textContent = '—';
+  $('dtiPct').textContent = fmtPct(r.beDti,1);
+  $('ltvPct').textContent = fmtPct(r.ltv,1);
+  $('dtiBar').style.width = Math.min(100, r.beDti*100/0.5*100/100*0.5*100/0.5) + '%'; // scaled vs 50%
+  $('dtiBar').style.width = Math.min(100, (r.beDti/0.5)*100) + '%';
+  $('ltvBar').style.width = Math.min(100, r.ltv*100) + '%';
+
+  // verdict
+  let v=''; const reasons=[];
+  if(r.beDti>0.50) reasons.push(`Back-end DTI ${(r.beDti*100).toFixed(1)}% exceeds the 50% hard cap`);
+  else if(r.beDti>0.43) reasons.push(`Back-end DTI ${(r.beDti*100).toFixed(1)}% above 43% — needs compensating factors (reserves, high FICO)`);
+  if(r.fico<620) reasons.push('FICO < 620 — conventional declined; consider FHA');
+  else if(r.fico<660 && r.occ!=='primary') reasons.push('FICO < 660 typically not approved for non-primary');
+  if(r.ltv>0.97) reasons.push(`LTV ${(r.ltv*100).toFixed(1)}% — exceeds 97% conventional max`);
+  if(r.ltv>0.80 && r.occ==='investment') reasons.push('Investment property usually requires ≥ 25% down');
+  if(reasons.length===0){
+    v = `<div class="alert ok"><b>✓ Likely eligible.</b> Conservative QM thresholds met. Front-end DTI ${(r.feDti*100).toFixed(1)}% / Back-end DTI ${(r.beDti*100).toFixed(1)}% / LTV ${(r.ltv*100).toFixed(1)}%.${r.pmiM>0?` PMI of ${fmt$(r.pmiM)}/mo applies until LTV reaches 80%.`:''}</div>`;
+  } else if(r.beDti>0.50 || r.fico<620 || r.ltv>0.97){
+    v = `<div class="alert bad"><b>✗ Not eligible as configured.</b><ul style="margin:6px 0 0 18px;padding:0">${reasons.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  } else {
+    v = `<div class="alert warn"><b>⚠ Borderline.</b><ul style="margin:6px 0 0 18px;padding:0">${reasons.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+  }
+  $('verdict').innerHTML = v;
+
+  // ---------- reverse simulator ----------
+  // Min down payment to keep be-DTI ≤ 0.43
+  const targetHousing = 0.43*r.monthlyIncome - r.dbtL - r.dbtC - r.dbtH;
+  let solveDp = '—', solveDpD='need higher income or less other debt';
+  if(targetHousing>0){
+    // brute search dp from 0 to price
+    let lo=0, hi=r.price, best=null;
+    for(let i=0;i<60;i++){
+      const mid=(lo+hi)/2;
+      const loan = r.price-mid;
+      const ltv = loan/r.price;
+      const pmiM = pmiRate(ltv,r.fico)*loan/12;
+      const pi = loan>0?pmt(loan,r.monthlyRate,r.term):0;
+      const housing = pi + r.taxM + r.insM + r.hoa + pmiM;
+      if(housing<=targetHousing){ hi=mid; best=mid; } else { lo=mid; }
+    }
+    if(best!==null){
+      solveDp = fmt$(best);
+      solveDpD = `${(best/r.price*100).toFixed(1)}% of price · brings back-end DTI to 43%`;
+    }
+  }
+  $('solveDp').textContent = solveDp;
+  $('solveDpD').textContent = solveDpD;
+  $('solvePmi').textContent = fmt$(r.price*0.20);
+
+  // Max affordable price at current dp + DTI 43%
+  const housingBudget = Math.max(0, 0.43*r.monthlyIncome - r.dbtL - r.dbtC - r.dbtH);
+  let lo2=0, hi2=10_000_000, bestP=0;
+  for(let i=0;i<60;i++){
+    const mid=(lo2+hi2)/2;
+    const loan = Math.max(0, mid - r.dp);
+    const ltv = mid>0?loan/mid:1;
+    const pmiM = pmiRate(ltv,r.fico)*loan/12;
+    const pi = loan>0?pmt(loan,r.monthlyRate,r.term):0;
+    const taxM = (taxMode==='usd' ? r.taxAnnual : mid*r.taxR)/12;
+    const insM = (mid/1000) * (r.insA/(r.price/1000||1)) /12; // scale insurance with price
+    const housing = pi + taxM + insM + r.hoa + pmiM;
+    if(housing<=housingBudget){ bestP=mid; lo2=mid; } else { hi2=mid; }
+  }
+  $('solvePrice').textContent = bestP>0 ? fmt$(bestP) : '—';
+
+  // Min income required for current loan
+  const minMI = (r.pitia + r.dbtH + r.dbtL + r.dbtC) / 0.43;
+  $('solveInc').textContent = fmt$(minMI*12);
+
+  // Min FICO for ≤ 6.5% — solve adder budget
+  const want = 6.5;
+  const fixedPart = (TYPE_ADDER[loanType]||0) + (OCC_ADDER[r.occ]||0) + (BEHAVIOR[r.beh]||0) - r.points*0.25;
+  const allowedTier = want - r.baseRate - fixedPart;
+  let neededFico = '> 850 not possible';
+  const tiers = [[760,-0.125],[740,0],[720,0.125],[700,0.25],[680,0.5],[660,0.875],[640,1.25],[620,1.625]];
+  for(const [f,a] of tiers){ if(a<=allowedTier+1e-9){ neededFico=f+'+'; break; } }
+  $('solveFico').textContent = neededFico;
+
+  // 5-year total interest
+  const a5 = buildAmort(r.loan, r.monthlyRate, r.term).slice(0,60);
+  const int5 = a5.reduce((s,x)=>s+x.interest,0);
+  $('solveInt5').textContent = fmt$(int5);
+
+  // amortization
+  lastAmort = buildAmort(r.loan, r.monthlyRate, r.term);
+  renderAmort();
+}
+
+// ---------- bind ----------
+['homePrice','downPay','fico','behavior','occupancy','income','dbtHousing','dbtLoans','dbtCards','taxValue','insAnnual','hoa','baseRate','points','closingPct'].forEach(id=>{
+  $(id).addEventListener('input', recalc);
+  $(id).addEventListener('change', recalc);
+});
+$('runBtn').addEventListener('click', recalc);
+$('resetBtn').addEventListener('click', ()=>{ location.reload(); });
+$('printBtn').addEventListener('click', ()=>window.print());
+
+// ---------- inject tooltips on labels ----------
+const TIPS = {
+  homePrice: 'The agreed purchase price of the home. Different from appraised value — lender uses the lower of the two for LTV.',
+  address: 'Used to auto-detect US state for property tax and insurance defaults. Format "City, ST 12345".',
+  taxValue: 'Property tax billed by your county/city. Use % of home value (typical) or exact $/yr if you have the bill. Reassessed at sale in most states.',
+  insAnnual: 'Homeowners insurance premium per year. Lender requires it; it covers structure + liability. Flood/quake usually separate.',
+  hoa: 'Homeowners Association dues — monthly fee for condos, townhomes, or planned communities. Counted in DTI.',
+  occupancy: 'Primary = you live there. Second home = personal use, not rented. Investment = rental. Investment loans get higher rates (+0.875%) and need ≥25% down.',
+  fico: 'Credit score, 300-850. Lenders use the middle of 3 bureau scores (or lower of 2 borrowers). 740+ unlocks the best pricing.',
+  downPay: 'Cash you put toward the price. Higher down = lower loan, lower LTV, no PMI at 20%, better rate. Conventional minimum 3% (first-time), 5% otherwise.',
+  income: 'Gross annual income before taxes — W-2 base + bonus + commission (2yr avg) + documented side income. Used to compute DTI.',
+  behavior: 'Recent credit usage. Low utilization (<30%) and on-time payments earn rate discounts. Late payments and collections add cost or trigger denial.',
+  dbtHousing: 'Other mortgage payment or rent you currently pay. Counts toward back-end DTI. Set to 0 if this purchase replaces your current housing.',
+  dbtLoans: 'Sum of monthly minimums for auto loans, student loans, and personal loans. Pull from credit report.',
+  dbtCards: 'Total minimum payment due across all credit cards (typically 1-3% of balance). Even if you pay in full, the minimum counts in DTI.',
+  loanType: '30y Fixed = lowest payment, most interest. 15y = ~25% lower rate, faster payoff, ~50% higher payment. ARM = lower intro rate, resets after fixed period (5 or 7 years).',
+  baseRate: 'Today\'s 30-year fixed conforming rate before any borrower-specific adjusters. Auto-refreshed daily 6:00 AM PST from Freddie Mac PMMS.',
+  effRate: 'Your actual rate = base + FICO tier + loan type + occupancy + credit behavior − discount points. This is what you\'d see on a Loan Estimate.',
+  points: 'Each point = 1% of loan paid upfront to lower the rate ~0.25%. Worth it only if you\'ll keep the loan past the breakeven (~5-7 years typical).',
+  closingPct: 'Lender + title + escrow + recording fees, prepaids, etc. Usually 2-4% of purchase price. Excludes the down payment.',
+};
+
+function makeTip(text, alignRight=false){
+  const span = document.createElement('span');
+  span.className = 'tip' + (alignRight?' r':'');
+  span.tabIndex = 0;
+  span.setAttribute('data-tip', text);
+  span.textContent = '?';
+  span.setAttribute('aria-label', text);
+  return span;
+}
+
+function attachTips(){
+  Object.entries(TIPS).forEach(([id,text])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    // Find the field's label (previous sibling or in same .field)
+    const field = el.closest('.field');
+    if(!field) return;
+    const label = field.querySelector('label');
+    if(!label || label.querySelector('.tip')) return;
+    // Wrap label + tip in a row
+    const row = document.createElement('div');
+    row.className = 'lbl-row';
+    label.parentNode.insertBefore(row, label);
+    row.appendChild(label);
+    // Right-side fields flip the tooltip to avoid clipping
+    const isRightCol = field.parentElement && field.parentElement.classList.contains('grid-2') &&
+                       Array.from(field.parentElement.children).indexOf(field)===1;
+    row.appendChild(makeTip(text, isRightCol));
+  });
+  // Section-level tips for KPI labels
+  const KPI_TIPS = {
+    'Total PITIA':'Principal + Interest + Taxes + Insurance + (HOA) + (PMI). The all-in monthly outflow your lender expects.',
+    'P&I':'Principal & Interest only — the part that actually pays down the loan and the lender\'s rent on the money.',
+    'Loan Amount':'Home price minus down payment. The amount you\'re actually borrowing.',
+    'Cash to Close':'Down payment + closing costs + points (if any). What you wire to escrow on closing day.',
+    'Front-End DTI':'Housing-only DTI = (PITIA + other housing) / gross monthly income. Comfort guideline ≤ 28%.',
+    'Back-End DTI':'Total DTI = (housing + all other debt minimums) / gross monthly income. Conventional QM cap is 43%, hard ceiling ~50%.',
+    'LTV':'Loan-to-Value = loan / home price. ≤80% avoids PMI on conventional. ≤97% is the conventional max.',
+    'Reserves':'Months of PITIA you have left in savings after closing. Lenders like 2-6+ months, more for investment properties.',
+  };
+  document.querySelectorAll('.kpi .lbl').forEach(lbl=>{
+    const t = KPI_TIPS[lbl.textContent.trim()];
+    if(!t) return;
+    lbl.style.display='inline-flex'; lbl.style.alignItems='center'; lbl.style.gap='6px';
+    lbl.appendChild(makeTip(t));
+  });
+}
+attachTips();
+recalc();
+window.addEventListener('resize', ()=>{ const r=calcAll(); drawPie([
+  {l:'P&I',v:r.pi,c:'#8b5cf6'},{l:'Tax',v:r.taxM,c:'#06b6d4'},{l:'Insurance',v:r.insM,c:'#10b981'},{l:'HOA',v:r.hoa,c:'#f97316'},{l:'PMI',v:r.pmiM,c:'#ef4444'}
+]);});
+</script>
+</body>
+</html>
