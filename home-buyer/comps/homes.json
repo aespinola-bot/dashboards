@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "updated": "2026-06-19",
+    "criteria": "4+ BR, 3000-5000 sqft, Colonial style, <= $1.3M, Montgomery/Bucks County PA",
+    "school_disclaimer": "School assignments are estimates based on district + zip. Always verify on the Zillow listing or the district's School Finder before buying."
+  },
+  "reference": {
+    "address": "103 Bailey Dr",
+    "city": "North Wales",
+    "zip": "19454",
+    "price": 999999,
+    "beds": 5,
+    "baths": 3.5,
+    "sqft": 4514,
+    "year": 2002,
+    "garage": 3,
+    "district": "North Penn SD",
+    "elementary": "Knapp Elementary",
+    "middle": "Pennfield Middle",
+    "high": "North Penn HS",
+    "zpid": "55577127",
+    "neighborhood": "Heather Lea"
+  },
+  "homes": [
+    {
+      "address": "129 Sunrise Dr", "city": "North Wales", "zip": "19454",
+      "price": 949900, "beds": 4, "baths": 3.5, "sqft": 4097,
+      "district": "North Penn SD", "elementary": "Knapp Elementary", "middle": "Pennfield Middle", "high": "North Penn HS",
+      "zpid": "9992546", "tags": ["Same zip", "Top match"]
+    },
+    {
+      "address": "100 Grouse Ct", "city": "North Wales", "zip": "19454",
+      "price": 830000, "beds": 4, "baths": 2.5, "sqft": 2760,
+      "district": "North Penn SD", "elementary": "Knapp Elementary", "middle": "Pennfield Middle", "high": "North Penn HS",
+      "zpid": "9990299", "tags": ["Smaller"]
+    },
+    {
+      "address": "1107 Jarvis Ln", "city": "Lansdale", "zip": "19446",
+      "price": 890000, "beds": 4, "baths": 2.5, "sqft": 4307,
+      "district": "North Penn SD", "elementary": "Bridle Path Elementary", "middle": "Penndale Middle", "high": "North Penn HS",
+      "zpid": "10034347", "tags": ["Coming Soon", "Top match"]
+    },
+    {
+      "address": "3369 Saddle Wood Ct", "city": "Lansdale", "zip": "19446",
+      "price": 1150000, "beds": 5, "baths": 4, "sqft": 4060,
+      "district": "North Penn SD", "elementary": "York Avenue Elementary", "middle": "Penndale Middle", "high": "North Penn HS",
+      "zpid": "55578127", "tags": ["Top match"]
+    },
+    {
+      "address": "743 Park Rd", "city": "Lansdale", "zip": "19446",
+      "price": 797000, "beds": 4, "baths": 2.5, "sqft": 3836,
+      "district": "North Penn SD", "elementary": "Walton Farm Elementary", "middle": "Penndale Middle", "high": "North Penn HS",
+      "zpid": "10035226", "tags": ["Open House Sat"]
+    },
+    {
+      "address": "2560 Holly Ln", "city": "Hatfield", "zip": "19440",
+      "price": 1295000, "beds": 5, "baths": 4, "sqft": 4100,
+      "district": "North Penn SD", "elementary": "Hatfield Elementary", "middle": "Pennbrook Middle", "high": "North Penn HS",
+      "zpid": "455805116", "tags": ["Custom Colonial"]
+    },
+    {
+      "address": "205 Stout Rd", "city": "Ambler", "zip": "19002",
+      "price": 949000, "beds": 4, "baths": 3, "sqft": 3651,
+      "district": "Wissahickon SD", "elementary": "Shady Grove Elementary", "middle": "Wissahickon Middle", "high": "Wissahickon HS",
+      "zpid": "10029455", "tags": ["Colonial"]
+    },
+    {
+      "address": "713 Alene Rd", "city": "Ambler", "zip": "19002",
+      "price": 899900, "beds": 4, "baths": 2, "sqft": 3466,
+      "district": "Wissahickon SD", "elementary": "Shady Grove Elementary", "middle": "Wissahickon Middle", "high": "Wissahickon HS",
+      "zpid": "9947500", "tags": []
+    },
+    {
+      "address": "746 Wright Dr", "city": "Maple Glen", "zip": "19002",
+      "price": 869990, "beds": 4, "baths": 2.5, "sqft": 3926,
+      "district": "Upper Dublin SD", "elementary": "Maple Glen Elementary", "middle": "Sandy Run Middle", "high": "Upper Dublin HS",
+      "zpid": "10030903", "tags": ["Top match", "Colonial"]
+    },
+    {
+      "address": "450 Dundee Dr", "city": "Blue Bell", "zip": "19422",
+      "price": 1050000, "beds": 4, "baths": 3, "sqft": 3272,
+      "district": "Wissahickon SD", "elementary": "Stony Creek Elementary", "middle": "Wissahickon Middle", "high": "Wissahickon HS",
+      "zpid": "10074504", "tags": ["Custom Colonial"]
+    },
+    {
+      "address": "703 Gregory Dr", "city": "Horsham", "zip": "19044",
+      "price": 895000, "beds": 4, "baths": 2.5, "sqft": 3631,
+      "district": "Hatboro-Horsham SD", "elementary": "Simmons Elementary", "middle": "Keith Valley Middle", "high": "Hatboro-Horsham HS",
+      "zpid": "9936728", "tags": ["Colonial"]
+    },
+    {
+      "address": "111 Richard Dr", "city": "Chalfont", "zip": "18914",
+      "price": 900000, "beds": 5, "baths": 3.5, "sqft": 3502,
+      "district": "Central Bucks SD", "elementary": "Butler Elementary", "middle": "Tamanend Middle", "high": "CB West HS",
+      "zpid": "9054529", "tags": ["Open House Sat 11-1"]
+    },
+    {
+      "address": "116 Upper Stump Rd", "city": "Chalfont", "zip": "18914",
+      "price": 1225000, "beds": 5, "baths": 3.5, "sqft": 4800,
+      "district": "Central Bucks SD", "elementary": "Pine Run Elementary", "middle": "Holicong Middle", "high": "CB East HS",
+      "zpid": "9051618", "tags": ["Open House Sat 1-3"]
+    }
+  ]
+}
