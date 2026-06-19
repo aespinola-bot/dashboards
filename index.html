@@ -385,6 +385,24 @@
   }
   .card.coming-soon .visit-counter { display: none; }
 
+  /* Drag-to-reorder */
+  .card { cursor: grab; }
+  .card:active { cursor: grabbing; }
+  .card.is-dragging { opacity: 0.4; transform: scale(0.98); }
+  .card.drag-over { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.7), 0 12px 28px rgba(139, 92, 246, 0.3); transform: translateY(-2px); }
+  .drag-hint {
+    font: 500 11px "JetBrains Mono", ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.75;
+  }
+  .drag-hint::before { content: "⋮⋮"; color: var(--accent); font-size: 14px; }
+
   /* Private dashboard lock badge */
   .lock-badge {
     position: absolute;
@@ -495,6 +513,7 @@
 </header>
 
 <main>
+  <div class="drag-hint">drag cards to reorder · order is saved per browser</div>
   <div id="cards"></div>
 </main>
 
@@ -652,7 +671,15 @@
 
   function render() {
     const q = searchEl.value.trim().toLowerCase();
-    const filtered = DASHBOARDS.filter(d => {
+    const order = loadCardOrder();
+    const sortedDash = DASHBOARDS.slice().sort((a, b) => {
+      const ia = order.indexOf(a.title), ib = order.indexOf(b.title);
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+    const filtered = sortedDash.filter(d => {
       if (activeFilter !== 'All' && d.category !== activeFilter) return false;
       if (!q) return true;
       return (d.title + ' ' + d.desc + ' ' + d.features.join(' ')).toLowerCase().includes(q);
@@ -677,10 +704,66 @@
     }
     cardsEl.innerHTML = html;
     if (typeof loadVisitCounts === 'function') loadVisitCounts();
+    wireDragAndDrop();
+  }
+
+  // ===== Drag-to-reorder (per-browser, persisted in localStorage) =====
+  const ORDER_KEY = 'aespinola-dashboards-card-order';
+  function loadCardOrder(){ try { return JSON.parse(localStorage.getItem(ORDER_KEY) || '[]'); } catch(e){ return []; } }
+  function saveCardOrder(titles){ try { localStorage.setItem(ORDER_KEY, JSON.stringify(titles)); } catch(e){} }
+
+  let dragSrc = null;
+  let dragWasDrag = false;
+  function wireDragAndDrop(){
+    document.querySelectorAll('.cards-grid').forEach(grid => {
+      grid.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('dragstart', e => {
+          dragSrc = card;
+          dragWasDrag = false;
+          card.classList.add('is-dragging');
+          try { e.dataTransfer.effectAllowed = 'move'; } catch(_) {}
+        });
+        card.addEventListener('dragend', () => {
+          card.classList.remove('is-dragging');
+          document.querySelectorAll('.card.drag-over').forEach(c => c.classList.remove('drag-over'));
+          if (dragWasDrag) {
+            const titles = Array.from(grid.querySelectorAll('.card')).map(c => c.dataset.cardTitle).filter(Boolean);
+            const existing = loadCardOrder();
+            const merged = titles.concat(existing.filter(t => !titles.includes(t)));
+            saveCardOrder(merged);
+            setTimeout(() => { dragWasDrag = false; }, 0);
+          }
+          dragSrc = null;
+        });
+        card.addEventListener('dragover', e => {
+          if (!dragSrc || dragSrc === card) return;
+          e.preventDefault();
+          try { e.dataTransfer.dropEffect = 'move'; } catch(_) {}
+          card.classList.add('drag-over');
+        });
+        card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+        card.addEventListener('drop', e => {
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          if (!dragSrc || dragSrc === card) return;
+          const parent = card.parentNode;
+          if (dragSrc.parentNode !== parent) return;
+          const srcRect = dragSrc.getBoundingClientRect();
+          const tgtRect = card.getBoundingClientRect();
+          const before = (srcRect.top + srcRect.left) > (tgtRect.top + tgtRect.left);
+          parent.insertBefore(dragSrc, before ? card : card.nextSibling);
+          dragWasDrag = true;
+        });
+        // Suppress click navigation right after a successful drag
+        card.addEventListener('click', e => {
+          if (dragWasDrag) { e.preventDefault(); e.stopPropagation(); dragWasDrag = false; }
+        });
+      });
+    });
   }
 
   function renderCard(d) {
-    const tag = `<a class="card ${d.live?'':'coming-soon'}${d.private?' private':''}" href="${d.url}" style="--card-color: ${d.color}" data-slug="${d.slug || ''}"`;
+    const tag = `<a class="card ${d.live?'':'coming-soon'}${d.private?' private':''}" href="${d.url}" draggable="true" data-card-title="${d.title.replace(/"/g,'&quot;')}" style="--card-color: ${d.color}" data-slug="${d.slug || ''}"`;
     const counter = d.live && d.slug ? `
       <div class="visit-counter" title="Lifetime visits">
         <span class="vc-dot"></span>
