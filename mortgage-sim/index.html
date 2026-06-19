@@ -251,8 +251,14 @@ canvas{display:block;width:100%;height:auto}
           <span class="help" id="ficoTier"></span>
         </div>
         <div class="field">
-          <label>Down Payment (USD)</label>
-          <input type="number" id="downPay" value="130000" step="1000" />
+          <label>Down Payment</label>
+          <div class="field-row">
+            <input type="number" id="downPay" value="130000" step="1000" />
+            <div class="seg" style="width:auto;flex:0 0 auto" id="dpMode">
+              <button data-v="usd" class="on" type="button">$</button>
+              <button data-v="pct" type="button">%</button>
+            </div>
+          </div>
           <span class="help" id="dpPct"></span>
         </div>
       </div>
@@ -563,7 +569,28 @@ function detectState(addr){
   return m && STATE_TAX[m[1]] ? m[1] : null;
 }
 
-// ---------- Nominatim address autocomplete (OSM) ----------
+// ---------- down payment mode ($ or %) ----------
+let dpMode = 'usd';
+document.querySelectorAll('#dpMode button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const newMode = b.dataset.v;
+    if(newMode===dpMode) return;
+    const price = +$('homePrice').value || 0;
+    const cur = +$('downPay').value || 0;
+    if(price>0){
+      if(dpMode==='usd' && newMode==='pct'){
+        $('downPay').value = (cur/price*100).toFixed(2);
+      } else if(dpMode==='pct' && newMode==='usd'){
+        $('downPay').value = Math.round(price * cur/100);
+      }
+    }
+    dpMode = newMode;
+    document.querySelectorAll('#dpMode button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    $('downPay').step = dpMode==='usd' ? '1000' : '0.5';
+    recalc();
+  });
+});
 const acInput = $('address');
 const acList  = $('acList');
 const acSpin  = $('acSpin');
@@ -748,7 +775,8 @@ function pmt(principal, monthlyRate, n){
 
 function calcAll(){
   const price = +$('homePrice').value || 0;
-  const dp = +$('downPay').value || 0;
+  const dpRaw = +$('downPay').value || 0;
+  const dp = dpMode==='pct' ? price * dpRaw/100 : dpRaw;
   const fico = +$('fico').value || 0;
   const beh = $('behavior').value;
   const occ = $('occupancy').value;
@@ -869,7 +897,9 @@ function recalc(){
   const r = calcAll();
   // tier helper text
   $('ficoTier').textContent = `${r.tier.label} · adder ${r.tier.adder>=0?'+':''}${r.tier.adder.toFixed(3)}%`;
-  $('dpPct').textContent = r.price>0 ? `${(r.dp/r.price*100).toFixed(1)}% of price` : '';
+  $('dpPct').textContent = r.price>0
+    ? (dpMode==='usd' ? `${(r.dp/r.price*100).toFixed(1)}% of price` : `${fmt$(r.dp)} of ${fmt$(r.price)}`)
+    : '';
   $('effRate').value = r.effRate.toFixed(3);
   $('rateBreakdown').textContent = `base ${r.baseRate}% · tier ${r.tier.adder>=0?'+':''}${r.tier.adder} · ${TYPE_LABEL[loanType]} ${TYPE_ADDER[loanType]>=0?'+':''}${TYPE_ADDER[loanType]} · ${r.occ} ${OCC_ADDER[r.occ]>=0?'+':''}${OCC_ADDER[r.occ]} · ${r.beh} ${BEHAVIOR[r.beh]>=0?'+':''}${BEHAVIOR[r.beh]}${r.points?` · pts -${(r.points*0.25).toFixed(3)}`:''}`;
 
