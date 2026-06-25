@@ -831,6 +831,7 @@
     border-left: 3px solid var(--accent);
   }
   .std-mode-banner.you { border-left-color: #f97316; }
+  .std-mode-banner.hybrid { border-left-color: #06b6d4; }
   .std-empty {
     padding: 18px;
     text-align: center;
@@ -1117,6 +1118,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
       <button class="btn primary" id="sim-fill-predictions">Use AI Predictions</button>
       <button class="btn" id="sim-random-groups">🎲 Random Simulation</button>
       <button class="btn" id="sim-use-entered">Use Scores I Entered</button>
+      <button class="btn" id="sim-use-hybrid" title="Real results so far + your predictions for matches still to play">🔀 Hybrid (Real + My Picks)</button>
       <button class="btn danger" id="sim-clear">Clear Sim</button>
     </div>
     <div id="mini-standings" class="mini-standings"></div>
@@ -1143,6 +1145,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
   <h2>📊 Live Group Standings</h2>
   <div class="std-tabs" role="tablist">
     <button class="std-tab-btn active" data-std-mode="real" role="tab" aria-selected="true">🏟️ Real Progress</button>
+    <button class="std-tab-btn" data-std-mode="hybrid" role="tab" aria-selected="false">🔀 Hybrid</button>
     <button class="std-tab-btn" data-std-mode="you" role="tab" aria-selected="false">🎯 My Predictions</button>
   </div>
   <div id="std-mode-banner" class="std-mode-banner">
@@ -2366,6 +2369,7 @@ function computeStandings(group, mode) {
     let sc = null;
     if (mode === 'real') sc = m.actual;
     else if (mode === 'you') sc = scores[m.id];   // user predictions only
+    else if (mode === 'hybrid') sc = m.actual || scores[m.id]; // actuals win, fall back to your pick
     if (!sc) return;
     used++;
     const [h, a] = sc;
@@ -2391,8 +2395,13 @@ function renderStandings() {
   const banner = document.getElementById('std-mode-banner');
   if (banner) {
     banner.classList.toggle('you', standingsMode === 'you');
+    banner.classList.toggle('hybrid', standingsMode === 'hybrid');
     if (standingsMode === 'real') {
       banner.innerHTML = 'Live standings from <b>actual final scores only</b>. Top 2 = qualified (green). 3rd = best-third race (orange).';
+    } else if (standingsMode === 'hybrid') {
+      const actuals = MATCHES.filter(m => m.actual).length;
+      const preds   = MATCHES.filter(m => !m.actual && scores[m.id]).length;
+      banner.innerHTML = `<b>Hybrid</b>: ${actuals} real result${actuals===1?'':'s'} + ${preds} of your prediction${preds===1?'':'s'} for matches still to play. Lets you project the table forward without losing the real progress.`;
     } else {
       const predicted = MATCHES.filter(m => scores[m.id]).length;
       banner.innerHTML = `Standings as if <b>your predictions</b> were the final results. <b>${predicted}/72</b> matches predicted. Locked-final matches need a click below to assign your pick.`;
@@ -2406,9 +2415,10 @@ function renderStandings() {
       return `
         <div class="group-table" style="--gcolor: var(--${g});">
           <h3>Group ${g}</h3>
-          <div class="std-empty">${standingsMode === 'you'
-            ? 'No predictions entered for this group yet.'
-            : 'No matches played in this group yet.'}</div>
+          <div class="std-empty">${
+            standingsMode === 'you'    ? 'No predictions entered for this group yet.' :
+            standingsMode === 'hybrid' ? 'No matches played and no predictions entered for this group yet.' :
+                                         'No matches played in this group yet.'}</div>
         </div>`;
     }
     return `
@@ -2578,6 +2588,25 @@ function fillFromEntered() {
   simGroupScores = JSON.parse(JSON.stringify(scores));
   bracketState = null;
   renderSimulator();
+}
+
+function fillFromHybrid() {
+  // Hybrid mode: real results so far + your predictions for matches still to play.
+  // For matches with neither (no actual and no prediction), fall back to AI pick
+  // so the bracket can still be built.
+  simGroupScores = {};
+  let actuals = 0, picks = 0, ai = 0;
+  MATCHES.forEach(m => {
+    if (m.actual) { simGroupScores[m.id] = [m.actual[0], m.actual[1]]; actuals++; }
+    else if (scores[m.id]) { simGroupScores[m.id] = [scores[m.id][0], scores[m.id][1]]; picks++; }
+    else { simGroupScores[m.id] = [m.pred[0], m.pred[1]]; ai++; }
+  });
+  bracketState = null;
+  renderSimulator();
+  const status = document.getElementById('gs-status');
+  if (status) {
+    status.textContent = `Hybrid: ${actuals} real · ${picks} your picks · ${ai} AI fill-ins`;
+  }
 }
 
 function clearSim() {
@@ -2813,6 +2842,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sim-fill-predictions').addEventListener('click', fillFromPredictions);
   document.getElementById('sim-random-groups').addEventListener('click', fillFromRandom);
   document.getElementById('sim-use-entered').addEventListener('click', fillFromEntered);
+  document.getElementById('sim-use-hybrid').addEventListener('click', fillFromHybrid);
   document.getElementById('sim-clear').addEventListener('click', clearSim);
   document.getElementById('sim-knockouts').addEventListener('click', () => {
     const src = getActiveGroupScores();
