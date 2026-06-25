@@ -2638,7 +2638,7 @@ function groupsComplete(src) {
 }
 
 function buildR32(src) {
-  // Get top 2 + 3rd from each group
+  // Compute each group's full table once
   const groupTables = {};
   const allThirds = [];
   Object.keys(GROUPS).forEach(g => {
@@ -2646,46 +2646,89 @@ function buildR32(src) {
     groupTables[g] = t;
     if (t[2]) allThirds.push(t[2]);
   });
-  // Best 3rds: top 8 by Pts → GD → GF
-  const bestThirds = allThirds.sort((x,y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF).slice(0, 8);
-  const bestThirdsByGroup = {}; bestThirds.forEach(t => { bestThirdsByGroup[t.group] = t; });
+  // Best 8 thirds by Pts -> GD -> GF
+  const bestThirds = allThirds
+    .sort((x, y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF)
+    .slice(0, 8);
+  const thirdGroups = bestThirds.map(t => t.group);            // e.g. ['A','C','E','F','I','J','K','L']
+  const thirdByGroup = {};
+  bestThirds.forEach(t => { thirdByGroup[t.group] = t; });
 
-  // Slot resolver
+  // ---- Official FIFA 2026 R32 schedule ----------------------------------
+  // Source: FIFA's published 48-team bracket. Slot codes:
+  //   '1A' = Group A winner, '2A' = Group A runner-up,
+  //   '3{groups}' = best 3rd from one of the listed groups.
+  // r32Spec[i] -> match (i+1) in the R16 pairing pattern. Order is chosen so
+  // that pairs (0,1), (2,3), (4,5), ... feed each R16 match.
+  const r32Spec = [
+    { home: '1A', away: '3:CEFHI' },  // R32-1   (Match 79: A1 vs 3rd)
+    { home: '1B', away: '3:EFGIJ' },  // R32-2   (Match 85: B1 vs 3rd)
+    { home: '1C', away: '2F' },       // R32-3   (Match 76: C1 vs F2)
+    { home: '1D', away: '3:BEFIJ' },  // R32-4   (Match 81: D1 vs 3rd)
+    { home: '1E', away: '3:ABCDF' },  // R32-5   (Match 74: E1 vs 3rd)
+    { home: '2A', away: '2B' },       // R32-6   (Match 73: A2 vs B2)
+    { home: '1F', away: '2C' },       // R32-7   (Match 75: F1 vs C2)
+    { home: '2E', away: '2I' },       // R32-8   (Match 78: E2 vs I2)
+    { home: '1G', away: '3:AEHIJ' },  // R32-9   (Match 82: G1 vs 3rd)
+    { home: '1H', away: '2J' },       // R32-10  (Match 84: H1 vs J2)
+    { home: '1I', away: '3:CDFGH' },  // R32-11  (Match 77: I1 vs 3rd)
+    { home: '1J', away: '2H' },       // R32-12  (Match 86: J1 vs H2)
+    { home: '1K', away: '3:DEIJL' },  // R32-13  (Match 87: K1 vs 3rd)
+    { home: '2D', away: '2G' },       // R32-14  (Match 88: D2 vs G2)
+    { home: '1L', away: '3:EHIJK' },  // R32-15  (Match 80: L1 vs 3rd)
+    { home: '2K', away: '2L' }        // R32-16  (Match 83: K2 vs L2)
+  ];
+
+  // ---- Resolve the 8 third-place slots --------------------------------
+  // Each '3:XXXXX' slot lists the 5 groups it can accept. Eight such slots,
+  // eight best 3rd-placed teams: solve as constraint satisfaction.
+  const thirdSlots = r32Spec
+    .map((s, i) => ({ idx: i, allowed: s.away.startsWith('3:') ? s.away.slice(2).split('') : null }))
+    .filter(s => s.allowed);
+
+  const assign = {};
+  (function solve(remaining, slotIdx) {
+    if (slotIdx === thirdSlots.length) return true;
+    const slot = thirdSlots[slotIdx];
+    // Try each remaining 3rd that's allowed in this slot, fewest-options-first
+    const cands = remaining.filter(g => slot.allowed.includes(g));
+    for (const g of cands) {
+      assign[slot.idx] = g;
+      if (solve(remaining.filter(x => x !== g), slotIdx + 1)) return true;
+      delete assign[slot.idx];
+    }
+    return false;
+  })(thirdGroups.slice(), 0);
+
+  // Fallback if not all 8 thirds qualified (mid-tournament): fill what we can,
+  // leaving unresolved slots as placeholder objects so the bracket still renders.
   const slot = (code) => {
+    if (code.startsWith('3:')) return null;
     const pos = parseInt(code[0], 10);
     const g = code.slice(1);
-    return groupTables[g][pos - 1];
+    return (groupTables[g] && groupTables[g][pos - 1]) || { team: `?${pos}${g}`, group: g, Pts: 0, GD: 0, GF: 0 };
   };
+  const PLACEHOLDER = (label) => ({ team: label, group: '?', Pts: 0, GD: 0, GF: 0 });
 
-  // R32 bracket — 16 matches (32 teams: 12 winners + 12 runners-up + 8 best 3rds)
-  // Pairings designed so each match has a 1st-place team OR runs as 3rd vs 3rd.
-  // Simplified, valid bracket. (Real FIFA bracket pairings differ slightly.)
-  const r32 = [
-    {id:'R32-1',  home:slot('1A'), away:slot('2B')},
-    {id:'R32-2',  home:slot('1C'), away:slot('2D')},
-    {id:'R32-3',  home:slot('1E'), away:slot('2F')},
-    {id:'R32-4',  home:slot('1G'), away:slot('2H')},
-    {id:'R32-5',  home:slot('1I'), away:slot('2J')},
-    {id:'R32-6',  home:slot('1K'), away:slot('2L')},
-    {id:'R32-7',  home:slot('1B'), away:slot('2A')},
-    {id:'R32-8',  home:slot('1D'), away:slot('2C')},
-    {id:'R32-9',  home:slot('1F'), away:slot('2E')},
-    {id:'R32-10', home:slot('1H'), away:slot('2G')},
-    {id:'R32-11', home:slot('1J'), away:slot('2I')},
-    {id:'R32-12', home:slot('1L'), away:slot('2K')}
-  ];
-  // Add 4 third-vs-third matches using whichever 3rds qualified, in order
-  const thirds = bestThirds.slice();
-  while (thirds.length >= 2) {
-    const h = thirds.shift(); const a = thirds.pop();
-    r32.push({id:`R32-${13 + (16 - r32.length - 1)}`, home:h, away:a});
-  }
-  // Ensure 16 matches
-  return r32.slice(0, 16).map((m, i) => ({ ...m, id: `R32-${i+1}` }));
+  return r32Spec.map((s, i) => {
+    let home = slot(s.home);
+    let away;
+    if (s.away.startsWith('3:')) {
+      const g = assign[i];
+      away = g ? thirdByGroup[g] : PLACEHOLDER(`3rd (${s.away.slice(2).split('').join('/')})`);
+    } else {
+      away = slot(s.away);
+    }
+    return { id: `R32-${i + 1}`, home, away };
+  });
 }
 
 function simulateKO(matches, label) {
   return matches.map(m => {
+    // Placeholder slot (e.g. "3rd (A/B/C/D/F)" before that 3rd is known) — skip sim.
+    if (!m.home || !m.away || m.home.group === '?' || m.away.group === '?') {
+      return { ...m, score: null, winner: null, loser: null, round: label, pending: true };
+    }
     const r = simulateMatch(m.home.team, m.away.team, true);
     const winner = r[2] === 'H' ? m.home : m.away;
     const loser  = r[2] === 'H' ? m.away : m.home;
@@ -2696,7 +2739,10 @@ function simulateKO(matches, label) {
 function pairWinners(prevRound, label) {
   const next = [];
   for (let i = 0; i < prevRound.length; i += 2) {
-    next.push({ id:`${label}-${i/2+1}`, home: prevRound[i].winner, away: prevRound[i+1].winner });
+    const a = prevRound[i], b = prevRound[i+1];
+    const home = a && a.winner ? a.winner : { team: 'TBD', group: '?', Pts:0, GD:0, GF:0 };
+    const away = b && b.winner ? b.winner : { team: 'TBD', group: '?', Pts:0, GD:0, GF:0 };
+    next.push({ id:`${label}-${i/2+1}`, home, away });
   }
   return next;
 }
