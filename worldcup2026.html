@@ -871,6 +871,26 @@
   .group-table tr.third { background: var(--accent-bg); }
   .group-table tr.out { color: #94a3b8; }
 
+  /* Best 3rds race panel */
+  .bt-panel { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .bt-panel h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: 0.3px; }
+  .bt-panel .bt-sub { color: var(--muted); font-size: 11px; margin-bottom: 12px; }
+  .bt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .bt-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .bt-col h4 { margin: 0 0 8px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .bt-col h4 .pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; letter-spacing: 0.4px; }
+  .bt-col.advance h4 .pill { background: var(--green-bg); color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
+  .bt-col.eliminated h4 .pill { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }
+  .bt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .bt-table th, .bt-table td { padding: 5px 6px; text-align: center; border-bottom: 1px solid var(--border); }
+  .bt-table th { color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .bt-table td:nth-child(2), .bt-table th:nth-child(2) { text-align: left; }
+  .bt-table tr:last-child td { border-bottom: none; }
+  .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; }
+  .bt-col.eliminated .bt-table td { color: #94a3b8; }
+  .bt-empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
+  @media (max-width: 640px) { .bt-grid { grid-template-columns: 1fr; } }
+
   @media (max-width: 600px) {
     .matches-grid { grid-template-columns: 1fr; }
     header h1 { font-size: 19px; }
@@ -1152,6 +1172,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
     Live standings from <b>actual final scores only</b>. Matches not yet played are excluded.
   </div>
   <div id="standings-content"></div>
+  <div id="best-thirds-panel"></div>
 </aside>
 
 <script>
@@ -2437,6 +2458,72 @@ function renderStandings() {
     `;
   }).join('');
   document.getElementById('standings-content').innerHTML = html;
+  renderBestThirds();
+}
+
+function renderBestThirds() {
+  const panel = document.getElementById('best-thirds-panel');
+  if (!panel) return;
+  // Collect every group's 3rd-place team for the active mode
+  const thirds = [];
+  Object.keys(GROUPS).forEach(g => {
+    const { rows, used } = computeStandings(g, standingsMode);
+    if (used === 0) return;
+    if (rows[2]) thirds.push({ ...rows[2], group: g });
+  });
+  if (thirds.length === 0) {
+    panel.innerHTML = `
+      <div class="bt-panel">
+        <h3>Best 3rd-Place Race</h3>
+        <div class="bt-sub">Nothing to rank yet for this view.</div>
+      </div>`;
+    return;
+  }
+  // FIFA tiebreakers: Pts > GD > GF > (then nothing meaningful here; alpha to stabilize)
+  thirds.sort((x, y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
+  const advancing  = thirds.slice(0, 8);
+  const eliminated = thirds.slice(8);
+
+  const modeLabel = standingsMode === 'real'   ? 'based on actual results'
+                  : standingsMode === 'hybrid' ? 'hybrid: actuals + your predictions'
+                  :                              'based on your predictions';
+  const incomplete = thirds.length < 12
+    ? ` · only ${thirds.length}/12 groups have data so far`
+    : '';
+
+  const row = (t, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${t.team} <span class="grp-chip">${t.group}</span></td>
+      <td>${t.P}</td>
+      <td><b>${t.Pts}</b></td>
+      <td>${t.GD > 0 ? '+' : ''}${t.GD}</td>
+      <td>${t.GF}</td>
+    </tr>`;
+
+  panel.innerHTML = `
+    <div class="bt-panel">
+      <h3>Best 3rd-Place Race</h3>
+      <div class="bt-sub">Top 8 of the 12 third-placed teams advance to the Round of 32 · ${modeLabel}${incomplete}</div>
+      <div class="bt-grid">
+        <div class="bt-col advance">
+          <h4>Advancing <span class="pill">R32</span></h4>
+          <table class="bt-table">
+            <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>
+            <tbody>${advancing.map(row).join('')}</tbody>
+          </table>
+        </div>
+        <div class="bt-col eliminated">
+          <h4>Going home <span class="pill">OUT</span></h4>
+          ${eliminated.length === 0
+            ? '<div class="bt-empty">Not enough data yet to determine eliminated 3rds.</div>'
+            : `<table class="bt-table">
+                 <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>
+                 <tbody>${eliminated.map((t, i) => row(t, i + 8)).join('')}</tbody>
+               </table>`}
+        </div>
+      </div>
+    </div>`;
 }
 
 // Init
