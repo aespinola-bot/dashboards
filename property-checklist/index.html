@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Property Due Diligence · The Buyer's Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0e1a; --bg-1:#0f1424; --bg-2:#161c30; --bg-3:#1f2740; --border:#2a3556;
+    --text:#e8ecf5; --text-dim:#a8b2cc; --muted:#6b7794;
+    --accent:#8b5cf6; --accent-glow:#a78bfa; --pink:#ec4899;
+    --cyan:#06b6d4; --green:#10b981; --orange:#f97316; --yellow:#facc15; --red:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;background:var(--bg-0);color:var(--text);min-height:100vh;line-height:1.55;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(6,182,212,.14), transparent 60%),
+      radial-gradient(800px 600px at 50% 120%, rgba(139,92,246,.10), transparent 60%),
+      var(--bg-0);
+  }
+
+  .home-pill{position:fixed;top:18px;right:18px;padding:8px 14px;border-radius:999px;
+    background:rgba(15,20,36,.78);backdrop-filter:blur(8px);border:1px solid var(--border);
+    color:#c4b5fd;text-decoration:none;font-size:12px;font-weight:600;z-index:9999}
+  .home-pill:hover{border-color:var(--accent)}
+  @media print{.home-pill,.score-bar,.controls,.toc-pill{display:none}}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+
+  .hero h1{font-size:clamp(28px,4.4vw,48px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px;
+    background:linear-gradient(90deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .sub{color:var(--text-dim);font-size:15px;max-width:820px}
+  .hero .meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+    background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35);color:#c4b5fd;font-size:11px;font-weight:600}
+  .pill.cy{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.35);color:#67e8f9}
+  .pill.gn{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#6ee7b7}
+  .pill.or{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.35);color:#fdba74}
+  .pill.rd{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
+  .pill.yl{background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.4);color:#fde047}
+
+  /* Sticky score bar */
+  .score-bar{position:sticky;top:0;z-index:80;margin:24px -24px 22px;padding:14px 24px;
+    background:rgba(10,14,26,.85);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
+  .score-bar .num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px}
+  .score-bar .num .small{font-size:13px;color:var(--muted)}
+  .score-bar .verdict{font-size:13px;color:var(--text-dim);font-weight:600}
+  .bar{height:10px;border-radius:6px;background:var(--bg-3);overflow:hidden;position:relative}
+  .bar > div{height:100%;background:linear-gradient(90deg,#ef4444 0%,#f97316 33%,#facc15 60%,#10b981 100%);
+    width:0%;transition:width .25s ease}
+
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
+  .btn{padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);
+    color:var(--text);font-weight:600;font-size:12px;cursor:pointer;font-family:inherit}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#0a0e1a;border:none}
+  .btn.danger{color:#fca5a5;border-color:rgba(239,68,68,.35)}
+
+  /* TOC */
+  .toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:18px 0 22px}
+  .toc a{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:11px 14px;border-radius:10px;background:var(--bg-2);border:1px solid var(--border);
+    color:var(--text);text-decoration:none;font-size:13px;font-weight:600}
+  .toc a:hover{border-color:var(--accent)}
+  .toc a .pct{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12px}
+
+  .section{background:linear-gradient(180deg,var(--bg-1),var(--bg-2));border:1px solid var(--border);
+    border-radius:18px;padding:22px;margin:18px 0;scroll-margin-top:90px}
+  .section h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .section h2 .ico{font-size:22px}
+  .section h2 .w{margin-left:auto;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:600}
+  .section .lead{color:var(--text-dim);font-size:13.5px;margin-bottom:14px}
+  .section h3{font-size:14px;font-weight:700;color:var(--accent-glow);margin:16px 0 8px;
+    text-transform:uppercase;letter-spacing:.08em;font-size:11.5px}
+
+  .items{display:grid;grid-template-columns:1fr;gap:6px}
+  .item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;
+    padding:10px 12px;border-radius:10px;background:var(--bg-2);border:1px solid var(--border)}
+  .item.checked{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)}
+  .item.skipped{opacity:.45}
+  .item .cb{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:2px}
+  .item .lbl{font-size:13.5px}
+  .item .lbl b{color:var(--text);font-weight:700;display:block;margin-bottom:2px}
+  .item .lbl span{color:var(--text-dim);font-size:12.5px}
+  .item .wt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;margin-top:3px}
+
+  /* Cards inside sections (narrative content) */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0 6px}
+  .card{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .card b{display:block;color:var(--text);font-weight:700;font-size:13.5px;margin-bottom:4px}
+  .card span{color:var(--text-dim);font-size:12.5px}
+
+  /* Red flag callouts */
+  .red-flag{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);
+    border-radius:10px;padding:10px 12px;font-size:12.5px;color:#fecaca;margin:6px 0}
+  .red-flag b{color:#fca5a5}
+
+  .pro-tip{background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.3);
+    border-radius:10px;padding:10px 12px;font-size:12.5px;color:#bef0fb;margin:6px 0}
+  .pro-tip b{color:#67e8f9}
+
+  /* Floating jump-to-top */
+  .toc-pill{position:fixed;bottom:18px;right:18px;padding:9px 14px;border-radius:999px;
+    background:rgba(15,20,36,.85);backdrop-filter:blur(8px);border:1px solid var(--border);
+    color:#c4b5fd;text-decoration:none;font-size:12px;font-weight:600;z-index:9998}
+  .toc-pill:hover{border-color:var(--accent)}
+
+  .footer{color:var(--muted);font-size:12px;margin-top:32px;text-align:center;line-height:1.7}
+
+  @media(max-width:640px){
+    .wrap{padding:32px 14px 60px}
+    .score-bar{margin:18px -14px 18px;padding:12px 14px;grid-template-columns:auto 1fr;gap:10px}
+    .score-bar .verdict{grid-column:1 / -1;font-size:12px}
+    .section{padding:16px}
+    .item{grid-template-columns:auto 1fr;gap:10px;padding:10px}
+    .item .wt{grid-column:2;justify-self:start;margin-top:0}
+  }
+
+  @media print{
+    body{background:#fff;color:#000}
+    .section{background:#fff;border:1px solid #ccc;break-inside:avoid;color:#000}
+    .item{background:#fff;border:1px solid #ddd;color:#000}
+    .item .lbl b, .item .lbl span{color:#000}
+    .card{background:#fff;border:1px solid #ddd;color:#000}
+    .card b{color:#000}
+    .card span{color:#333}
+    .hero h1{color:#000 !important;-webkit-text-fill-color:#000}
+    .red-flag,.pro-tip{color:#000;background:#f9f9f9;border-color:#ccc}
+  }
+</style>
+</head>
+<body>
+
+<a class="home-pill" href="../">← Back to Dashboards</a>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>🔎 Property Due Diligence</h1>
+    <div class="sub">A buyer's field guide for evaluating a house <b>itself</b> — location, lot, structure, systems, environmental risk, and red flags. Every item has a weight; tick what you've verified to build a real-time confidence score. Designed to be used on a phone during showings, printed as a checklist, or both. Nothing here replaces a licensed inspector — it helps you decide whether to write an offer, what to negotiate, and what to walk away from.</div>
+    <div class="meta">
+      <span class="pill">100-point score</span>
+      <span class="pill cy">Auto-saves to this browser</span>
+      <span class="pill gn">Mobile + print-ready</span>
+      <span class="pill or">~140 checks</span>
+    </div>
+  </div>
+
+  <div class="score-bar">
+    <div class="num"><span id="scoreNum">0</span><span class="small"> / 100</span></div>
+    <div class="bar"><div id="scoreFill"></div></div>
+    <div class="verdict" id="verdictTxt">Start ticking items to build your score</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="setAll(true)">✓ Check all</button>
+    <button class="btn" onclick="setAll(false)">○ Uncheck all</button>
+    <button class="btn" onclick="window.print()">🖨️ Print</button>
+    <button class="btn" onclick="exportJson()">⬇ Export JSON</button>
+    <button class="btn danger" onclick="resetState()">↺ Reset</button>
+  </div>
+
+  <div class="toc" id="toc"></div>
+
+  <!-- ================================================================ -->
+  <!-- SECTION DEFINITIONS                                                -->
+  <!-- ================================================================ -->
+  <div id="sections"></div>
+
+  <div class="footer">
+    Field-tested checklist · drafted Jun 2026 · Tomas Espinola · this tool is informational and does not replace professional inspection, legal, or appraisal advice.
+  </div>
+</div>
+
+<a class="toc-pill" href="#toc">↑ Top</a>
+
+<script>
+// ============================================================
+// DATA: every section, every item, with weights (0-100 total)
+// ============================================================
+const SECTIONS = [
+  {
+    id: 'location',
+    icon: '📍',
+    title: 'Location & Neighborhood',
+    weight: 14,
+    lead: 'You can fix a kitchen. You cannot fix the lot under the house or the street it sits on. Location is the only line item with permanent gravity.',
+    blocks: [
+      { kind:'cards', cards:[
+        {b:'The "drive it 4 times" rule', s:'Visit at weekday rush hour, weekday 9pm, Saturday afternoon, and Sunday morning. Different street, different smell, different noise floor, different neighbors visible.'},
+        {b:'Distance to your real life', s:'Map: commute (peak), grocery, urgent care, gym, school, airport. Anything > 25 min you do 5×/week is a tax you pay forever.'},
+        {b:'School quality (even if no kids)', s:'Drives resale. Pull GreatSchools + state report-card scores for the assigned elementary/middle/high — assigned, not nearest.'},
+      ]},
+      { kind:'h3', t:'Things you must look up'},
+      { kind:'items', items:[
+        ['flood', 'FEMA flood zone (msc.fema.gov)', 'Zone A/AE/V = mandatory flood insurance, often $1k–$5k+/yr. Even Zone X "shaded" floods.', 2],
+        ['wildfire', 'Wildfire risk (wildfirerisk.org)', 'Drives insurance availability — some carriers have stopped writing new policies in high-risk CA/OR/AZ tracts.', 2],
+        ['quake', 'Earthquake / liquefaction / landslide zone', 'USGS + state geologic survey maps. Liquefaction needs foundation review.', 1],
+        ['radonzone', 'EPA radon zone (1/2/3) for the county', 'Zone 1 counties = test before closing, non-negotiable.', 1],
+        ['crime', 'Crime heatmap (3 sources, not just one)', 'Cross-check CrimeMapping, SpotCrime, and the local PD beat reports. Look at trend, not just snapshot.', 1],
+        ['noise', 'Airport / rail / highway / industrial noise', 'Pull FAA noise contours and DOT traffic counts. Test on-site with phone dB meter at 7am, 7pm, 11pm.', 1],
+        ['develop', 'Planned future development (city planning portal)', 'New road, transit line, apartment block, or rezoning within 1/2 mile changes the property in 3-5 years.', 1],
+        ['water', 'Water source & utility', 'Municipal vs. well. If well: test for nitrates, bacteria, arsenic, hardness. Ask depth and recovery rate.', 1],
+        ['sewer', 'Sewer vs. septic', 'Septic = pump every 3-5y, $400-$800; failed drainfield = $15k-$40k replacement.', 1],
+        ['hoa', 'HOA / CC&R restrictions and reserves', 'Read the actual covenants. Check reserve study — underfunded HOA = special assessment risk.', 1],
+        ['tax', 'Property tax rate + reassessment trigger', 'Some states reassess on sale (CA, OR have caps; TX, IL do not). Budget the post-purchase number, not the seller\'s.', 1],
+        ['power', 'Power grid reliability + outage history', 'EIA outage data + PowerOutage.us. Rural PSPS shutoffs in CA can hit 5-10 days/yr.', 1],
+      ]},
+      { kind:'red-flag', t:'Red flag', body:'Three "for sale" signs visible from the front door. Either the neighborhood is turning over fast, or there\'s a hidden reason long-timers are leaving.'},
+    ]
+  },
+
+  {
+    id: 'lot',
+    icon: '🗺️',
+    title: 'Lot & Site',
+    weight: 8,
+    lead: 'The piece of dirt is non-negotiable — survey it like you\'re buying just the dirt.',
+    blocks: [
+      { kind:'items', items:[
+        ['survey', 'Get a current survey (or order one)', 'Confirms lot lines, easements, encroachments. Title insurance often excludes "matters a survey would reveal."', 1],
+        ['slope', 'Slope & drainage away from the house', 'Ground should drop ≥ 6" over first 10 ft. Pooling near foundation = future leak.', 1],
+        ['orient', 'Solar orientation', 'South-facing back yard = warm patio + solar potential. North-facing = mossy roof, ice patches.', 1],
+        ['trees', 'Mature trees within 20 ft of structure', 'Root intrusion to sewer; limbs over roof; protected-species rules (you can\'t remove without permit).', 1],
+        ['easements', 'Easements (utility, access, drainage)', 'You cannot build a pool/shed/fence on an easement. Pull from county GIS.', 1],
+        ['setback', 'Setback compliance for any existing structures', 'Garage, shed, fence — if non-conforming, your lender or insurer may flag it.', 1],
+        ['fence', 'Fence on the property line (not 6 ft inside it)', 'Common: prior owner built inside the line, lost de-facto 1-2 ft to neighbor.', 1],
+        ['encroach', 'No encroachments from neighbors', 'Driveway, AC pad, fence, retaining wall partially on your lot = open legal dispute.', 1],
+      ]},
+      { kind:'pro-tip', t:'Pro tip', body:'Walk the property line yourself with the survey in hand. Drop pins in Google Earth on each corner pin — saves hours of "where exactly does my yard end?" later.'},
+    ]
+  },
+
+  {
+    id: 'exterior',
+    icon: '🏠',
+    title: 'Exterior Structure',
+    weight: 12,
+    lead: 'The envelope. Roof, walls, foundation, drainage — repair tickets here are 4-5 figures, not 3.',
+    blocks: [
+      { kind:'h3', t:'Roof'},
+      { kind:'items', items:[
+        ['roof-age', 'Roof age & remaining life (ask + check permits)', 'Asphalt: 20-25y. Comp shingle: 25-30y. Tile: 50y+. Metal: 40-70y. A 22-year-old asphalt roof = price negotiation.', 2],
+        ['roof-shingle', 'No curled, missing, or granule-stripped shingles', 'Curled = end of life. Granules in gutter = end of life.', 1],
+        ['roof-flash', 'Intact flashing at chimney, vents, valleys, skylights', 'This is where 80% of leaks start, not the field of the roof.', 1],
+        ['roof-sag', 'No sagging ridgeline or visible deflection', 'Sag = framing or sheathing failure, $$$$.', 1],
+      ]},
+      { kind:'h3', t:'Gutters, Drainage, Grading'},
+      { kind:'items', items:[
+        ['gutter', 'Gutters clean, attached, sloped to downspouts', 'Saggy gutter = water against siding/foundation.', 1],
+        ['downspout', 'Downspouts extend ≥ 4 ft from foundation', 'Splash blocks alone are not enough.', 1],
+      ]},
+      { kind:'h3', t:'Foundation'},
+      { kind:'items', items:[
+        ['found-crack', 'No horizontal foundation cracks, stair-step cracks > 1/4", or bowing walls', 'Hairline vertical cracks are normal. Horizontal = soil pressure, possible structural.', 2],
+        ['found-eff', 'No efflorescence (white mineral stains) or active wet spots', 'Indicates water intrusion history.', 1],
+        ['found-grade', 'Soil grade slopes away from foundation 6" / 10 ft', 'Negative grade = water in basement/crawlspace.', 1],
+      ]},
+      { kind:'h3', t:'Siding, Trim, Windows'},
+      { kind:'items', items:[
+        ['siding', 'Siding intact, no soft spots, no rotted trim', 'Probe suspect wood trim with a screwdriver. If it sinks, it\'s rotted.', 1],
+        ['paint', 'Paint not peeling (lead concern if pre-1978)', 'Peeling paint on pre-1978 home triggers EPA RRP rules for any renovation.', 0],
+        ['windows-ext', 'Windows: double-pane, no fogging between panes', 'Fog = failed seal, $400-$800/window to replace insulated glass unit.', 1],
+      ]},
+      { kind:'red-flag', t:'Red flag', body:'Fresh paint on only one wall or only at the foundation line. Could be hiding water staining, efflorescence, or a recent crack repair.'},
+    ]
+  },
+
+  {
+    id: 'interior',
+    icon: '🪜',
+    title: 'Interior Structure',
+    weight: 8,
+    lead: 'Walls, floors, attic, basement. Look for what the staging is trying to distract you from.',
+    blocks: [
+      { kind:'items', items:[
+        ['walls', 'No cracks > 1/8" in drywall above doors/windows', 'Settling cracks reopen; large ones suggest active movement.', 1],
+        ['ceilings', 'No water stains on ceilings (esp. under bathrooms)', 'Even a faint ring = past leak. Ask when it was fixed and what.', 1],
+        ['floors', 'Floors level (use a marble or phone level app)', 'Slope > 1" over 20 ft = investigate foundation/joists.', 1],
+        ['doors', 'Every interior door closes and latches without sticking', 'Sticking doors = framing movement.', 1],
+        ['windows-int', 'Every window opens, closes, and locks', 'Stuck/painted-shut window = potential egress code violation in bedrooms.', 1],
+        ['attic', 'Attic: insulation depth ≥ R-38, no rodent droppings, no daylight through roof deck', 'Cheap insulation upgrade pays back in 3-5 yrs. Droppings = active pest entry.', 1],
+        ['attic-vent', 'Attic ventilation (soffit + ridge or gable)', 'No ventilation = ice dams in cold climates, mold in warm.', 1],
+        ['basement', 'Basement/crawlspace: dry, no musty smell, vapor barrier intact', 'Smell test before disclosure speech. If they ran a dehumidifier today, ask why.', 2],
+        ['stairs', 'Stair handrails secure, treads tight, code-compliant rise/run', 'Loose rail is a liability injury claim waiting.', 0],
+      ]},
+      { kind:'red-flag', t:'Red flag', body:'Throw rugs in odd places, freshly painted basement floor, candles or air fresheners running everywhere. Each one is a cover-up signal until proven otherwise.'},
+    ]
+  },
+
+  {
+    id: 'systems',
+    icon: '⚡',
+    title: 'Major Systems (HVAC / Electrical / Plumbing)',
+    weight: 14,
+    lead: 'Mechanicals. Each system on its own is a $5k–$25k line item if it has to be replaced.',
+    blocks: [
+      { kind:'h3', t:'HVAC'},
+      { kind:'items', items:[
+        ['hvac-age', 'Furnace age + service tag (look on cabinet)', 'Furnace life 15-25y; gas 80% AFUE ones likely due. Check the install date sticker.', 2],
+        ['ac-age', 'AC condenser age + refrigerant type (R-22 vs R-410A vs R-454B)', 'R-22 phased out 2020 — recharging costs $$$. R-410A phasing down 2025-2036.', 2],
+        ['ductwork', 'Visible ducts insulated, sealed, no kinks', 'Leaky ducts can waste 20-30% of heating/cooling.', 1],
+        ['thermostat', 'Thermostat works in heat + cool modes (cycle both during showing)', 'You\'re allowed to test this. Listen for short-cycling.', 1],
+      ]},
+      { kind:'h3', t:'Electrical'},
+      { kind:'items', items:[
+        ['panel-amp', 'Service size ≥ 200 A (or 150 A for small homes)', '100 A panels can\'t handle EV charger + heat pump + induction. Upgrade $2-4k.', 2],
+        ['panel-brand', 'Panel brand is NOT Federal Pacific, Zinsco, or Challenger', 'Known fire-risk panels — many insurers won\'t cover or require replacement.', 2],
+        ['gfci', 'GFCI outlets in kitchen, bath, garage, exterior, laundry', 'Code since the 70s/80s. Test with the button.', 1],
+        ['afci', 'AFCI breakers on bedroom circuits (post-2008)', 'Required by NEC; modern panels usually have them.', 0],
+        ['knob-tube', 'No active knob-and-tube or aluminum branch wiring (pre-1972)', 'Insurance often refuses. Rewire = $8-20k+.', 1],
+        ['outlets', 'Sample-test 5 outlets with a $10 polarity/ground tester', 'Open ground / reverse polarity / hot-neutral reverse = wiring issues.', 1],
+      ]},
+      { kind:'h3', t:'Plumbing'},
+      { kind:'items', items:[
+        ['supply', 'Supply piping material identified (copper / PEX / CPVC / galv. steel / polybutylene)', 'Polybutylene (1978-1995, gray) = uninsurable, replace. Galvanized = 50-70y life, restricts flow.', 2],
+        ['drain', 'Drain piping (cast iron / ABS / PVC). Cast iron > 50y often pitting.', 'Cast iron lateral replacement = $5-15k.', 1],
+        ['pressure', 'Static water pressure 45-75 psi (use a $12 hose-bib gauge)', '> 80 psi blows out fixtures, water heaters, dishwashers prematurely.', 1],
+        ['hot-flow', 'Hot water reaches farthest fixture in < 60 sec, full flow', 'Slow = corroded supply lines.', 1],
+        ['leaks', 'No active leaks under sinks; cabinet floors not warped or stained', 'Open every sink cabinet, run a flashlight.', 1],
+        ['main-shutoff', 'Main water shutoff is accessible and turns freely', 'You will need this in an emergency. If frozen, budget plumber visit.', 0],
+      ]},
+      { kind:'h3', t:'Water heater / Gas'},
+      { kind:'items', items:[
+        ['wh-age', 'Water heater age (decode serial number) + capacity right-sized', 'Tank life 8-12y. Tankless 15-20y. Past life = price negotiation.', 1],
+        ['wh-pan', 'Drip pan + drain line if upstairs/attic install', 'Failed WH without pan = $20k ceiling damage.', 1],
+        ['gas', 'Gas piping is black iron or CSST (bonded), no rubber hoses', 'Unbonded CSST is a lightning fire risk.', 1],
+      ]},
+      { kind:'red-flag', t:'Red flag', body:'Brand-new high-end vanity, but original 1972 toilet next to it. Cosmetic flip — ask what else was lipsticked over.'},
+    ]
+  },
+
+  {
+    id: 'kitchenbath',
+    icon: '🛁',
+    title: 'Kitchen & Bath Specifics',
+    weight: 6,
+    lead: 'Wet rooms hide the worst surprises. Get specific.',
+    blocks: [
+      { kind:'items', items:[
+        ['kit-vent', 'Kitchen range hood vents OUTSIDE (not recirculating)', 'Recirc hoods do nothing for moisture or combustion byproducts.', 1],
+        ['kit-disp', 'Garbage disposal runs without leaks or grinding', 'Cheap to replace, but indicative.', 0],
+        ['kit-dishw', 'Dishwasher: run a cycle. Check air gap or high loop on drain.', 'Missing high loop = code/health violation, easy fix.', 0],
+        ['bath-fan', 'Every bathroom has a working exhaust fan vented outside (not into attic)', 'Fan-into-attic = mold + rotted sheathing.', 1],
+        ['bath-caulk', 'Caulk + grout at tubs/showers intact, no soft spots in subfloor near toilet', 'Soft floor at toilet = wax-seal failure + subfloor rot.', 1],
+        ['bath-supply', 'Toilet supply lines are braided steel (not white plastic)', 'Plastic ones rupture; #1 cause of finished-floor flood claims.', 1],
+        ['bath-water', 'Run shower + flush toilet simultaneously — pressure should hold', 'Big pressure drop = undersized supply lines.', 1],
+        ['laundry', 'Laundry: braided steel hoses (not rubber); dryer vent solid metal, ≤ 25 ft', 'Rubber hose burst = $$$$. Lint-clogged vinyl dryer vent = fire.', 1],
+      ]},
+    ]
+  },
+
+  {
+    id: 'environmental',
+    icon: '☣️',
+    title: 'Environmental & Health Hazards',
+    weight: 10,
+    lead: 'Disclosure-form items are not the whole story. Some only show up if you test.',
+    blocks: [
+      { kind:'items', items:[
+        ['radon', 'Radon test (short-term 48-96 hr, < 4 pCi/L)', '#1 lung-cancer cause after smoking. Mitigation system $1-2k.', 2],
+        ['lead', 'Lead paint disclosure (pre-1978 federal requirement)', 'EPA RRP rules apply to any renovation, $$ certified contractor only.', 1],
+        ['asbestos', 'Asbestos: popcorn ceilings, 9x9 floor tile, pipe insulation (pre-1985)', 'Encapsulation often safer than removal. Don\'t scrape "popcorn" yourself.', 1],
+        ['mold', 'No visible mold; no musty smell; HVAC pan clean', 'Smell-test every room. Active mold = hire a remediation contractor for a quote pre-close.', 1],
+        ['oil-tank', 'No abandoned underground oil tank (UST)', 'Pre-1970s NE/Mid-Atlantic homes. Removal $3-10k; leaked tank = $20-100k cleanup.', 1],
+        ['termite', 'Active or past termite/wood-destroying-organism (WDO) report', 'WDO inspection is separate from general inspection in most states. Required by VA loans.', 1],
+        ['meth', 'Meth-lab / grow-op history (state registries + neighbors)', 'Remediation $20-100k. Some states require disclosure.', 1],
+        ['well-water', 'If well: lab test for coliform, E. coli, nitrates, arsenic, lead, hardness', 'Required by most lenders anyway.', 1],
+        ['septic', 'If septic: dye test + pump-out + drainfield inspection within 30 days', 'Failed drainfield = $15-40k.', 1],
+      ]},
+      { kind:'pro-tip', t:'Pro tip', body:'Order a CLUE report (Comprehensive Loss Underwriting Exchange) on the property. Shows last 5-7 yrs of insurance claims — water, fire, theft, liability. Sellers can request it for free; you can require it as a contingency.'},
+    ]
+  },
+
+  {
+    id: 'redflags',
+    icon: '🚩',
+    title: 'Cover-Up & Red-Flag Sweep',
+    weight: 6,
+    lead: 'A walk-through pattern recognition pass. Each individual flag is fine; clusters are not.',
+    blocks: [
+      { kind:'items', items:[
+        ['paint-fresh', 'Fresh paint only in basement, garage, or one specific wall', 'Spot-painting = covering stain/crack/mold.', 1],
+        ['dehu', 'Dehumidifier running during a dry showing', 'Active moisture problem.', 1],
+        ['candles', 'Multiple plug-in air fresheners or burning candles', 'Masking smell — pets, mold, smoke, sewer gas.', 1],
+        ['rug', 'Throw rugs in weird spots (middle of basement, in front of WH)', 'Covering stain or floor damage.', 1],
+        ['furniture', 'Heavy furniture mid-wall or in front of corners', 'Covering crack, outlet damage, or stain.', 1],
+        ['outlets-new', 'Mismatched/new outlets in one room only', 'DIY rewire — quality unknown.', 1],
+        ['recent-flip', 'House sold < 18 mo ago, now back on market', 'Possible flip with cosmetic work over deferred maintenance.', 1],
+        ['days-on-market', 'High days-on-market with multiple price cuts in active market', 'Something is keeping buyers away after inspection. Ask listing agent why prior offers fell through.', 1],
+        ['agent-script', 'Listing agent unusually rehearsed on "all the recent updates"', 'Updates = the easy fixes. Ask what was NOT updated.', 0],
+      ]},
+    ]
+  },
+
+  {
+    id: 'docs',
+    icon: '📑',
+    title: 'Paperwork & Documentation',
+    weight: 10,
+    lead: 'What the seller hands you (or refuses to) tells you almost as much as the house does.',
+    blocks: [
+      { kind:'items', items:[
+        ['disclosure', 'Seller\'s Property Disclosure Statement — read every line', 'In most states, "Unknown" answers are a legal shield for the seller. Push for specifics.', 2],
+        ['permits', 'Permit history matches what you see (addition, deck, finished basement, AC)', 'Pull from city/county portal. Unpermitted work = insurance refusal + forced removal risk.', 2],
+        ['hoa-docs', 'HOA: CC&Rs, bylaws, last 2 yrs minutes, reserve study, current dues + assessments', 'Reserve < 70% funded = future special assessment.', 1],
+        ['title', 'Preliminary title report — no liens, encumbrances, or boundary disputes', 'Mechanic\'s liens from unpaid contractors are common surprise.', 1],
+        ['survey-doc', 'Existing survey OR title contains "survey exception"', 'No survey + survey exception = title insurance won\'t cover boundary issues.', 1],
+        ['clue', 'CLUE report (5-7y insurance claim history)', 'Water/mold/fire claims raise your premium and may trigger non-renewal.', 1],
+        ['insure-quote', 'Bind a homeowner\'s insurance quote BEFORE removing contingencies', 'In CA/FL/CO, the house may be uninsurable. Don\'t assume.', 1],
+        ['appraisal', 'Appraisal supports the contract price', 'If under, you bring cash, renegotiate, or walk.', 1],
+        ['hoa-litig', 'No pending HOA litigation', 'Lenders may refuse to lend in a community with active structural litigation.', 0],
+      ]},
+    ]
+  },
+
+  {
+    id: 'inspection',
+    icon: '🔬',
+    title: 'Inspection Strategy',
+    weight: 8,
+    lead: 'A general inspector won\'t open walls, climb steep roofs, or scope sewer lines. Specialty inspections are where deal-killers actually surface.',
+    blocks: [
+      { kind:'cards', cards:[
+        {b:'General inspection ($400-$800)', s:'Visual, non-invasive. Required baseline. Walk the inspection with them — you\'ll learn more in 3 hrs than 3 weeks of reading.'},
+        {b:'Sewer scope ($150-$300)', s:'Camera the lateral from house to municipal main. Catches root intrusion, bellies, cracked clay pipe. CRITICAL for any home > 30y.'},
+        {b:'Chimney scope ($150-$300)', s:'Level 2 NFPA scan with camera. Catches cracked flue tiles — $5-15k reline.'},
+        {b:'Radon test ($25-$200)', s:'Short-term canister or continuous monitor 48-96 hrs. Mitigation $1-2k.'},
+        {b:'Pest / WDO ($75-$200)', s:'Termites, carpenter ants, powder-post beetles. Required by VA loans.'},
+        {b:'Pool / spa ($150-$400)', s:'Equipment, plumbing, structure, safety fence. Pool replaster = $8-15k.'},
+        {b:'Structural engineer ($400-$1500)', s:'Order this if general inspector flags foundation, framing, or settlement. Cheapest insurance in the deal.'},
+        {b:'Mold assessment ($300-$700)', s:'Order if smell or visible growth — assessor (not remediator) for unbiased opinion.'},
+        {b:'Asbestos / lead testing ($200-$500)', s:'Pre-1980 only. Required if planning renovation.'},
+      ]},
+      { kind:'items', items:[
+        ['attend', 'You attend the inspection in person', 'Non-negotiable. The report tells you 30% of what the inspector saw.', 2],
+        ['contingency', 'Inspection contingency in contract with adequate window (7-14 days)', 'Without it you can\'t walk over findings without forfeiting earnest money.', 2],
+        ['sewer-scope', 'Sewer scope ordered (home > 30y or trees in yard)', 'Single highest-ROI specialty inspection.', 1],
+        ['specialty', 'Specialty inspections ordered per above triggers', 'Pool, chimney, structural, mold as applicable.', 1],
+        ['re-inspect', 'Re-inspection scheduled after seller repairs', 'Verify work was done AND done by licensed contractor with receipts.', 1],
+        ['walkthru', 'Final walk-through within 24 hrs of closing', 'Verify nothing broke since inspection, all included fixtures/appliances still present, system\'s on.', 1],
+      ]},
+    ]
+  },
+
+  {
+    id: 'pricing',
+    icon: '💰',
+    title: 'Pricing & Comp Due Diligence',
+    weight: 4,
+    lead: 'You\'re evaluating the property, but you\'re paying for the comp.',
+    blocks: [
+      { kind:'items', items:[
+        ['comps', 'Pull 3-5 SOLD comps within 0.5 mi, last 90 days, similar sqft / bed / bath / lot', 'Active listings are aspirational; sold = market.', 1],
+        ['psqft', 'Price-per-sqft vs. neighborhood median', 'Above? Better house. Below? Why?', 1],
+        ['dom', 'Days-on-market trend for the zip', 'Rising DOM = leverage to negotiate.', 1],
+        ['price-cuts', 'List-to-sale ratio in this neighborhood', '< 97% = buyer\'s market; > 100% = sellers getting over-ask.', 1],
+      ]},
+    ]
+  },
+
+];
+
+// ============================================================
+// RENDER
+// ============================================================
+const STORAGE_KEY = 'property-checklist-state-v1';
+let STATE = loadState();
+
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ return {}; }
+}
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); }catch(e){} }
+
+function renderTOC(){
+  const toc = document.getElementById('toc');
+  toc.innerHTML = SECTIONS.map(s => `
+    <a href="#${s.id}">
+      <span>${s.icon} ${s.title}</span>
+      <span class="pct" id="pct-${s.id}">0/0</span>
+    </a>`).join('');
+}
+
+function renderSections(){
+  const root = document.getElementById('sections');
+  root.innerHTML = SECTIONS.map(s => {
+    const blocks = s.blocks.map(b => {
+      if(b.kind === 'cards'){
+        return `<div class="cards">${b.cards.map(c => `<div class="card"><b>${c.b}</b><span>${c.s}</span></div>`).join('')}</div>`;
+      }
+      if(b.kind === 'h3'){
+        return `<h3>${b.t}</h3>`;
+      }
+      if(b.kind === 'red-flag'){
+        return `<div class="red-flag"><b>🚩 ${b.t}.</b> ${b.body}</div>`;
+      }
+      if(b.kind === 'pro-tip'){
+        return `<div class="pro-tip"><b>💡 ${b.t}.</b> ${b.body}</div>`;
+      }
+      if(b.kind === 'items'){
+        return `<div class="items">${b.items.map(it => {
+          const [id, title, sub, wt] = it;
+          const fid = `${s.id}__${id}`;
+          const checked = STATE[fid] ? 'checked' : '';
+          const wlabel = wt > 0 ? `${wt} pt${wt>1?'s':''}` : `info`;
+          return `<label class="item" data-id="${fid}" data-sec="${s.id}" data-wt="${wt}">
+            <input type="checkbox" class="cb" ${checked} onchange="onToggle('${fid}','${s.id}',${wt}, this)">
+            <div class="lbl"><b>${title}</b><span>${sub}</span></div>
+            <div class="wt">${wlabel}</div>
+          </label>`;
+        }).join('')}</div>`;
+      }
+      return '';
+    }).join('');
+    return `<div class="section" id="${s.id}">
+      <h2><span class="ico">${s.icon}</span> ${s.title} <span class="w">weight: ${s.weight} pts</span></h2>
+      <div class="lead">${s.lead}</div>
+      ${blocks}
+    </div>`;
+  }).join('');
+  // mark checked items
+  document.querySelectorAll('.item').forEach(el => {
+    if(STATE[el.dataset.id]) el.classList.add('checked');
+  });
+}
+
+function onToggle(fid, secId, wt, cb){
+  if(cb.checked) STATE[fid] = true; else delete STATE[fid];
+  saveState();
+  const el = document.querySelector(`.item[data-id="${fid}"]`);
+  if(el) el.classList.toggle('checked', cb.checked);
+  recalc();
+}
+
+function recalc(){
+  let totalPossible = 0, earned = 0;
+  const perSec = {};
+  SECTIONS.forEach(s => {
+    let sPossible = 0, sEarned = 0, sChecked = 0, sTotal = 0;
+    s.blocks.forEach(b => {
+      if(b.kind !== 'items') return;
+      b.items.forEach(it => {
+        const [id,,,wt] = it;
+        sTotal++;
+        if(wt > 0){
+          sPossible += wt;
+          if(STATE[`${s.id}__${id}`]){ sEarned += wt; sChecked++; }
+        } else {
+          if(STATE[`${s.id}__${id}`]) sChecked++;
+        }
+      });
+    });
+    totalPossible += sPossible; earned += sEarned;
+    perSec[s.id] = { sPossible, sEarned, sChecked, sTotal };
+  });
+  const pct = totalPossible ? Math.round((earned/totalPossible)*100) : 0;
+  document.getElementById('scoreNum').textContent = pct;
+  document.getElementById('scoreFill').style.width = pct + '%';
+  document.getElementById('verdictTxt').textContent = verdict(pct);
+  // update TOC
+  SECTIONS.forEach(s => {
+    const el = document.getElementById('pct-'+s.id);
+    if(el){ el.textContent = `${perSec[s.id].sChecked}/${perSec[s.id].sTotal}`; }
+  });
+}
+
+function verdict(pct){
+  if(pct === 0) return 'Start ticking items to build your score';
+  if(pct < 30) return '🛑 Too many unknowns — get more data before writing an offer';
+  if(pct < 55) return '⚠️ Major gaps — order specialty inspections before removing contingencies';
+  if(pct < 75) return '🟡 Solid foundation — clean up open items before closing';
+  if(pct < 90) return '🟢 Confident — minor follow-ups remain';
+  return '✅ Bulletproof due diligence — close with confidence';
+}
+
+function setAll(v){
+  SECTIONS.forEach(s => s.blocks.forEach(b => {
+    if(b.kind !== 'items') return;
+    b.items.forEach(it => {
+      const fid = `${s.id}__${it[0]}`;
+      if(v) STATE[fid] = true; else delete STATE[fid];
+    });
+  }));
+  saveState(); renderSections(); recalc();
+}
+
+function resetState(){
+  if(!confirm('Reset all checkboxes? This clears your saved progress for this property.')) return;
+  STATE = {}; saveState(); renderSections(); recalc();
+}
+
+function exportJson(){
+  const blob = new Blob([JSON.stringify({savedAt:new Date().toISOString(), state:STATE}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `property-checklist-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+renderTOC();
+renderSections();
+recalc();
+</script>
+
+<script>
+// Visit counter (sessionStorage-guarded)
+(function(){try{var K='visit-tracked-property-checklist';if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');fetch('https://abacus.jasoncameron.dev/hit/aespinola-bot-dashboards/property-checklist').catch(function(){});}catch(e){}})();
+</script>
+</body>
+</html>
