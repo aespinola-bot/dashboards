@@ -872,24 +872,26 @@
   .group-table tr.out { color: #94a3b8; }
 
   /* Best 3rds race panel */
-  .bt-panel { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .bt-panel { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-width: 0; }
   .bt-panel h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: 0.3px; }
   .bt-panel .bt-sub { color: var(--muted); font-size: 11px; margin-bottom: 12px; }
-  .bt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .bt-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .bt-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .bt-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; overflow: hidden; }
   .bt-col h4 { margin: 0 0 8px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
   .bt-col h4 .pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; letter-spacing: 0.4px; }
   .bt-col.advance h4 .pill { background: var(--green-bg); color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
   .bt-col.eliminated h4 .pill { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }
-  .bt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .bt-table th, .bt-table td { padding: 5px 6px; text-align: center; border-bottom: 1px solid var(--border); }
+  .bt-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  .bt-table th, .bt-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bt-table col.c-rank { width: 28px; }
+  .bt-table col.c-num  { width: 32px; }
   .bt-table th { color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .bt-table td:nth-child(2), .bt-table th:nth-child(2) { text-align: left; }
+  .bt-table td:nth-child(2), .bt-table th:nth-child(2) { text-align: left; white-space: normal; }
   .bt-table tr:last-child td { border-bottom: none; }
-  .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; }
+  .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; margin-left: 4px; }
   .bt-col.eliminated .bt-table td { color: #94a3b8; }
   .bt-empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
-  @media (max-width: 640px) { .bt-grid { grid-template-columns: 1fr; } }
+  @media (min-width: 1100px) { .bt-grid { grid-template-columns: 1fr 1fr; } }
 
   @media (max-width: 600px) {
     .matches-grid { grid-template-columns: 1fr; }
@@ -2501,6 +2503,12 @@ function renderBestThirds() {
       <td>${t.GF}</td>
     </tr>`;
 
+  const tableHead = `
+    <colgroup>
+      <col class="c-rank"><col><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num">
+    </colgroup>
+    <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>`;
+
   panel.innerHTML = `
     <div class="bt-panel">
       <h3>Best 3rd-Place Race</h3>
@@ -2509,7 +2517,7 @@ function renderBestThirds() {
         <div class="bt-col advance">
           <h4>Advancing <span class="pill">R32</span></h4>
           <table class="bt-table">
-            <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>
+            ${tableHead}
             <tbody>${advancing.map(row).join('')}</tbody>
           </table>
         </div>
@@ -2518,7 +2526,7 @@ function renderBestThirds() {
           ${eliminated.length === 0
             ? '<div class="bt-empty">Not enough data yet to determine eliminated 3rds.</div>'
             : `<table class="bt-table">
-                 <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>
+                 ${tableHead}
                  <tbody>${eliminated.map((t, i) => row(t, i + 8)).join('')}</tbody>
                </table>`}
         </div>
