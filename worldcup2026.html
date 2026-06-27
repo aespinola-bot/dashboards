@@ -889,11 +889,11 @@
   .bt-table th, .bt-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border); }
   .bt-table th.rk, .bt-table td.rk { width: 24px; }
   .bt-table th.tm, .bt-table td.tm { text-align: left; }
-  .bt-table td.tm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .bt-table td.tm { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .bt-table th { color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
   .bt-table tr:last-child td { border-bottom: none; }
   .bt-flag { width: 22px; height: 14px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.06); flex-shrink: 0; }
-  .bt-name { font-weight: 600; }
+  .bt-name { font-weight: 700; letter-spacing: 0.3px; }
   .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; color: var(--muted); }
   .bt-col.eliminated .bt-table td { color: #94a3b8; }
   .bt-col.eliminated .bt-name { color: #94a3b8; }
@@ -1200,6 +1200,23 @@ const FLAGS = {
   'Portugal':'pt','DR Congo':'cd','Uzbekistan':'uz','Colombia':'co',
   'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa'
 };
+
+// FIFA-style 3-letter country codes (used where space is tight, e.g. Best 3rds table)
+const ABBR = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Czech Republic':'CZE',
+  'Canada':'CAN','Bosnia & Herzegovina':'BIH','Qatar':'QAT','Switzerland':'SUI',
+  'Brazil':'BRA','Morocco':'MAR','Haiti':'HAI','Scotland':'SCO',
+  'United States':'USA','Paraguay':'PAR','Australia':'AUS','Turkey':'TUR',
+  'Germany':'GER','Curaçao':'CUW','Ivory Coast':'CIV','Ecuador':'ECU',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Saudi Arabia':'KSA','Cape Verde':'CPV','Uruguay':'URU',
+  'France':'FRA','Senegal':'SEN','Iraq':'IRQ','Norway':'NOR',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN'
+};
+const teamAbbr = (name) => ABBR[name] || (name || '').slice(0,3).toUpperCase();
 
 const GROUPS = {
   'A':['Mexico','South Korea','South Africa','Czech Republic'],
@@ -2531,12 +2548,13 @@ function renderBestThirds() {
 
   const row = (t, i) => {
     const f = flagUrl(t.team);
+    const ab = teamAbbr(t.team);
     return `
-      <tr>
+      <tr title="${t.team}">
         <td class="rk">${i + 1}</td>
         <td class="tm">
           ${f ? `<img src="${f}" alt="" class="bt-flag">` : ''}
-          <span class="bt-name">${t.team}</span>
+          <span class="bt-name">${ab}</span>
           <span class="grp-chip">${t.group}</span>
         </td>
         <td>${t.P}</td>
