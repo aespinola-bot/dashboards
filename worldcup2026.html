@@ -872,26 +872,33 @@
   .group-table tr.out { color: #94a3b8; }
 
   /* Best 3rds race panel */
-  .bt-panel { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-width: 0; }
-  .bt-panel h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: 0.3px; }
-  .bt-panel .bt-sub { color: var(--muted); font-size: 11px; margin-bottom: 12px; }
-  .bt-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .bt-panel { margin-top: 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-width: 0; }
+  .bt-panel h3 { margin: 0 0 4px; font-size: 15px; letter-spacing: 0.3px; }
+  .bt-panel .bt-sub { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+  .bt-src { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .bt-src-btn { background: var(--panel2); color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .bt-src-btn:hover { color: var(--text); }
+  .bt-src-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .bt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .bt-col { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; overflow: hidden; }
   .bt-col h4 { margin: 0 0 8px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
   .bt-col h4 .pill { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 700; letter-spacing: 0.4px; }
   .bt-col.advance h4 .pill { background: var(--green-bg); color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
   .bt-col.eliminated h4 .pill { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.35); }
-  .bt-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-  .bt-table th, .bt-table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bt-table col.c-rank { width: 28px; }
-  .bt-table col.c-num  { width: 32px; }
+  .bt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .bt-table th, .bt-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border); }
+  .bt-table th.rk, .bt-table td.rk { width: 24px; }
+  .bt-table th.tm, .bt-table td.tm { text-align: left; }
+  .bt-table td.tm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .bt-table th { color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; }
-  .bt-table td:nth-child(2), .bt-table th:nth-child(2) { text-align: left; white-space: normal; }
   .bt-table tr:last-child td { border-bottom: none; }
-  .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; margin-left: 4px; }
+  .bt-flag { width: 22px; height: 14px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.06); flex-shrink: 0; }
+  .bt-name { font-weight: 600; }
+  .bt-table .grp-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; background: var(--panel); font-size: 10px; font-weight: 700; color: var(--muted); }
   .bt-col.eliminated .bt-table td { color: #94a3b8; }
+  .bt-col.eliminated .bt-name { color: #94a3b8; }
   .bt-empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
-  @media (min-width: 1100px) { .bt-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 720px) { .bt-grid { grid-template-columns: 1fr; } }
 
   @media (max-width: 600px) {
     .matches-grid { grid-template-columns: 1fr; }
@@ -1169,6 +1176,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
     <button class="std-tab-btn active" data-std-mode="real" role="tab" aria-selected="true">🏟️ Real Progress</button>
     <button class="std-tab-btn" data-std-mode="hybrid" role="tab" aria-selected="false">🔀 Hybrid</button>
     <button class="std-tab-btn" data-std-mode="you" role="tab" aria-selected="false">🎯 My Predictions</button>
+    <button class="std-tab-btn" data-std-mode="thirds" role="tab" aria-selected="false">🥉 Best 3rds</button>
   </div>
   <div id="std-mode-banner" class="std-mode-banner">
     Live standings from <b>actual final scores only</b>. Matches not yet played are excluded.
@@ -2419,17 +2427,33 @@ function renderStandings() {
   if (banner) {
     banner.classList.toggle('you', standingsMode === 'you');
     banner.classList.toggle('hybrid', standingsMode === 'hybrid');
+    banner.classList.toggle('thirds', standingsMode === 'thirds');
     if (standingsMode === 'real') {
       banner.innerHTML = 'Live standings from <b>actual final scores only</b>. Top 2 = qualified (green). 3rd = best-third race (orange).';
     } else if (standingsMode === 'hybrid') {
       const actuals = MATCHES.filter(m => m.actual).length;
       const preds   = MATCHES.filter(m => !m.actual && scores[m.id]).length;
       banner.innerHTML = `<b>Hybrid</b>: ${actuals} real result${actuals===1?'':'s'} + ${preds} of your prediction${preds===1?'':'s'} for matches still to play. Lets you project the table forward without losing the real progress.`;
+    } else if (standingsMode === 'thirds') {
+      banner.innerHTML = `<b>Best 3rd-Place Race</b>: top 8 of 12 third-placed teams advance to the Round of 32. Toggle the source below.`;
     } else {
       const predicted = MATCHES.filter(m => scores[m.id]).length;
       banner.innerHTML = `Standings as if <b>your predictions</b> were the final results. <b>${predicted}/72</b> matches predicted. Locked-final matches need a click below to assign your pick.`;
     }
   }
+
+  const content = document.getElementById('standings-content');
+  const thirdsPanel = document.getElementById('best-thirds-panel');
+
+  if (standingsMode === 'thirds') {
+    content.style.display = 'none';
+    thirdsPanel.style.display = '';
+    renderBestThirds();
+    return;
+  }
+
+  content.style.display = '';
+  thirdsPanel.style.display = 'none';
 
   const html = Object.keys(GROUPS).map(g => {
     const { rows, used } = computeStandings(g, standingsMode);
@@ -2459,60 +2483,77 @@ function renderStandings() {
       </div>
     `;
   }).join('');
-  document.getElementById('standings-content').innerHTML = html;
-  renderBestThirds();
+  content.innerHTML = html;
 }
+
+let thirdsSourceMode = 'real'; // 'real' | 'hybrid' | 'you'
 
 function renderBestThirds() {
   const panel = document.getElementById('best-thirds-panel');
   if (!panel) return;
-  // Collect every group's 3rd-place team for the active mode
+  const srcMode = thirdsSourceMode;
+  // Collect every group's 3rd-place team for the chosen source mode
   const thirds = [];
   Object.keys(GROUPS).forEach(g => {
-    const { rows, used } = computeStandings(g, standingsMode);
+    const { rows, used } = computeStandings(g, srcMode);
     if (used === 0) return;
     if (rows[2]) thirds.push({ ...rows[2], group: g });
   });
+
+  const srcSwitcher = `
+    <div class="bt-src">
+      ${['real','hybrid','you'].map(m => `
+        <button class="bt-src-btn ${m === srcMode ? 'active' : ''}" data-bt-src="${m}">
+          ${m === 'real' ? '🏟️ Real' : m === 'hybrid' ? '🔀 Hybrid' : '🎯 My Picks'}
+        </button>`).join('')}
+    </div>`;
+
   if (thirds.length === 0) {
     panel.innerHTML = `
       <div class="bt-panel">
-        <h3>Best 3rd-Place Race</h3>
-        <div class="bt-sub">Nothing to rank yet for this view.</div>
+        <h3>🥉 Best 3rd-Place Race</h3>
+        <div class="bt-sub">Top 8 of the 12 third-placed teams advance to the Round of 32.</div>
+        ${srcSwitcher}
+        <div class="bt-empty">No data for the selected source yet.</div>
       </div>`;
+    bindBtSrc();
     return;
   }
-  // FIFA tiebreakers: Pts > GD > GF > (then nothing meaningful here; alpha to stabilize)
+
+  // FIFA tiebreakers: Pts > GD > GF
   thirds.sort((x, y) => y.Pts - x.Pts || y.GD - x.GD || y.GF - x.GF || x.team.localeCompare(y.team));
   const advancing  = thirds.slice(0, 8);
   const eliminated = thirds.slice(8);
+  const srcLabel = srcMode === 'real' ? 'actual results'
+                : srcMode === 'hybrid' ? 'hybrid: actuals + your predictions'
+                : 'your predictions';
+  const incomplete = thirds.length < 12 ? ` · only ${thirds.length}/12 groups have data so far` : '';
 
-  const modeLabel = standingsMode === 'real'   ? 'based on actual results'
-                  : standingsMode === 'hybrid' ? 'hybrid: actuals + your predictions'
-                  :                              'based on your predictions';
-  const incomplete = thirds.length < 12
-    ? ` · only ${thirds.length}/12 groups have data so far`
-    : '';
-
-  const row = (t, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td>${t.team} <span class="grp-chip">${t.group}</span></td>
-      <td>${t.P}</td>
-      <td><b>${t.Pts}</b></td>
-      <td>${t.GD > 0 ? '+' : ''}${t.GD}</td>
-      <td>${t.GF}</td>
-    </tr>`;
+  const row = (t, i) => {
+    const f = flagUrl(t.team);
+    return `
+      <tr>
+        <td class="rk">${i + 1}</td>
+        <td class="tm">
+          ${f ? `<img src="${f}" alt="" class="bt-flag">` : ''}
+          <span class="bt-name">${t.team}</span>
+          <span class="grp-chip">${t.group}</span>
+        </td>
+        <td>${t.P}</td>
+        <td><b>${t.Pts}</b></td>
+        <td>${t.GD > 0 ? '+' : ''}${t.GD}</td>
+        <td>${t.GF}</td>
+      </tr>`;
+  };
 
   const tableHead = `
-    <colgroup>
-      <col class="c-rank"><col><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num">
-    </colgroup>
-    <thead><tr><th>#</th><th>Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>`;
+    <thead><tr><th class="rk">#</th><th class="tm">Team</th><th>P</th><th>Pts</th><th>GD</th><th>GF</th></tr></thead>`;
 
   panel.innerHTML = `
     <div class="bt-panel">
-      <h3>Best 3rd-Place Race</h3>
-      <div class="bt-sub">Top 8 of the 12 third-placed teams advance to the Round of 32 · ${modeLabel}${incomplete}</div>
+      <h3>🥉 Best 3rd-Place Race</h3>
+      <div class="bt-sub">Top 8 of the 12 third-placed teams advance to the Round of 32 · based on ${srcLabel}${incomplete}</div>
+      ${srcSwitcher}
       <div class="bt-grid">
         <div class="bt-col advance">
           <h4>Advancing <span class="pill">R32</span></h4>
@@ -2532,6 +2573,16 @@ function renderBestThirds() {
         </div>
       </div>
     </div>`;
+  bindBtSrc();
+}
+
+function bindBtSrc() {
+  document.querySelectorAll('.bt-src-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      thirdsSourceMode = btn.dataset.btSrc;
+      renderBestThirds();
+    });
+  });
 }
 
 // Init
