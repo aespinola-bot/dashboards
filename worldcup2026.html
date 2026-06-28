@@ -2714,6 +2714,7 @@ function simulateMatch(home, away, knockout = false) {
 
 // Holds simulator-only group scores (separate from user's localStorage scores)
 let simGroupScores = null;
+let simSource = null; // 'predictions' | 'random' | 'real' | 'entered' | 'hybrid'
 let bracketState = null;
 
 function getActiveGroupScores() {
@@ -2730,6 +2731,7 @@ function getActiveGroupScores() {
 function fillFromPredictions() {
   simGroupScores = {};
   MATCHES.forEach(m => { simGroupScores[m.id] = [m.pred[0], m.pred[1]]; });
+  simSource = 'predictions';
   bracketState = null;
   renderSimulator();
 }
@@ -2740,6 +2742,7 @@ function fillFromRandom() {
     const r = simulateMatch(m.home, m.away, false);
     simGroupScores[m.id] = [r[0], r[1]];
   });
+  simSource = 'random';
   bracketState = null;
   renderSimulator();
 }
@@ -2751,6 +2754,7 @@ function fillFromEntered() {
     return;
   }
   simGroupScores = JSON.parse(JSON.stringify(scores));
+  simSource = 'entered';
   bracketState = null;
   renderSimulator();
 }
@@ -2764,6 +2768,7 @@ function fillFromReal() {
     if (m.actual) { simGroupScores[m.id] = [m.actual[0], m.actual[1]]; actuals++; }
     else          { simGroupScores[m.id] = [m.pred[0], m.pred[1]]; ai++; }
   });
+  simSource = 'real';
   bracketState = null;
   renderSimulator();
   const status = document.getElementById('gs-status');
@@ -2783,6 +2788,7 @@ function fillFromHybrid() {
     else if (scores[m.id]) { simGroupScores[m.id] = [scores[m.id][0], scores[m.id][1]]; picks++; }
     else { simGroupScores[m.id] = [m.pred[0], m.pred[1]]; ai++; }
   });
+  simSource = 'hybrid';
   bracketState = null;
   renderSimulator();
   const status = document.getElementById('gs-status');
@@ -2793,6 +2799,7 @@ function fillFromHybrid() {
 
 function clearSim() {
   simGroupScores = null;
+  simSource = null;
   bracketState = null;
   renderSimulator();
 }
@@ -2846,24 +2853,18 @@ function buildR32(src) {
   const groupTables = {};
   Object.keys(GROUPS).forEach(g => { groupTables[g] = computeSimStandings(g, src); });
 
-  // If the computed group winners + runners-up match FIFA's officially-drawn
-  // R32 bracket, use the locked pairings instead of constraint-solving the
-  // 3rd-place assignment (which FIFA resolves via a fixed lookup table, not
-  // pure constraint satisfaction).
-  const matchesLockedDraw = LOCKED_R32.every(p => {
-    const ht = groupTables[p.ga];
-    const at = groupTables[p.gb];
-    if (!ht || !at) return false;
-    // Home is always a 1st (Mexico, France, ...) or 2nd-place in 2X-vs-2Y matches.
-    // Determine expected slot by checking which row's team matches.
-    const inTop2Home = ht.slice(0, 2).some(r => r.team === p.home);
-    const isThirdHome = ht[2] && ht[2].team === p.home;
-    const inTop2Away = at.slice(0, 2).some(r => r.team === p.away);
-    const isThirdAway = at[2] && at[2].team === p.away;
-    return (inTop2Home || isThirdHome) && (inTop2Away || isThirdAway);
-  });
+  // If user selected Real Progress or Hybrid, FIFA's draw is authoritative
+  // for the 3rd-place slots — the constraint solver only produces a *valid*
+  // assignment, not the actual one. Use the locked draw whenever every team
+  // listed in LOCKED_R32 still appears in its group (regardless of finishing
+  // order under partial-real or AI-fill-in conditions).
+  const useLocked = (simSource === 'real' || simSource === 'hybrid') &&
+    LOCKED_R32.every(p =>
+      (GROUPS[p.ga] || []).includes(p.home) &&
+      (GROUPS[p.gb] || []).includes(p.away)
+    );
 
-  if (matchesLockedDraw) {
+  if (useLocked) {
     const findRow = (group, team) =>
       (groupTables[group] || []).find(r => r.team === team)
       || { team, group, Pts: 0, GD: 0, GF: 0 };
