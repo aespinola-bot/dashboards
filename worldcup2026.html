@@ -3070,44 +3070,50 @@ function renderBracket() {
   koStatus.textContent = '✓ Bracket simulated';
   koStatus.classList.add('ready');
 
-  const renderRound = (matches, label, key, opts = {}) => {
+  // matches arg: array of {m, idx} so re-sim button always points to the
+  // original bracketState[key] slot regardless of reversed rendering order.
+  const renderRound = (entries, label, key, opts = {}) => {
     const cls = 'bracket-round' + (opts.center ? ' center' : '');
     return `
     <div class="${cls}">
-      <h3>${label}${matches.length>1?` (${matches.length})`:''}</h3>
+      <h3>${label}${entries.length>1?` (${entries.length})`:''}</h3>
       <div class="bracket-matches">
-        ${matches.map((m, i) => renderKO(m, key, opts.indexBase != null ? opts.indexBase + i : i)).join('')}
+        ${entries.map(e => renderKO(e.m, key, e.idx)).join('')}
       </div>
     </div>`;
   };
 
-  // Split each round in half: left-flank flows L->R; right-flank flows R->L
+  // Tag every match with its original index, then split in half.
+  // Right flank is rendered reversed but idx stays bound to the source slot.
+  const tag = (arr) => arr.map((m, idx) => ({m, idx}));
   const half = (arr) => {
     const h = arr.length / 2;
     return [arr.slice(0, h), arr.slice(h)];
   };
-  const [r32L, r32R] = half(bracketState.r32); // 8 | 8
-  const [r16L, r16R] = half(bracketState.r16); // 4 | 4
-  const [qfL,  qfR ] = half(bracketState.qf ); // 2 | 2
-  const [sfL,  sfR ] = half(bracketState.sf ); // 1 | 1
+  const [r32L, r32R] = half(tag(bracketState.r32));
+  const [r16L, r16R] = half(tag(bracketState.r16));
+  const [qfL,  qfR ] = half(tag(bracketState.qf ));
+  const [sfL,  sfR ] = half(tag(bracketState.sf ));
+  const fEntries     = tag(bracketState.f);
+  const thirdEntries = tag(bracketState.third);
   const r32Rrev = r32R.slice().reverse();
   const r16Rrev = r16R.slice().reverse();
   const qfRrev  = qfR.slice().reverse();
 
   wrap.innerHTML = `
     <div class="bracket">
-      ${renderRound(r32L, 'R32 ←', 'r32', {indexBase: 0})}
-      ${renderRound(r16L, 'R16 ←', 'r16', {indexBase: 0})}
-      ${renderRound(qfL,  'QF ←',  'qf',  {indexBase: 0})}
-      ${renderRound(sfL,  'SF ←',  'sf',  {indexBase: 0})}
+      ${renderRound(r32L, 'R32 ←', 'r32')}
+      ${renderRound(r16L, 'R16 ←', 'r16')}
+      ${renderRound(qfL,  'QF ←',  'qf')}
+      ${renderRound(sfL,  'SF ←',  'sf')}
       <div class="bracket-center">
-        ${renderRound(bracketState.f,    '🏆 Final',  'f',     {center: true})}
-        ${renderRound(bracketState.third,'3rd Place', 'third', {center: true})}
+        ${renderRound(fEntries,     '🏆 Final',  'f',     {center: true})}
+        ${renderRound(thirdEntries, '3rd Place', 'third', {center: true})}
       </div>
-      ${renderRound(sfR,    '→ SF',  'sf',  {indexBase: sfL.length})}
-      ${renderRound(qfRrev, '→ QF',  'qf',  {indexBase: qfL.length})}
-      ${renderRound(r16Rrev,'→ R16', 'r16', {indexBase: r16L.length})}
-      ${renderRound(r32Rrev,'→ R32', 'r32', {indexBase: r32L.length})}
+      ${renderRound(sfR,    '→ SF',  'sf')}
+      ${renderRound(qfRrev, '→ QF',  'qf')}
+      ${renderRound(r16Rrev,'→ R16', 'r16')}
+      ${renderRound(r32Rrev,'→ R32', 'r32')}
     </div>
   `;
 
