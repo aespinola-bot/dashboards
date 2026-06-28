@@ -2842,18 +2842,28 @@ const LOCKED_R32 = [
 ];
 
 function buildR32(src) {
-  // If the entire group stage has been played for real (and src matches the
-  // actuals — which is true for Real Progress mode and full-real Hybrid),
-  // use FIFA's officially locked R32 draw instead of computing it.
-  const allRealMatchesPlayed = MATCHES.every(m => m.actual);
-  const srcMatchesActuals = allRealMatchesPlayed && MATCHES.every(m => {
-    const s = src[m.id];
-    return s && s[0] === m.actual[0] && s[1] === m.actual[1];
+  // Build group tables once.
+  const groupTables = {};
+  Object.keys(GROUPS).forEach(g => { groupTables[g] = computeSimStandings(g, src); });
+
+  // If the computed group winners + runners-up match FIFA's officially-drawn
+  // R32 bracket, use the locked pairings instead of constraint-solving the
+  // 3rd-place assignment (which FIFA resolves via a fixed lookup table, not
+  // pure constraint satisfaction).
+  const matchesLockedDraw = LOCKED_R32.every(p => {
+    const ht = groupTables[p.ga];
+    const at = groupTables[p.gb];
+    if (!ht || !at) return false;
+    // Home is always a 1st (Mexico, France, ...) or 2nd-place in 2X-vs-2Y matches.
+    // Determine expected slot by checking which row's team matches.
+    const inTop2Home = ht.slice(0, 2).some(r => r.team === p.home);
+    const isThirdHome = ht[2] && ht[2].team === p.home;
+    const inTop2Away = at.slice(0, 2).some(r => r.team === p.away);
+    const isThirdAway = at[2] && at[2].team === p.away;
+    return (inTop2Home || isThirdHome) && (inTop2Away || isThirdAway);
   });
-  if (srcMatchesActuals) {
-    // Build the standings tables anyway so KO simulation has the right group context.
-    const groupTables = {};
-    Object.keys(GROUPS).forEach(g => { groupTables[g] = computeSimStandings(g, src); });
+
+  if (matchesLockedDraw) {
     const findRow = (group, team) =>
       (groupTables[group] || []).find(r => r.team === team)
       || { team, group, Pts: 0, GD: 0, GF: 0 };
@@ -2865,13 +2875,10 @@ function buildR32(src) {
   }
 
   // ---- Otherwise fall back to the official-pairings constraint solver ----
-  // Compute each group's full table once
-  const groupTables = {};
   const allThirds = [];
   Object.keys(GROUPS).forEach(g => {
-    const t = computeSimStandings(g, src);
-    groupTables[g] = t;
-    if (t[2]) allThirds.push(t[2]);
+    const t = groupTables[g];
+    if (t && t[2]) allThirds.push(t[2]);
   });
   // Best 8 thirds by Pts -> GD -> GF
   const bestThirds = allThirds
