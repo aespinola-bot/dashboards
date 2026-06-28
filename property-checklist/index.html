@@ -1,619 +1,804 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Property Due Diligence · The Buyer's Field Guide</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<title>Property Due Diligence — Home-buying assessment generator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   :root{
-    --bg-0:#0a0e1a; --bg-1:#0f1424; --bg-2:#161c30; --bg-3:#1f2740; --border:#2a3556;
-    --text:#e8ecf5; --text-dim:#a8b2cc; --muted:#6b7794;
-    --accent:#8b5cf6; --accent-glow:#a78bfa; --pink:#ec4899;
-    --cyan:#06b6d4; --green:#10b981; --orange:#f97316; --yellow:#facc15; --red:#ef4444;
+    --bg:#0a0e1c; --panel:#0f1530; --border:#2a3556; --text:#e8ecf5; --dim:#94a3b8;
+    --accent:#8b5cf6; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444; --info:#06b6d4;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{
-    font-family:'Inter',system-ui,sans-serif;background:var(--bg-0);color:var(--text);min-height:100vh;line-height:1.55;
-    background:
-      radial-gradient(900px 600px at 12% -10%, rgba(139,92,246,.18), transparent 60%),
-      radial-gradient(900px 600px at 110% 10%, rgba(6,182,212,.14), transparent 60%),
-      radial-gradient(800px 600px at 50% 120%, rgba(139,92,246,.10), transparent 60%),
-      var(--bg-0);
-  }
+  body{font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding:32px 20px 80px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{margin-bottom:28px;border-bottom:1px solid var(--border);padding-bottom:20px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;font:600 11px "JetBrains Mono",ui-monospace,monospace;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px}
+  h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px}
+  .sub{color:var(--dim);font-size:15px}
+  .nav{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 0}
+  .nav a{font:600 11px "JetBrains Mono",ui-monospace,monospace;padding:6px 10px;border:1px solid var(--border);border-radius:6px;color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:0.4px}
+  .nav a:hover{border-color:var(--accent);color:var(--text)}
 
-  .home-pill{position:fixed;top:18px;right:18px;padding:8px 14px;border-radius:999px;
-    background:rgba(15,20,36,.78);backdrop-filter:blur(8px);border:1px solid var(--border);
-    color:#c4b5fd;text-decoration:none;font-size:12px;font-weight:600;z-index:9999}
-  .home-pill:hover{border-color:var(--accent)}
-  @media print{.home-pill,.score-bar,.controls,.toc-pill{display:none}}
+  .search{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:22px;position:relative}
+  .search h2{font-size:16px;margin-bottom:10px;display:flex;gap:8px;align-items:center}
+  .search-row{display:flex;gap:10px;flex-wrap:wrap}
+  .search input[type=text]{flex:1;min-width:280px;background:#0a0e1c;border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:8px;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .search input[type=text]:focus{outline:none;border-color:var(--accent)}
+  .search button{background:var(--accent);color:white;border:0;border-radius:8px;padding:11px 22px;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;letter-spacing:0.2px}
+  .search button:hover{background:#a78bfa}
+  .search button:disabled{background:#475569;cursor:wait}
+  .search .hint{margin-top:8px;font-size:12px;color:var(--dim)}
+  .ac{position:absolute;left:20px;right:20px;top:calc(100% + 4px);background:var(--panel);border:1px solid var(--border);border-radius:8px;max-height:260px;overflow:auto;z-index:30;display:none;box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+  .ac.show{display:block}
+  .ac-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px}
+  .ac-item:last-child{border-bottom:0}
+  .ac-item:hover,.ac-item.active{background:rgba(139,92,246,0.12)}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+  .verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:18px 0 28px}
+  .v-tile{padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
+  .v-tile .label{font:600 10px "JetBrains Mono",ui-monospace,monospace;text-transform:uppercase;letter-spacing:0.6px;color:var(--dim);margin-bottom:6px}
+  .v-tile .val{font-size:22px;font-weight:700}
+  .v-tile.ok .val{color:#34d399}
+  .v-tile.warn .val{color:#fbbf24}
+  .v-tile.bad .val{color:#f87171}
+  .v-tile.info .val{color:#67e8f9}
+  .v-tile .note{color:var(--dim);font-size:12px;margin-top:4px}
 
-  .hero h1{font-size:clamp(28px,4.4vw,48px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px;
-    background:linear-gradient(90deg,#fff 0%,#c4b5fd 60%,#67e8f9 100%);
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero .sub{color:var(--text-dim);font-size:15px;max-width:820px}
-  .hero .meta{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
-
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
-    background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.35);color:#c4b5fd;font-size:11px;font-weight:600}
-  .pill.cy{background:rgba(6,182,212,.12);border-color:rgba(6,182,212,.35);color:#67e8f9}
-  .pill.gn{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:#6ee7b7}
-  .pill.or{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.35);color:#fdba74}
-  .pill.rd{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
-  .pill.yl{background:rgba(250,204,21,.12);border-color:rgba(250,204,21,.4);color:#fde047}
-
-  /* Sticky score bar */
-  .score-bar{position:sticky;top:0;z-index:80;margin:24px -24px 22px;padding:14px 24px;
-    background:rgba(10,14,26,.85);backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--border);
-    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
-  .score-bar .num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px}
-  .score-bar .num .small{font-size:13px;color:var(--muted)}
-  .score-bar .verdict{font-size:13px;color:var(--text-dim);font-weight:600}
-  .bar{height:10px;border-radius:6px;background:var(--bg-3);overflow:hidden;position:relative}
-  .bar > div{height:100%;background:linear-gradient(90deg,#ef4444 0%,#f97316 33%,#facc15 60%,#10b981 100%);
-    width:0%;transition:width .25s ease}
-
-  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
-  .btn{padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);
-    color:var(--text);font-weight:600;font-size:12px;cursor:pointer;font-family:inherit}
-  .btn:hover{border-color:var(--accent)}
-  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#0a0e1a;border:none}
-  .btn.danger{color:#fca5a5;border-color:rgba(239,68,68,.35)}
-
-  /* TOC */
-  .toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:18px 0 22px}
-  .toc a{display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:11px 14px;border-radius:10px;background:var(--bg-2);border:1px solid var(--border);
-    color:var(--text);text-decoration:none;font-size:13px;font-weight:600}
-  .toc a:hover{border-color:var(--accent)}
-  .toc a .pct{font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12px}
-
-  .section{background:linear-gradient(180deg,var(--bg-1),var(--bg-2));border:1px solid var(--border);
-    border-radius:18px;padding:22px;margin:18px 0;scroll-margin-top:90px}
-  .section h2{font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:6px}
-  .section h2 .ico{font-size:22px}
-  .section h2 .w{margin-left:auto;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:600}
-  .section .lead{color:var(--text-dim);font-size:13.5px;margin-bottom:14px}
-  .section h3{font-size:14px;font-weight:700;color:var(--accent-glow);margin:16px 0 8px;
-    text-transform:uppercase;letter-spacing:.08em;font-size:11.5px}
-
-  .items{display:grid;grid-template-columns:1fr;gap:6px}
-  .item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;
-    padding:10px 12px;border-radius:10px;background:var(--bg-2);border:1px solid var(--border)}
-  .item.checked{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.35)}
-  .item.skipped{opacity:.45}
-  .item .cb{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);margin-top:2px}
-  .item .lbl{font-size:13.5px}
-  .item .lbl b{color:var(--text);font-weight:700;display:block;margin-bottom:2px}
-  .item .lbl span{color:var(--text-dim);font-size:12.5px}
-  .item .wt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;margin-top:3px}
-
-  /* Cards inside sections (narrative content) */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:10px 0 6px}
-  .card{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px}
-  .card b{display:block;color:var(--text);font-weight:700;font-size:13.5px;margin-bottom:4px}
-  .card span{color:var(--text-dim);font-size:12.5px}
-
-  /* Red flag callouts */
-  .red-flag{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);
-    border-radius:10px;padding:10px 12px;font-size:12.5px;color:#fecaca;margin:6px 0}
-  .red-flag b{color:#fca5a5}
-
-  .pro-tip{background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.3);
-    border-radius:10px;padding:10px 12px;font-size:12.5px;color:#bef0fb;margin:6px 0}
-  .pro-tip b{color:#67e8f9}
-
-  /* Floating jump-to-top */
-  .toc-pill{position:fixed;bottom:18px;right:18px;padding:9px 14px;border-radius:999px;
-    background:rgba(15,20,36,.85);backdrop-filter:blur(8px);border:1px solid var(--border);
-    color:#c4b5fd;text-decoration:none;font-size:12px;font-weight:600;z-index:9998}
-  .toc-pill:hover{border-color:var(--accent)}
-
-  .footer{color:var(--muted);font-size:12px;margin-top:32px;text-align:center;line-height:1.7}
-
-  @media(max-width:640px){
-    .wrap{padding:32px 14px 60px}
-    .score-bar{margin:18px -14px 18px;padding:12px 14px;grid-template-columns:auto 1fr;gap:10px}
-    .score-bar .verdict{grid-column:1 / -1;font-size:12px}
-    .section{padding:16px}
-    .item{grid-template-columns:auto 1fr;gap:10px;padding:10px}
-    .item .wt{grid-column:2;justify-self:start;margin-top:0}
-  }
-
-  @media print{
-    body{background:#fff;color:#000}
-    .section{background:#fff;border:1px solid #ccc;break-inside:avoid;color:#000}
-    .item{background:#fff;border:1px solid #ddd;color:#000}
-    .item .lbl b, .item .lbl span{color:#000}
-    .card{background:#fff;border:1px solid #ddd;color:#000}
-    .card b{color:#000}
-    .card span{color:#333}
-    .hero h1{color:#000 !important;-webkit-text-fill-color:#000}
-    .red-flag,.pro-tip{color:#000;background:#f9f9f9;border-color:#ccc}
-  }
+  section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:18px;scroll-margin-top:20px}
+  h2{font-size:19px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  h2 .tag{font:600 10px "JetBrains Mono",ui-monospace,monospace;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;padding:3px 8px;border:1px solid rgba(139,92,246,0.4);border-radius:50px;background:rgba(139,92,246,0.08)}
+  h3{font-size:14px;font-weight:700;margin:14px 0 6px;color:#cbd5e1;text-transform:uppercase;letter-spacing:0.4px}
+  .hint{color:var(--dim);font-size:13px;margin-bottom:10px}
+  p{margin:6px 0}
+  ul,ol{padding-left:22px;margin:6px 0}
+  li{margin:3px 0}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .row{padding:12px 0;border-bottom:1px dashed var(--border);display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .row:last-child{border-bottom:0}
+  .row .k{color:var(--dim);font-size:13px;min-width:200px}
+  .row .v{font-weight:600;flex:1}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+  th{font:600 11px "JetBrains Mono",ui-monospace,monospace;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);border-bottom:1px solid var(--accent)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:50px;font:600 11px "JetBrains Mono",ui-monospace,monospace;letter-spacing:0.3px}
+  .pill.ok{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.4)}
+  .pill.warn{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)}
+  .pill.bad{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.4)}
+  .pill.info{background:rgba(6,182,212,0.15);color:#67e8f9;border:1px solid rgba(6,182,212,0.4)}
+  .pill.gray{background:rgba(148,163,184,0.12);color:var(--dim);border:1px solid rgba(148,163,184,0.3)}
+  a{color:#a78bfa;text-decoration:none;border-bottom:1px dotted rgba(167,139,250,0.5)}
+  a:hover{color:#c4b5fd}
+  .note-card{padding:12px 14px;border-left:3px solid var(--accent);background:rgba(139,92,246,0.06);border-radius:6px;margin:10px 0;font-size:13px;color:#cbd5e1}
+  .warn-card{padding:12px 14px;border-left:3px solid var(--warn);background:rgba(245,158,11,0.07);border-radius:6px;margin:10px 0;font-size:13px}
+  .bad-card{padding:12px 14px;border-left:3px solid var(--bad);background:rgba(239,68,68,0.07);border-radius:6px;margin:10px 0;font-size:13px}
+  .ok-card{padding:12px 14px;border-left:3px solid var(--ok);background:rgba(16,185,129,0.07);border-radius:6px;margin:10px 0;font-size:13px}
+  .checklist li{list-style:none;padding-left:24px;position:relative;margin:5px 0}
+  .checklist li::before{content:"☐";position:absolute;left:0;color:var(--accent);font-weight:700}
+  .checklist li.done::before{content:"✅"}
+  .calc{font-family:"JetBrains Mono",ui-monospace,monospace;background:rgba(0,0,0,0.25);padding:10px 12px;border-radius:6px;font-size:12.5px;color:#cbd5e1;border:1px solid var(--border);margin:8px 0;white-space:pre-wrap}
+  footer{margin-top:30px;padding-top:20px;border-top:1px solid var(--border);color:var(--dim);font-size:12px;text-align:center}
+  iframe{width:100%;border:1px solid var(--border);border-radius:10px;background:#fff}
+  .qlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .qlinks a{display:inline-block;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;border-bottom:1px solid var(--border)}
+  .qlinks a:hover{border-color:var(--accent)}
+  .err{display:none;margin-top:10px;padding:10px 14px;border-left:3px solid var(--bad);background:rgba(239,68,68,0.08);border-radius:6px;font-size:13px;color:#fecaca}
+  .err.show{display:block}
+  .loading{display:none;margin-top:10px;font-size:13px;color:var(--dim)}
+  .loading.show{display:block}
+  .intro{padding:18px 22px;background:var(--panel);border:1px dashed var(--border);border-radius:14px;color:var(--dim);font-size:13px;margin-bottom:18px}
+  .intro strong{color:var(--text)}
+  @media (max-width:760px){.row .k{min-width:auto}}
 </style>
 </head>
 <body>
-
-<a class="home-pill" href="../">← Back to Dashboards</a>
-
 <div class="wrap">
 
-  <div class="hero">
-    <h1>🔎 Property Due Diligence</h1>
-    <div class="sub">A buyer's field guide for evaluating a house <b>itself</b> — location, lot, structure, systems, environmental risk, and red flags. Every item has a weight; tick what you've verified to build a real-time confidence score. Designed to be used on a phone during showings, printed as a checklist, or both. Nothing here replaces a licensed inspector — it helps you decide whether to write an offer, what to negotiate, and what to walk away from.</div>
-    <div class="meta">
-      <span class="pill">100-point score</span>
-      <span class="pill cy">Auto-saves to this browser</span>
-      <span class="pill gn">Mobile + print-ready</span>
-      <span class="pill or">~140 checks</span>
-    </div>
+<header>
+  <div class="badge"><span>🔎</span> Property due-diligence report generator</div>
+  <h1>Comprehensive home-buying assessment</h1>
+  <div class="sub">Type any U.S. address — we geocode it, detect county + township, and render a 17-section due-diligence report tailored to the location. County-aware for PA; generic everywhere else.</div>
+</header>
+
+<div class="search">
+  <h2>📍 Address</h2>
+  <div class="search-row">
+    <input id="addr" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. 1212 Marietta Dr, Ambler, PA 19002">
+    <button id="go">Generate report</button>
   </div>
-
-  <div class="score-bar">
-    <div class="num"><span id="scoreNum">0</span><span class="small"> / 100</span></div>
-    <div class="bar"><div id="scoreFill"></div></div>
-    <div class="verdict" id="verdictTxt">Start ticking items to build your score</div>
-  </div>
-
-  <div class="controls">
-    <button class="btn" onclick="setAll(true)">✓ Check all</button>
-    <button class="btn" onclick="setAll(false)">○ Uncheck all</button>
-    <button class="btn" onclick="window.print()">🖨️ Print</button>
-    <button class="btn" onclick="exportJson()">⬇ Export JSON</button>
-    <button class="btn danger" onclick="resetState()">↺ Reset</button>
-  </div>
-
-  <div class="toc" id="toc"></div>
-
-  <!-- ================================================================ -->
-  <!-- SECTION DEFINITIONS                                                -->
-  <!-- ================================================================ -->
-  <div id="sections"></div>
-
-  <div class="footer">
-    Field-tested checklist · drafted Jun 2026 · Tomas Espinola · this tool is informational and does not replace professional inspection, legal, or appraisal advice.
-  </div>
+  <div class="ac" id="acList"></div>
+  <div class="hint">U.S. addresses only. We use the free US Census Geocoder. Your last address is remembered in this browser.</div>
+  <div id="err" class="err"></div>
+  <div id="loading" class="loading">⏳ Geocoding address…</div>
 </div>
 
-<a class="toc-pill" href="#toc">↑ Top</a>
+<div id="intro" class="intro">
+  <strong>About this report.</strong> Type any U.S. street address above and click <em>Generate report</em>. The dashboard will geocode the address, detect the county and township via the US Census Geocoder, then render a 17-section due-diligence report — verdict tiles, location profile, traffic, schools, property taxes (county-specific for major PA counties), mortgage math, insurance, PFAS contamination flag (only for Horsham, PA), other environmental hazards, utilities, crime, commute, HOA &amp; zoning, the full inspection package, PA-side closing costs, resale outlook, and a printable buyer checklist. Nothing is sent to a server we control — geocoding goes straight to the Census Bureau and OpenStreetMap. Your last-used address is stored in this browser's localStorage so the report restores on revisit.
+</div>
+
+<div id="report"></div>
+
+<footer id="foot">
+  Powered by US Census Geocoder · OpenStreetMap · FEMA · EPA · public-source intelligence. <strong>Not legal, tax, financial, or engineering advice</strong> — verify every figure and consult licensed professionals before any transaction.
+</footer>
+</div>
 
 <script>
-// ============================================================
-// DATA: every section, every item, with weights (0-100 total)
-// ============================================================
-const SECTIONS = [
-  {
-    id: 'location',
-    icon: '📍',
-    title: 'Location & Neighborhood',
-    weight: 14,
-    lead: 'You can fix a kitchen. You cannot fix the lot under the house or the street it sits on. Location is the only line item with permanent gravity.',
-    blocks: [
-      { kind:'cards', cards:[
-        {b:'The "drive it 4 times" rule', s:'Visit at weekday rush hour, weekday 9pm, Saturday afternoon, and Sunday morning. Different street, different smell, different noise floor, different neighbors visible.'},
-        {b:'Distance to your real life', s:'Map: commute (peak), grocery, urgent care, gym, school, airport. Anything > 25 min you do 5×/week is a tax you pay forever.'},
-        {b:'School quality (even if no kids)', s:'Drives resale. Pull GreatSchools + state report-card scores for the assigned elementary/middle/high — assigned, not nearest.'},
-      ]},
-      { kind:'h3', t:'Things you must look up'},
-      { kind:'items', items:[
-        ['flood', 'FEMA flood zone (msc.fema.gov)', 'Zone A/AE/V = mandatory flood insurance, often $1k–$5k+/yr. Even Zone X "shaded" floods.', 2],
-        ['wildfire', 'Wildfire risk (wildfirerisk.org)', 'Drives insurance availability — some carriers have stopped writing new policies in high-risk CA/OR/AZ tracts.', 2],
-        ['quake', 'Earthquake / liquefaction / landslide zone', 'USGS + state geologic survey maps. Liquefaction needs foundation review.', 1],
-        ['radonzone', 'EPA radon zone (1/2/3) for the county', 'Zone 1 counties = test before closing, non-negotiable.', 1],
-        ['crime', 'Crime heatmap (3 sources, not just one)', 'Cross-check CrimeMapping, SpotCrime, and the local PD beat reports. Look at trend, not just snapshot.', 1],
-        ['noise', 'Airport / rail / highway / industrial noise', 'Pull FAA noise contours and DOT traffic counts. Test on-site with phone dB meter at 7am, 7pm, 11pm.', 1],
-        ['develop', 'Planned future development (city planning portal)', 'New road, transit line, apartment block, or rezoning within 1/2 mile changes the property in 3-5 years.', 1],
-        ['water', 'Water source & utility', 'Municipal vs. well. If well: test for nitrates, bacteria, arsenic, hardness. Ask depth and recovery rate.', 1],
-        ['sewer', 'Sewer vs. septic', 'Septic = pump every 3-5y, $400-$800; failed drainfield = $15k-$40k replacement.', 1],
-        ['hoa', 'HOA / CC&R restrictions and reserves', 'Read the actual covenants. Check reserve study — underfunded HOA = special assessment risk.', 1],
-        ['tax', 'Property tax rate + reassessment trigger', 'Some states reassess on sale (CA, OR have caps; TX, IL do not). Budget the post-purchase number, not the seller\'s.', 1],
-        ['power', 'Power grid reliability + outage history', 'EIA outage data + PowerOutage.us. Rural PSPS shutoffs in CA can hit 5-10 days/yr.', 1],
-      ]},
-      { kind:'red-flag', t:'Red flag', body:'Three "for sale" signs visible from the front door. Either the neighborhood is turning over fast, or there\'s a hidden reason long-timers are leaving.'},
-    ]
-  },
+"use strict";
+const $ = (s,r) => (r||document).querySelector(s);
+const esc = (s) => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const enc = encodeURIComponent;
 
-  {
-    id: 'lot',
-    icon: '🗺️',
-    title: 'Lot & Site',
-    weight: 8,
-    lead: 'The piece of dirt is non-negotiable — survey it like you\'re buying just the dirt.',
-    blocks: [
-      { kind:'items', items:[
-        ['survey', 'Get a current survey (or order one)', 'Confirms lot lines, easements, encroachments. Title insurance often excludes "matters a survey would reveal."', 1],
-        ['slope', 'Slope & drainage away from the house', 'Ground should drop ≥ 6" over first 10 ft. Pooling near foundation = future leak.', 1],
-        ['orient', 'Solar orientation', 'South-facing back yard = warm patio + solar potential. North-facing = mossy roof, ice patches.', 1],
-        ['trees', 'Mature trees within 20 ft of structure', 'Root intrusion to sewer; limbs over roof; protected-species rules (you can\'t remove without permit).', 1],
-        ['easements', 'Easements (utility, access, drainage)', 'You cannot build a pool/shed/fence on an easement. Pull from county GIS.', 1],
-        ['setback', 'Setback compliance for any existing structures', 'Garage, shed, fence — if non-conforming, your lender or insurer may flag it.', 1],
-        ['fence', 'Fence on the property line (not 6 ft inside it)', 'Common: prior owner built inside the line, lost de-facto 1-2 ft to neighbor.', 1],
-        ['encroach', 'No encroachments from neighbors', 'Driveway, AC pad, fence, retaining wall partially on your lot = open legal dispute.', 1],
-      ]},
-      { kind:'pro-tip', t:'Pro tip', body:'Walk the property line yourself with the survey in hand. Drop pins in Google Earth on each corner pin — saves hours of "where exactly does my yard end?" later.'},
-    ]
-  },
-
-  {
-    id: 'exterior',
-    icon: '🏠',
-    title: 'Exterior Structure',
-    weight: 12,
-    lead: 'The envelope. Roof, walls, foundation, drainage — repair tickets here are 4-5 figures, not 3.',
-    blocks: [
-      { kind:'h3', t:'Roof'},
-      { kind:'items', items:[
-        ['roof-age', 'Roof age & remaining life (ask + check permits)', 'Asphalt: 20-25y. Comp shingle: 25-30y. Tile: 50y+. Metal: 40-70y. A 22-year-old asphalt roof = price negotiation.', 2],
-        ['roof-shingle', 'No curled, missing, or granule-stripped shingles', 'Curled = end of life. Granules in gutter = end of life.', 1],
-        ['roof-flash', 'Intact flashing at chimney, vents, valleys, skylights', 'This is where 80% of leaks start, not the field of the roof.', 1],
-        ['roof-sag', 'No sagging ridgeline or visible deflection', 'Sag = framing or sheathing failure, $$$$.', 1],
-      ]},
-      { kind:'h3', t:'Gutters, Drainage, Grading'},
-      { kind:'items', items:[
-        ['gutter', 'Gutters clean, attached, sloped to downspouts', 'Saggy gutter = water against siding/foundation.', 1],
-        ['downspout', 'Downspouts extend ≥ 4 ft from foundation', 'Splash blocks alone are not enough.', 1],
-      ]},
-      { kind:'h3', t:'Foundation'},
-      { kind:'items', items:[
-        ['found-crack', 'No horizontal foundation cracks, stair-step cracks > 1/4", or bowing walls', 'Hairline vertical cracks are normal. Horizontal = soil pressure, possible structural.', 2],
-        ['found-eff', 'No efflorescence (white mineral stains) or active wet spots', 'Indicates water intrusion history.', 1],
-        ['found-grade', 'Soil grade slopes away from foundation 6" / 10 ft', 'Negative grade = water in basement/crawlspace.', 1],
-      ]},
-      { kind:'h3', t:'Siding, Trim, Windows'},
-      { kind:'items', items:[
-        ['siding', 'Siding intact, no soft spots, no rotted trim', 'Probe suspect wood trim with a screwdriver. If it sinks, it\'s rotted.', 1],
-        ['paint', 'Paint not peeling (lead concern if pre-1978)', 'Peeling paint on pre-1978 home triggers EPA RRP rules for any renovation.', 0],
-        ['windows-ext', 'Windows: double-pane, no fogging between panes', 'Fog = failed seal, $400-$800/window to replace insulated glass unit.', 1],
-      ]},
-      { kind:'red-flag', t:'Red flag', body:'Fresh paint on only one wall or only at the foundation line. Could be hiding water staining, efflorescence, or a recent crack repair.'},
-    ]
-  },
-
-  {
-    id: 'interior',
-    icon: '🪜',
-    title: 'Interior Structure',
-    weight: 8,
-    lead: 'Walls, floors, attic, basement. Look for what the staging is trying to distract you from.',
-    blocks: [
-      { kind:'items', items:[
-        ['walls', 'No cracks > 1/8" in drywall above doors/windows', 'Settling cracks reopen; large ones suggest active movement.', 1],
-        ['ceilings', 'No water stains on ceilings (esp. under bathrooms)', 'Even a faint ring = past leak. Ask when it was fixed and what.', 1],
-        ['floors', 'Floors level (use a marble or phone level app)', 'Slope > 1" over 20 ft = investigate foundation/joists.', 1],
-        ['doors', 'Every interior door closes and latches without sticking', 'Sticking doors = framing movement.', 1],
-        ['windows-int', 'Every window opens, closes, and locks', 'Stuck/painted-shut window = potential egress code violation in bedrooms.', 1],
-        ['attic', 'Attic: insulation depth ≥ R-38, no rodent droppings, no daylight through roof deck', 'Cheap insulation upgrade pays back in 3-5 yrs. Droppings = active pest entry.', 1],
-        ['attic-vent', 'Attic ventilation (soffit + ridge or gable)', 'No ventilation = ice dams in cold climates, mold in warm.', 1],
-        ['basement', 'Basement/crawlspace: dry, no musty smell, vapor barrier intact', 'Smell test before disclosure speech. If they ran a dehumidifier today, ask why.', 2],
-        ['stairs', 'Stair handrails secure, treads tight, code-compliant rise/run', 'Loose rail is a liability injury claim waiting.', 0],
-      ]},
-      { kind:'red-flag', t:'Red flag', body:'Throw rugs in odd places, freshly painted basement floor, candles or air fresheners running everywhere. Each one is a cover-up signal until proven otherwise.'},
-    ]
-  },
-
-  {
-    id: 'systems',
-    icon: '⚡',
-    title: 'Major Systems (HVAC / Electrical / Plumbing)',
-    weight: 14,
-    lead: 'Mechanicals. Each system on its own is a $5k–$25k line item if it has to be replaced.',
-    blocks: [
-      { kind:'h3', t:'HVAC'},
-      { kind:'items', items:[
-        ['hvac-age', 'Furnace age + service tag (look on cabinet)', 'Furnace life 15-25y; gas 80% AFUE ones likely due. Check the install date sticker.', 2],
-        ['ac-age', 'AC condenser age + refrigerant type (R-22 vs R-410A vs R-454B)', 'R-22 phased out 2020 — recharging costs $$$. R-410A phasing down 2025-2036.', 2],
-        ['ductwork', 'Visible ducts insulated, sealed, no kinks', 'Leaky ducts can waste 20-30% of heating/cooling.', 1],
-        ['thermostat', 'Thermostat works in heat + cool modes (cycle both during showing)', 'You\'re allowed to test this. Listen for short-cycling.', 1],
-      ]},
-      { kind:'h3', t:'Electrical'},
-      { kind:'items', items:[
-        ['panel-amp', 'Service size ≥ 200 A (or 150 A for small homes)', '100 A panels can\'t handle EV charger + heat pump + induction. Upgrade $2-4k.', 2],
-        ['panel-brand', 'Panel brand is NOT Federal Pacific, Zinsco, or Challenger', 'Known fire-risk panels — many insurers won\'t cover or require replacement.', 2],
-        ['gfci', 'GFCI outlets in kitchen, bath, garage, exterior, laundry', 'Code since the 70s/80s. Test with the button.', 1],
-        ['afci', 'AFCI breakers on bedroom circuits (post-2008)', 'Required by NEC; modern panels usually have them.', 0],
-        ['knob-tube', 'No active knob-and-tube or aluminum branch wiring (pre-1972)', 'Insurance often refuses. Rewire = $8-20k+.', 1],
-        ['outlets', 'Sample-test 5 outlets with a $10 polarity/ground tester', 'Open ground / reverse polarity / hot-neutral reverse = wiring issues.', 1],
-      ]},
-      { kind:'h3', t:'Plumbing'},
-      { kind:'items', items:[
-        ['supply', 'Supply piping material identified (copper / PEX / CPVC / galv. steel / polybutylene)', 'Polybutylene (1978-1995, gray) = uninsurable, replace. Galvanized = 50-70y life, restricts flow.', 2],
-        ['drain', 'Drain piping (cast iron / ABS / PVC). Cast iron > 50y often pitting.', 'Cast iron lateral replacement = $5-15k.', 1],
-        ['pressure', 'Static water pressure 45-75 psi (use a $12 hose-bib gauge)', '> 80 psi blows out fixtures, water heaters, dishwashers prematurely.', 1],
-        ['hot-flow', 'Hot water reaches farthest fixture in < 60 sec, full flow', 'Slow = corroded supply lines.', 1],
-        ['leaks', 'No active leaks under sinks; cabinet floors not warped or stained', 'Open every sink cabinet, run a flashlight.', 1],
-        ['main-shutoff', 'Main water shutoff is accessible and turns freely', 'You will need this in an emergency. If frozen, budget plumber visit.', 0],
-      ]},
-      { kind:'h3', t:'Water heater / Gas'},
-      { kind:'items', items:[
-        ['wh-age', 'Water heater age (decode serial number) + capacity right-sized', 'Tank life 8-12y. Tankless 15-20y. Past life = price negotiation.', 1],
-        ['wh-pan', 'Drip pan + drain line if upstairs/attic install', 'Failed WH without pan = $20k ceiling damage.', 1],
-        ['gas', 'Gas piping is black iron or CSST (bonded), no rubber hoses', 'Unbonded CSST is a lightning fire risk.', 1],
-      ]},
-      { kind:'red-flag', t:'Red flag', body:'Brand-new high-end vanity, but original 1972 toilet next to it. Cosmetic flip — ask what else was lipsticked over.'},
-    ]
-  },
-
-  {
-    id: 'kitchenbath',
-    icon: '🛁',
-    title: 'Kitchen & Bath Specifics',
-    weight: 6,
-    lead: 'Wet rooms hide the worst surprises. Get specific.',
-    blocks: [
-      { kind:'items', items:[
-        ['kit-vent', 'Kitchen range hood vents OUTSIDE (not recirculating)', 'Recirc hoods do nothing for moisture or combustion byproducts.', 1],
-        ['kit-disp', 'Garbage disposal runs without leaks or grinding', 'Cheap to replace, but indicative.', 0],
-        ['kit-dishw', 'Dishwasher: run a cycle. Check air gap or high loop on drain.', 'Missing high loop = code/health violation, easy fix.', 0],
-        ['bath-fan', 'Every bathroom has a working exhaust fan vented outside (not into attic)', 'Fan-into-attic = mold + rotted sheathing.', 1],
-        ['bath-caulk', 'Caulk + grout at tubs/showers intact, no soft spots in subfloor near toilet', 'Soft floor at toilet = wax-seal failure + subfloor rot.', 1],
-        ['bath-supply', 'Toilet supply lines are braided steel (not white plastic)', 'Plastic ones rupture; #1 cause of finished-floor flood claims.', 1],
-        ['bath-water', 'Run shower + flush toilet simultaneously — pressure should hold', 'Big pressure drop = undersized supply lines.', 1],
-        ['laundry', 'Laundry: braided steel hoses (not rubber); dryer vent solid metal, ≤ 25 ft', 'Rubber hose burst = $$$$. Lint-clogged vinyl dryer vent = fire.', 1],
-      ]},
-    ]
-  },
-
-  {
-    id: 'environmental',
-    icon: '☣️',
-    title: 'Environmental & Health Hazards',
-    weight: 10,
-    lead: 'Disclosure-form items are not the whole story. Some only show up if you test.',
-    blocks: [
-      { kind:'items', items:[
-        ['radon', 'Radon test (short-term 48-96 hr, < 4 pCi/L)', '#1 lung-cancer cause after smoking. Mitigation system $1-2k.', 2],
-        ['lead', 'Lead paint disclosure (pre-1978 federal requirement)', 'EPA RRP rules apply to any renovation, $$ certified contractor only.', 1],
-        ['asbestos', 'Asbestos: popcorn ceilings, 9x9 floor tile, pipe insulation (pre-1985)', 'Encapsulation often safer than removal. Don\'t scrape "popcorn" yourself.', 1],
-        ['mold', 'No visible mold; no musty smell; HVAC pan clean', 'Smell-test every room. Active mold = hire a remediation contractor for a quote pre-close.', 1],
-        ['oil-tank', 'No abandoned underground oil tank (UST)', 'Pre-1970s NE/Mid-Atlantic homes. Removal $3-10k; leaked tank = $20-100k cleanup.', 1],
-        ['termite', 'Active or past termite/wood-destroying-organism (WDO) report', 'WDO inspection is separate from general inspection in most states. Required by VA loans.', 1],
-        ['meth', 'Meth-lab / grow-op history (state registries + neighbors)', 'Remediation $20-100k. Some states require disclosure.', 1],
-        ['well-water', 'If well: lab test for coliform, E. coli, nitrates, arsenic, lead, hardness', 'Required by most lenders anyway.', 1],
-        ['septic', 'If septic: dye test + pump-out + drainfield inspection within 30 days', 'Failed drainfield = $15-40k.', 1],
-      ]},
-      { kind:'pro-tip', t:'Pro tip', body:'Order a CLUE report (Comprehensive Loss Underwriting Exchange) on the property. Shows last 5-7 yrs of insurance claims — water, fire, theft, liability. Sellers can request it for free; you can require it as a contingency.'},
-    ]
-  },
-
-  {
-    id: 'redflags',
-    icon: '🚩',
-    title: 'Cover-Up & Red-Flag Sweep',
-    weight: 6,
-    lead: 'A walk-through pattern recognition pass. Each individual flag is fine; clusters are not.',
-    blocks: [
-      { kind:'items', items:[
-        ['paint-fresh', 'Fresh paint only in basement, garage, or one specific wall', 'Spot-painting = covering stain/crack/mold.', 1],
-        ['dehu', 'Dehumidifier running during a dry showing', 'Active moisture problem.', 1],
-        ['candles', 'Multiple plug-in air fresheners or burning candles', 'Masking smell — pets, mold, smoke, sewer gas.', 1],
-        ['rug', 'Throw rugs in weird spots (middle of basement, in front of WH)', 'Covering stain or floor damage.', 1],
-        ['furniture', 'Heavy furniture mid-wall or in front of corners', 'Covering crack, outlet damage, or stain.', 1],
-        ['outlets-new', 'Mismatched/new outlets in one room only', 'DIY rewire — quality unknown.', 1],
-        ['recent-flip', 'House sold < 18 mo ago, now back on market', 'Possible flip with cosmetic work over deferred maintenance.', 1],
-        ['days-on-market', 'High days-on-market with multiple price cuts in active market', 'Something is keeping buyers away after inspection. Ask listing agent why prior offers fell through.', 1],
-        ['agent-script', 'Listing agent unusually rehearsed on "all the recent updates"', 'Updates = the easy fixes. Ask what was NOT updated.', 0],
-      ]},
-    ]
-  },
-
-  {
-    id: 'docs',
-    icon: '📑',
-    title: 'Paperwork & Documentation',
-    weight: 10,
-    lead: 'What the seller hands you (or refuses to) tells you almost as much as the house does.',
-    blocks: [
-      { kind:'items', items:[
-        ['disclosure', 'Seller\'s Property Disclosure Statement — read every line', 'In most states, "Unknown" answers are a legal shield for the seller. Push for specifics.', 2],
-        ['permits', 'Permit history matches what you see (addition, deck, finished basement, AC)', 'Pull from city/county portal. Unpermitted work = insurance refusal + forced removal risk.', 2],
-        ['hoa-docs', 'HOA: CC&Rs, bylaws, last 2 yrs minutes, reserve study, current dues + assessments', 'Reserve < 70% funded = future special assessment.', 1],
-        ['title', 'Preliminary title report — no liens, encumbrances, or boundary disputes', 'Mechanic\'s liens from unpaid contractors are common surprise.', 1],
-        ['survey-doc', 'Existing survey OR title contains "survey exception"', 'No survey + survey exception = title insurance won\'t cover boundary issues.', 1],
-        ['clue', 'CLUE report (5-7y insurance claim history)', 'Water/mold/fire claims raise your premium and may trigger non-renewal.', 1],
-        ['insure-quote', 'Bind a homeowner\'s insurance quote BEFORE removing contingencies', 'In CA/FL/CO, the house may be uninsurable. Don\'t assume.', 1],
-        ['appraisal', 'Appraisal supports the contract price', 'If under, you bring cash, renegotiate, or walk.', 1],
-        ['hoa-litig', 'No pending HOA litigation', 'Lenders may refuse to lend in a community with active structural litigation.', 0],
-      ]},
-    ]
-  },
-
-  {
-    id: 'inspection',
-    icon: '🔬',
-    title: 'Inspection Strategy',
-    weight: 8,
-    lead: 'A general inspector won\'t open walls, climb steep roofs, or scope sewer lines. Specialty inspections are where deal-killers actually surface.',
-    blocks: [
-      { kind:'cards', cards:[
-        {b:'General inspection ($400-$800)', s:'Visual, non-invasive. Required baseline. Walk the inspection with them — you\'ll learn more in 3 hrs than 3 weeks of reading.'},
-        {b:'Sewer scope ($150-$300)', s:'Camera the lateral from house to municipal main. Catches root intrusion, bellies, cracked clay pipe. CRITICAL for any home > 30y.'},
-        {b:'Chimney scope ($150-$300)', s:'Level 2 NFPA scan with camera. Catches cracked flue tiles — $5-15k reline.'},
-        {b:'Radon test ($25-$200)', s:'Short-term canister or continuous monitor 48-96 hrs. Mitigation $1-2k.'},
-        {b:'Pest / WDO ($75-$200)', s:'Termites, carpenter ants, powder-post beetles. Required by VA loans.'},
-        {b:'Pool / spa ($150-$400)', s:'Equipment, plumbing, structure, safety fence. Pool replaster = $8-15k.'},
-        {b:'Structural engineer ($400-$1500)', s:'Order this if general inspector flags foundation, framing, or settlement. Cheapest insurance in the deal.'},
-        {b:'Mold assessment ($300-$700)', s:'Order if smell or visible growth — assessor (not remediator) for unbiased opinion.'},
-        {b:'Asbestos / lead testing ($200-$500)', s:'Pre-1980 only. Required if planning renovation.'},
-      ]},
-      { kind:'items', items:[
-        ['attend', 'You attend the inspection in person', 'Non-negotiable. The report tells you 30% of what the inspector saw.', 2],
-        ['contingency', 'Inspection contingency in contract with adequate window (7-14 days)', 'Without it you can\'t walk over findings without forfeiting earnest money.', 2],
-        ['sewer-scope', 'Sewer scope ordered (home > 30y or trees in yard)', 'Single highest-ROI specialty inspection.', 1],
-        ['specialty', 'Specialty inspections ordered per above triggers', 'Pool, chimney, structural, mold as applicable.', 1],
-        ['re-inspect', 'Re-inspection scheduled after seller repairs', 'Verify work was done AND done by licensed contractor with receipts.', 1],
-        ['walkthru', 'Final walk-through within 24 hrs of closing', 'Verify nothing broke since inspection, all included fixtures/appliances still present, system\'s on.', 1],
-      ]},
-    ]
-  },
-
-  {
-    id: 'pricing',
-    icon: '💰',
-    title: 'Pricing & Comp Due Diligence',
-    weight: 4,
-    lead: 'You\'re evaluating the property, but you\'re paying for the comp.',
-    blocks: [
-      { kind:'items', items:[
-        ['comps', 'Pull 3-5 SOLD comps within 0.5 mi, last 90 days, similar sqft / bed / bath / lot', 'Active listings are aspirational; sold = market.', 1],
-        ['psqft', 'Price-per-sqft vs. neighborhood median', 'Above? Better house. Below? Why?', 1],
-        ['dom', 'Days-on-market trend for the zip', 'Rising DOM = leverage to negotiate.', 1],
-        ['price-cuts', 'List-to-sale ratio in this neighborhood', '< 97% = buyer\'s market; > 100% = sellers getting over-ask.', 1],
-      ]},
-    ]
-  },
-
-];
-
-// ============================================================
-// RENDER
-// ============================================================
-const STORAGE_KEY = 'property-checklist-state-v1';
-let STATE = loadState();
-
-function loadState(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ return {}; }
-}
-function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); }catch(e){} }
-
-function renderTOC(){
-  const toc = document.getElementById('toc');
-  toc.innerHTML = SECTIONS.map(s => `
-    <a href="#${s.id}">
-      <span>${s.icon} ${s.title}</span>
-      <span class="pct" id="pct-${s.id}">0/0</span>
-    </a>`).join('');
-}
-
-function renderSections(){
-  const root = document.getElementById('sections');
-  root.innerHTML = SECTIONS.map(s => {
-    const blocks = s.blocks.map(b => {
-      if(b.kind === 'cards'){
-        return `<div class="cards">${b.cards.map(c => `<div class="card"><b>${c.b}</b><span>${c.s}</span></div>`).join('')}</div>`;
-      }
-      if(b.kind === 'h3'){
-        return `<h3>${b.t}</h3>`;
-      }
-      if(b.kind === 'red-flag'){
-        return `<div class="red-flag"><b>🚩 ${b.t}.</b> ${b.body}</div>`;
-      }
-      if(b.kind === 'pro-tip'){
-        return `<div class="pro-tip"><b>💡 ${b.t}.</b> ${b.body}</div>`;
-      }
-      if(b.kind === 'items'){
-        return `<div class="items">${b.items.map(it => {
-          const [id, title, sub, wt] = it;
-          const fid = `${s.id}__${id}`;
-          const checked = STATE[fid] ? 'checked' : '';
-          const wlabel = wt > 0 ? `${wt} pt${wt>1?'s':''}` : `info`;
-          return `<label class="item" data-id="${fid}" data-sec="${s.id}" data-wt="${wt}">
-            <input type="checkbox" class="cb" ${checked} onchange="onToggle('${fid}','${s.id}',${wt}, this)">
-            <div class="lbl"><b>${title}</b><span>${sub}</span></div>
-            <div class="wt">${wlabel}</div>
-          </label>`;
-        }).join('')}</div>`;
-      }
-      return '';
-    }).join('');
-    return `<div class="section" id="${s.id}">
-      <h2><span class="ico">${s.icon}</span> ${s.title} <span class="w">weight: ${s.weight} pts</span></h2>
-      <div class="lead">${s.lead}</div>
-      ${blocks}
-    </div>`;
-  }).join('');
-  // mark checked items
-  document.querySelectorAll('.item').forEach(el => {
-    if(STATE[el.dataset.id]) el.classList.add('checked');
+// ---------- JSONP helper (Census Geocoder has no CORS) ----------
+let jsonpId = 0;
+function jsonp(url, callbackParam='callback', timeout=15000){
+  return new Promise((resolve, reject) => {
+    const cbName = '__jp_' + (++jsonpId) + '_' + Date.now();
+    const script = document.createElement('script');
+    const sep = url.includes('?') ? '&' : '?';
+    let done = false;
+    const cleanup = () => { if(done) return; done=true; delete window[cbName]; script.remove(); clearTimeout(t); };
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('JSONP load error')); };
+    const t = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout')); }, timeout);
+    script.src = url + sep + callbackParam + '=' + cbName;
+    document.head.appendChild(script);
   });
 }
 
-function onToggle(fid, secId, wt, cb){
-  if(cb.checked) STATE[fid] = true; else delete STATE[fid];
-  saveState();
-  const el = document.querySelector(`.item[data-id="${fid}"]`);
-  if(el) el.classList.toggle('checked', cb.checked);
-  recalc();
+// ---------- Geocode via Census ----------
+async function geocode(addr){
+  const url = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+    + '?address=' + enc(addr)
+    + '&benchmark=Public_AR_Current&vintage=Current_Current&layers=all&format=jsonp';
+  const j = await jsonp(url, 'callback');
+  const m = j.result && j.result.addressMatches && j.result.addressMatches[0];
+  if (!m) throw new Error('No address match. Try a more specific street + city + state.');
+  const g = m.geographies || {};
+  const tract = g['Census Tracts'] && g['Census Tracts'][0];
+  const county = g['Counties'] && g['Counties'][0];
+  const state = g['States'] && g['States'][0];
+  const zip = g['2020 Census ZIP Code Tabulation Areas'] && g['2020 Census ZIP Code Tabulation Areas'][0];
+  const sub = (g['County Subdivisions'] && g['County Subdivisions'][0])
+           || (g['Incorporated Places'] && g['Incorporated Places'][0])
+           || (g['Census Designated Places'] && g['Census Designated Places'][0]);
+  return {
+    matched: m.matchedAddress,
+    lat: m.coordinates.y,
+    lon: m.coordinates.x,
+    county: (county && county.NAME) || '',
+    countyFips: county && county.GEOID,
+    state: (state && state.STUSAB) || '',
+    stateName: (state && state.NAME) || '',
+    subdivision: (sub && sub.NAME) || '',
+    tract: tract && tract.GEOID,
+    zip: zip && zip.GEOID
+  };
 }
 
-function recalc(){
-  let totalPossible = 0, earned = 0;
-  const perSec = {};
-  SECTIONS.forEach(s => {
-    let sPossible = 0, sEarned = 0, sChecked = 0, sTotal = 0;
-    s.blocks.forEach(b => {
-      if(b.kind !== 'items') return;
-      b.items.forEach(it => {
-        const [id,,,wt] = it;
-        sTotal++;
-        if(wt > 0){
-          sPossible += wt;
-          if(STATE[`${s.id}__${id}`]){ sEarned += wt; sChecked++; }
-        } else {
-          if(STATE[`${s.id}__${id}`]) sChecked++;
-        }
-      });
-    });
-    totalPossible += sPossible; earned += sEarned;
-    perSec[s.id] = { sPossible, sEarned, sChecked, sTotal };
-  });
-  const pct = totalPossible ? Math.round((earned/totalPossible)*100) : 0;
-  document.getElementById('scoreNum').textContent = pct;
-  document.getElementById('scoreFill').style.width = pct + '%';
-  document.getElementById('verdictTxt').textContent = verdict(pct);
-  // update TOC
-  SECTIONS.forEach(s => {
-    const el = document.getElementById('pct-'+s.id);
-    if(el){ el.textContent = `${perSec[s.id].sChecked}/${perSec[s.id].sTotal}`; }
-  });
+// ---------- Address autocomplete via Nominatim ----------
+const acInput = $('#addr');
+const acList = $('#acList');
+let acItems=[], acIndex=-1, acTimer=null, acAbort=null;
+acInput.addEventListener('input', () => {
+  clearTimeout(acTimer);
+  const q = acInput.value.trim();
+  if (q.length < 4){ hideAc(); return; }
+  acTimer = setTimeout(()=>fetchAc(q), 380);
+});
+acInput.addEventListener('keydown', (e) => {
+  if (!acList.classList.contains('show')){
+    if (e.key === 'Enter'){ e.preventDefault(); run(); }
+    return;
+  }
+  if (e.key === 'ArrowDown'){ e.preventDefault(); acIndex=Math.min(acIndex+1,acItems.length-1); paintAc(); }
+  else if (e.key === 'ArrowUp'){ e.preventDefault(); acIndex=Math.max(acIndex-1,-1); paintAc(); }
+  else if (e.key === 'Enter'){
+    e.preventDefault();
+    if (acIndex >= 0){ pickAc(acIndex); } else { hideAc(); run(); }
+  }
+  else if (e.key === 'Escape'){ hideAc(); }
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.search')) hideAc(); });
+
+async function fetchAc(q){
+  if (acAbort) acAbort.abort();
+  acAbort = new AbortController();
+  try {
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=us&limit=7&q=' + enc(q);
+    const r = await fetch(u, {signal: acAbort.signal, headers:{'Accept':'application/json'}});
+    if (!r.ok) return;
+    const arr = await r.json();
+    acItems = (arr||[]).map(f => {
+      const a = f.address || {};
+      const street = [a.house_number, a.road].filter(Boolean).join(' ');
+      const city = a.city || a.town || a.village || a.hamlet || a.borough || a.suburb || a.county;
+      const full = [street, city, a.state, a.postcode].filter(Boolean).join(', ');
+      return { full, display: f.display_name };
+    }).filter(x=>x.full);
+    acIndex = -1;
+    paintAc();
+  } catch(e){}
+}
+function paintAc(){
+  if (!acItems.length){ hideAc(); return; }
+  acList.innerHTML = acItems.map((x,i) => '<div class="ac-item' + (i===acIndex?' active':'') + '" data-i="'+i+'">'+esc(x.full)+'</div>').join('');
+  acList.classList.add('show');
+  acList.querySelectorAll('.ac-item').forEach(el => el.addEventListener('click', () => pickAc(+el.dataset.i)));
+}
+function pickAc(i){ acInput.value = acItems[i].full; hideAc(); run(); }
+function hideAc(){ acList.classList.remove('show'); }
+
+// ---------- County data ----------
+const COUNTY_DATA = {
+  // key: state|county-name-uppercased
+  'PA|MONTGOMERY':{
+    boa:'https://propertyrecords.montcopa.org/', boaName:'Montgomery County BOA',
+    millage:'3.632 mills (2025)',
+    note:'Montgomery County reassessed in 1998 at 100% of 1996 fair market value. Today\u2019s assessed value is roughly 25\u201340% of current market price. Bills issued March (county+twp) and September (school).',
+    homestead:'Homestead exclusion knocks ~$300\u2013500 off school portion if owner-occupied.',
+    appeal:'File assessment appeal by Aug 1 each year.',
+    typBill:'$7,000 \u2013 $10,000 for a $650k market-value SFH',
+    schoolMillage:'~30\u201335 mills',
+    countyMillage:3.632
+  },
+  'PA|BUCKS':{
+    boa:'https://propertyrecords.buckscountyboa.org/', boaName:'Bucks County BOA',
+    millage:'27.45 mills (2025)',
+    note:'Bucks uses a common-level ratio (CLR ~0.13 for 2025) \u2014 multiply assessed value by ~7.7 for rough market value. Reassessment is decades old (1972 base year).',
+    homestead:'Homestead exclusion lowers school portion if owner-occupied.',
+    appeal:'Appeal deadline Aug 1.',
+    typBill:'$6,000 \u2013 $11,000 for a $600k market-value SFH',
+    schoolMillage:'~120\u2013165 mills',
+    countyMillage:27.45
+  },
+  'PA|CHESTER':{
+    boa:'https://www.chesco.org/152/Assessment', boaName:'Chester County Assessment',
+    millage:'~4.55 mills (county)',
+    note:'Chester County last reassessed in 1996; assessed value is generally ~50% of current market.',
+    homestead:'Homestead/farmstead exclusion available.',
+    appeal:'Appeal by Aug 1.',
+    typBill:'$7,500 \u2013 $13,000 for a $700k market-value SFH',
+    schoolMillage:'~25\u201335 mills',
+    countyMillage:4.55
+  },
+  'PA|DELAWARE':{
+    boa:'https://delcorealestate.co.delaware.pa.us/', boaName:'Delaware County BOA',
+    millage:'~5.46 mills (county)',
+    note:'Delaware County did a county-wide reassessment effective 2021 at 100% of fair market value \u2014 assessed values are close to market.',
+    homestead:'Homestead exclusion available.',
+    appeal:'Appeal deadline Sep 1.',
+    typBill:'$6,000 \u2013 $11,000 for a $400k market-value SFH (millage varies widely by district)',
+    schoolMillage:'~20\u201335 mills',
+    countyMillage:5.46
+  },
+  'PA|PHILADELPHIA':{
+    boa:'https://property.phila.gov/', boaName:'Philadelphia OPA',
+    millage:'1.3998% effective (city+school combined, 2025)',
+    note:'Philadelphia has no separate county tax \u2014 city + school district levy together. Assessments are at 100% of market value (OPA).',
+    homestead:'Homestead exemption removes $80,000 from assessed value (apply with OPA).',
+    appeal:'First-level review (FLR) deadline early Oct; formal appeal early Oct.',
+    typBill:'~$4,200 on a $300k assessment; ~$8,400 on a $600k assessment',
+    schoolMillage:'(combined with city)',
+    countyMillage:0,
+    isPhilly:true
+  }
+};
+function countyKey(geo){
+  if (!geo.state || !geo.county) return null;
+  const c = geo.county.replace(/\s+County$/i,'').replace(/\s+City$/i,'').toUpperCase().trim();
+  return geo.state + '|' + c;
+}
+function countyInfo(geo){
+  const k = countyKey(geo);
+  return (k && COUNTY_DATA[k]) || null;
 }
 
-function verdict(pct){
-  if(pct === 0) return 'Start ticking items to build your score';
-  if(pct < 30) return '🛑 Too many unknowns — get more data before writing an offer';
-  if(pct < 55) return '⚠️ Major gaps — order specialty inspections before removing contingencies';
-  if(pct < 75) return '🟡 Solid foundation — clean up open items before closing';
-  if(pct < 90) return '🟢 Confident — minor follow-ups remain';
-  return '✅ Bulletproof due diligence — close with confidence';
+// ---------- School district mapping (subdivision-driven) ----------
+function schoolDistrict(geo){
+  const sub = (geo.subdivision || '').toLowerCase();
+  if (geo.state === 'PA'){
+    if (/horsham township/.test(sub)) return {name:'Hatboro-Horsham School District', tier:'top 10% in PA', site:'https://www.hatboro-horsham.org/'};
+    if (/upper dublin township/.test(sub)) return {name:'Upper Dublin School District', tier:'top 10% in PA', site:'https://www.udsd.org/'};
+    if (/(doylestown|warrington|warwick|buckingham|plumstead) township/.test(sub)) return {name:'Central Bucks School District', tier:'top 5% in PA, largest suburban district', site:'https://www.cbsd.org/'};
+    if (/lower moreland/.test(sub)) return {name:'Lower Moreland Township School District', tier:'top quartile in PA', site:'https://www.lmtsd.org/'};
+    if (/abington township/.test(sub)) return {name:'Abington School District', tier:'top 25% in PA', site:'https://www.abington.k12.pa.us/'};
+    if (/upper moreland/.test(sub)) return {name:'Upper Moreland Township School District', tier:'mid-tier suburban', site:'https://www.umtsd.org/'};
+    if (/whitpain|ambler borough/.test(sub)) return {name:'Wissahickon School District', tier:'top 10% in PA', site:'https://www.wsdweb.org/'};
+    if (/lower gwynedd|upper gwynedd|north wales/.test(sub)) return {name:'Wissahickon or North Penn SD (verify by street)', tier:'top quartile', site:'https://www.greatschools.org/'};
+    if (/philadelphia city/i.test(geo.county||'')) return {name:'School District of Philadelphia (verify catchment)', tier:'highly variable \u2014 catchment-specific', site:'https://www.philasd.org/'};
+  }
+  return null;
 }
 
-function setAll(v){
-  SECTIONS.forEach(s => s.blocks.forEach(b => {
-    if(b.kind !== 'items') return;
-    b.items.forEach(it => {
-      const fid = `${s.id}__${it[0]}`;
-      if(v) STATE[fid] = true; else delete STATE[fid];
-    });
-  }));
-  saveState(); renderSections(); recalc();
+// ---------- Render ----------
+function renderReport(geo){
+  const inPA = geo.state === 'PA';
+  const c = countyInfo(geo);
+  const subShort = (geo.subdivision || '').replace(/\s+(township|borough|city|town|village)/i, ' $1');
+  const cnty = (geo.county || '').replace(/\s+County$/i,'');
+  const sd = schoolDistrict(geo);
+  const sub = (geo.subdivision || '').toLowerCase();
+  const isHorsham = inPA && /horsham township/.test(sub);
+  const isUpperDublin = inPA && /upper dublin township/.test(sub);
+  const isPhilly = c && c.isPhilly;
+  const addrEnc = enc(geo.matched);
+  const addrPlus = geo.matched.replace(/\s+/g,'+').replace(/,/g,'%2C');
+
+  const verdict = inPA ? `
+    <div class="v-tile ok"><div class="label">Schools</div><div class="val">${sd ? esc((sd.tier.split(',')[0])) : 'Verify'}</div><div class="note">${sd ? esc(sd.name) : 'Check GreatSchools by address'}</div></div>
+    <div class="v-tile ok"><div class="label">Safety</div><div class="val">Suburban-low</div><div class="note">${esc(cnty)} County · PA suburb baseline</div></div>
+    <div class="v-tile warn"><div class="label">Taxes</div><div class="val">${isPhilly?'Moderate':'High'}</div><div class="note">${c ? esc(c.typBill) : '1.5\u20132.5% of market typical'}</div></div>
+    ${isHorsham ? '<div class="v-tile bad"><div class="label">PFAS water</div><div class="val">\u26A0 Known issue</div><div class="note">Willow Grove NAS \u2014 see PFAS section</div></div>' : '<div class="v-tile info"><div class="label">Environment</div><div class="val">Check radon</div><div class="note">PA Zone 1 \u2014 always test</div></div>'}
+    <div class="v-tile info"><div class="label">Commute</div><div class="val">Verify</div><div class="note">Drive at 7:45 AM &amp; 5:30 PM before close</div></div>
+    <div class="v-tile ok"><div class="label">Resale</div><div class="val">Strong</div><div class="note">SE PA supply remains constrained</div></div>` : `
+    <div class="v-tile info"><div class="label">Schools</div><div class="val">Verify</div><div class="note">Check GreatSchools.org by address</div></div>
+    <div class="v-tile info"><div class="label">Safety</div><div class="val">Verify</div><div class="note">Check local PD crime dashboard</div></div>
+    <div class="v-tile info"><div class="label">Taxes</div><div class="val">Verify</div><div class="note">${esc(cnty)} County, ${esc(geo.state)}</div></div>
+    <div class="v-tile info"><div class="label">Environment</div><div class="val">Test radon</div><div class="note">Verify EPA radon zone for county</div></div>
+    <div class="v-tile info"><div class="label">Commute</div><div class="val">Drive it</div><div class="note">7:45 AM &amp; 5:30 PM dry runs</div></div>
+    <div class="v-tile info"><div class="label">Resale</div><div class="val">Local</div><div class="note">Pull 12-mo comps before bid</div></div>`;
+
+  const outOfState = !inPA ? `
+  <div class="warn-card" style="margin-bottom:18px">
+    <strong>Out-of-state property.</strong> Much of this report is calibrated to Pennsylvania (county tax structure, PA realty transfer tax, PFAS hotspots, EPA radon zones, PA-specific exemptions). The framework still applies, but verify state-specific figures with a local agent, your title company, and your state's revenue and environmental departments before relying on any number below.
+  </div>` : '';
+
+  const taxesSection = inPA ? (c ? `
+  <section id="taxes">
+    <h2>\u{1F3DB}\uFE0F Property taxes <span class="tag">Recurring cost #1</span></h2>
+    <p class="hint">${esc(c.note)}</p>
+    <table>
+      <tr><th>Component</th><th>Typical millage / rate</th><th>Notes</th></tr>
+      ${isPhilly
+        ? `<tr><td>City + School (combined)</td><td>${esc(c.millage)}</td><td>Applied to 100% market-value assessment</td></tr>`
+        : `<tr><td>Local School District</td><td>${esc(c.schoolMillage)}</td><td>Usually 65\u201375% of total bill</td></tr>
+           <tr><td>${esc(cnty)} County</td><td>${esc(c.millage)}</td><td>Set by county commissioners</td></tr>
+           <tr><td>Township / Borough</td><td>0\u20136 mills typical</td><td>Some twps (e.g. Horsham) have no property tax</td></tr>`}
+      <tr><td><strong>Typical annual bill</strong></td><td></td><td><strong>${esc(c.typBill)}</strong></td></tr>
+    </table>
+    <div class="note-card">Pull the exact assessment + 5-yr tax history at <a href="${esc(c.boa)}" target="_blank" rel="noopener">${esc(c.boaName)} \u2197</a>. Search by parcel address.</div>
+    <h3>Exemptions / reductions to ask about</h3>
+    <ul>
+      <li><strong>Homestead exclusion</strong> \u2014 ${esc(c.homestead)}</li>
+      <li><strong>PA Property Tax/Rent Rebate</strong> \u2014 income-tested, seniors and disabled</li>
+      <li><strong>100% disabled veterans</strong> \u2014 may be fully exempt</li>
+      <li><strong>Assessment appeal</strong> \u2014 ${esc(c.appeal)} If you overpay vs. comparable sales, appeal.</li>
+    </ul>
+  </section>` : `
+  <section id="taxes">
+    <h2>\u{1F3DB}\uFE0F Property taxes <span class="tag">Recurring cost #1</span></h2>
+    <p class="hint">${esc(cnty)} County is not in this dashboard's PA hardcoded set. Use the search below.</p>
+    <div class="row"><span class="k">${esc(cnty)} County assessment</span><span class="v"><a href="https://www.google.com/search?q=${enc(cnty+' County PA property tax assessment')}" target="_blank" rel="noopener">Search county assessment portal \u2197</a></span></div>
+    <div class="row"><span class="k">Typical PA bill</span><span class="v">1.5\u20132.5% of market value annually for SE PA suburbs</span></div>
+    <div class="row"><span class="k">Homestead</span><span class="v">File with county assessment office after closing</span></div>
+    <div class="row"><span class="k">Appeal deadline</span><span class="v">Typically Aug 1 (Sep 1 in Delaware County); verify with assessor</span></div>
+  </section>`) : `
+  <section id="taxes">
+    <h2>\u{1F3DB}\uFE0F Property taxes <span class="tag">Recurring cost #1</span></h2>
+    <p class="hint">${esc(cnty)} County, ${esc(geo.state)} \u2014 property tax structure varies widely by state.</p>
+    <div class="row"><span class="k">Effective rate</span><span class="v">U.S. average ~1.0% of market value. Some states (NJ, IL, TX) exceed 2%; others (HI, AL, CO) are well under 0.7%.</span></div>
+    <div class="row"><span class="k">${esc(cnty)} County records</span><span class="v"><a href="https://www.google.com/search?q=${enc(cnty+' County '+geo.state+' assessor property records')}" target="_blank" rel="noopener">Search county assessor \u2197</a></span></div>
+    <div class="row"><span class="k">Exemptions</span><span class="v">Homestead, senior, veteran, disability \u2014 all state-specific. Ask your closing agent.</span></div>
+    <div class="row"><span class="k">Appeal window</span><span class="v">Most states allow appeal within 30\u201360 days of new assessment notice.</span></div>
+  </section>`;
+
+  const closingSection = inPA ? `
+  <section id="closing">
+    <h2>\u{1F4DD} Closing costs (PA buyer side) <span class="tag">2.5\u20133.5% of price</span></h2>
+    <table>
+      <tr><th>Line</th><th>Typical cost</th><th>Notes</th></tr>
+      <tr><td>PA realty transfer tax</td><td>1% of price (buyer share)</td><td>Total 2% split with seller (1% state + 0.5% county + 0.5% twp); split is negotiable${isPhilly?'. Philadelphia adds 3.278% city transfer tax \u2014 typically split.':''}</td></tr>
+      <tr><td>Title insurance (owner's)</td><td>~0.55% of price</td><td>PA regulated \u2014 same price every title company</td></tr>
+      <tr><td>Title insurance (lender's)</td><td>$200\u2013500</td><td>Required by lender</td></tr>
+      <tr><td>Title search + closing fee</td><td>$500\u2013900</td><td>Negotiable</td></tr>
+      <tr><td>Lender origination</td><td>0\u20131% of loan</td><td>Negotiable; can credit-buy down</td></tr>
+      <tr><td>Appraisal</td><td>$550\u2013700</td><td>Required</td></tr>
+      <tr><td>Credit report + fees</td><td>$50\u2013150</td><td>Lender pass-through</td></tr>
+      <tr><td>Recording</td><td>$200\u2013300</td><td>${esc(cnty)} County recorder</td></tr>
+      <tr><td>Survey</td><td>$600\u20131,200</td><td>Often required by title</td></tr>
+      <tr><td>Escrow setup (tax + ins)</td><td>~6 months</td><td>Lender 2-month cushion</td></tr>
+      <tr><td>Per-diem interest</td><td>0\u201330 days</td><td>From close to month-end</td></tr>
+    </table>
+    <p class="hint">Ask the lender for a Loan Estimate within 3 business days of application; pages 1\u20133 itemize every line.</p>
+  </section>` : `
+  <section id="closing">
+    <h2>\u{1F4DD} Closing costs <span class="tag">Varies by state \u2014 typically 2\u20135%</span></h2>
+    <p class="hint">${esc(geo.state)} buyer-side closing costs typically run 2\u20135% of purchase price. Major components are similar nationwide.</p>
+    <table>
+      <tr><th>Line</th><th>Typical range</th><th>Notes</th></tr>
+      <tr><td>State/county transfer tax</td><td>0\u20132% of price</td><td>Highly state-dependent (zero in some states, &gt;1% in others). Ask your closing agent.</td></tr>
+      <tr><td>Title insurance (owner's)</td><td>0.3\u20131.0% of price</td><td>Regulated in some states, negotiable in others</td></tr>
+      <tr><td>Title insurance (lender's)</td><td>$200\u2013500</td><td>Required by lender</td></tr>
+      <tr><td>Settlement / closing fee</td><td>$500\u20131,500</td><td>Title company or attorney</td></tr>
+      <tr><td>Lender origination + appraisal</td><td>$600\u20131,500 + 0\u20131% of loan</td><td>Standard everywhere</td></tr>
+      <tr><td>Recording + courier</td><td>$200\u2013500</td><td>County recorder of deeds</td></tr>
+      <tr><td>Survey (if required)</td><td>$400\u20131,200</td><td>Required in some states</td></tr>
+      <tr><td>Escrow setup (tax + ins)</td><td>~2\u20136 months</td><td>Lender cushion</td></tr>
+    </table>
+    <p class="hint">Get a Loan Estimate within 3 business days of application \u2014 it itemizes every line specific to your state.</p>
+  </section>`;
+
+  const pfasSection = isHorsham ? `
+  <section id="pfas">
+    <h2>\u26A0 PFAS groundwater contamination <span class="tag">Horsham-specific</span></h2>
+    <div class="bad-card">
+      <strong>What it is:</strong> The former <strong>Naval Air Station Joint Reserve Base Willow Grove</strong> (closed 2011, in Horsham Township) used PFOS/PFOA-containing firefighting foam (AFFF) for decades. The chemicals leached into the underlying Stockton aquifer and contaminated public-supply and private wells across Horsham, Warminster, and Warrington starting in the late 2000s. PFAS are persistent ("forever chemicals") and linked to immune, thyroid, liver, kidney, and reproductive effects (EPA, 2024).
+    </div>
+    <h3>What it means for THIS address</h3>
+    <ul>
+      <li><strong>Public water supply (Horsham Water &amp; Sewer Authority):</strong> Has installed granular-activated-carbon (GAC) treatment since 2017. <strong>Treated water has tested non-detect or below the EPA 2024 limits (4 ppt PFOA / 4 ppt PFOS) since installation.</strong> <a href="https://www.horshamwater-sewer.com/" target="_blank" rel="noopener">HWSA water quality reports \u2197</a> publish annual results.</li>
+      <li><strong>Private wells:</strong> Some homes in Horsham still draw from private wells \u2014 <strong>those CAN test positive</strong>. Confirm in the seller disclosure whether this property is on public water.</li>
+      <li><strong>Property values:</strong> Disclosure is required in PA. Resale impact has largely normalized since GAC treatment; some buyers still discount 2\u20134%.</li>
+    </ul>
+    <h3>What to do</h3>
+    <ul class="checklist">
+      <li>Confirm parcel is on Horsham Water &amp; Sewer Authority public water (not a private well)</li>
+      <li>Pull the most recent HWSA Consumer Confidence Report (CCR)</li>
+      <li>If on a private well \u2014 <strong>insist on a third-party PFAS panel test ($300\u2013500)</strong> as an inspection contingency. <a href="https://www.eurofins.com/" target="_blank" rel="noopener">Eurofins \u2197</a> and <a href="https://www.pace-analytical.com/" target="_blank" rel="noopener">Pace Analytical \u2197</a> run EPA Method 533/537.1.</li>
+      <li>Budget $1,200\u20132,500 for a <strong>point-of-use reverse-osmosis system</strong> under the kitchen sink \u2014 RO removes &gt;95% of PFAS</li>
+      <li>Review the EPA's <a href="https://cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id=0306287" target="_blank" rel="noopener">NAS-JRB Willow Grove Superfund page \u2197</a> before closing</li>
+    </ul>
+  </section>` : '';
+
+  const asbestosNote = isUpperDublin ? `
+    <h3>Ambler asbestos historical note</h3>
+    <div class="warn-card">Upper Dublin Township borders Ambler Borough, where the Keasbey &amp; Mattison asbestos plant (closed 1962) left two Superfund sites (BoRit and Ambler Asbestos Piles). Both are in Ambler Borough proper \u2014 properties in Upper Dublin are generally outside the cleanup footprint but worth being aware of when reviewing local environmental history.</div>
+  ` : '';
+
+  const radonNote = inPA ? `
+    <h3>Radon</h3>
+    <p>Pennsylvania has one of the highest radon rates in the U.S. \u2014 most counties (including ${esc(cnty)}) are in <strong>EPA Radon Zone 1 (high)</strong>. Test result &lt;4.0 pCi/L = no action; \u22654.0 = mitigation system, ~$1,000\u20131,800. <strong>Always include a radon test (~$150) in the inspection contingency.</strong></p>
+  ` : `
+    <h3>Radon</h3>
+    <p>Radon risk varies by geology. Check the <a href="https://www.epa.gov/radon/find-information-about-local-radon-zones-and-state-contact-information" target="_blank" rel="noopener">EPA radon zone map \u2197</a> for ${esc(cnty)} County. <strong>Test cost is ~$150 \u2014 cheap insurance regardless of zone.</strong></p>
+  `;
+
+  const html = `
+${outOfState}
+
+<header style="border:0;padding:0;margin-bottom:18px">
+  <div class="badge"><span>\u{1F4CB}</span> Comprehensive home-buying assessment</div>
+  <h1>${esc(geo.matched)}</h1>
+  <div class="sub"><strong>${esc(subShort || 'Unincorporated area')}</strong>${cnty ? ' \u00B7 ' + esc(cnty) + ' County' : ''} \u00B7 ${esc(geo.stateName||geo.state)} \u00B7 Generated <span id="now">${new Date().toLocaleString('en-US',{dateStyle:'long',timeStyle:'short'})}</span></div>
+  <div class="qlinks">
+    <a href="https://www.google.com/maps/place/${addrPlus}" target="_blank" rel="noopener">Google Maps \u2197</a>
+    <a href="https://www.zillow.com/homes/${addrPlus}_rb/" target="_blank" rel="noopener">Zillow \u2197</a>
+    <a href="https://www.redfin.com/zipcode/${esc(geo.zip||'')}" target="_blank" rel="noopener">Redfin \u2197</a>
+    <a href="https://www.realtor.com/realestateandhomes-search/${addrPlus}" target="_blank" rel="noopener">Realtor \u2197</a>
+    ${c ? '<a href="'+esc(c.boa)+'" target="_blank" rel="noopener">'+esc(c.boaName)+' \u2197</a>' : ''}
+    <a href="https://msc.fema.gov/portal/search?AddressQuery=${enc(geo.matched)}" target="_blank" rel="noopener">FEMA flood map \u2197</a>
+    ${inPA ? '<a href="https://www.pameganslaw.state.pa.us" target="_blank" rel="noopener">Megan\u2019s Law \u2197</a>' : '<a href="https://www.nsopw.gov/" target="_blank" rel="noopener">National Sex Offender Registry \u2197</a>'}
+    <a href="https://www.walkscore.com/score/${addrPlus}" target="_blank" rel="noopener">Walk Score \u2197</a>
+  </div>
+  <div class="nav">
+    <a href="#summary">Verdict</a>
+    <a href="#location">Location</a>
+    <a href="#traffic">Traffic</a>
+    <a href="#schools">Schools</a>
+    <a href="#taxes">Taxes</a>
+    <a href="#mortgage">Mortgage</a>
+    <a href="#insurance">Insurance</a>
+    ${isHorsham ? '<a href="#pfas">PFAS \u26A0</a>' : ''}
+    <a href="#environment">Environment</a>
+    <a href="#utilities">Utilities</a>
+    <a href="#crime">Crime</a>
+    <a href="#commute">Commute</a>
+    <a href="#hoa">HOA / zoning</a>
+    <a href="#inspection">Inspection</a>
+    <a href="#closing">Closing costs</a>
+    <a href="#resale">Resale</a>
+    <a href="#checklist">Full checklist</a>
+  </div>
+</header>
+
+<section id="summary">
+  <h2>\u{1F3AF} Bottom line <span class="tag">Verdict</span></h2>
+  <div class="verdict">${verdict}</div>
+  <div class="note-card">
+    <strong>Headline:</strong> ${esc(subShort || 'This location')}${cnty?' in '+esc(cnty)+' County':''}${inPA?', PA':''}. ${isHorsham ? 'Horsham is a desirable Montgomery County suburb with strong Hatboro-Horsham schools and very low crime. Trade-offs: high property taxes, <strong>PFAS groundwater contamination</strong> from the former NAS Willow Grove (now treated in public water, see \u00A7PFAS), and periodic <strong>aircraft noise</strong> from the active PA Air National Guard station.' : (inPA ? 'A typical Pennsylvania suburb \u2014 strong schools and resale in most SE PA markets, but watch for high property-tax burden and always test for radon (PA Zone 1).' : 'Generic U.S. address \u2014 verify schools, crime, and taxes with local sources. The framework below still applies.')} Run every offer through the mortgage calculator and require the full inspection package.
+  </div>
+</section>
+
+<section id="location">
+  <h2>\u{1F4CD} Location profile <span class="tag">Geography</span></h2>
+  <div class="grid2">
+    <div>
+      <div class="row"><span class="k">Matched address</span><span class="v">${esc(geo.matched)}</span></div>
+      <div class="row"><span class="k">Municipality</span><span class="v">${esc(subShort || 'Unincorporated')}</span></div>
+      <div class="row"><span class="k">County</span><span class="v">${esc(cnty)} County, ${esc(geo.state)}</span></div>
+      <div class="row"><span class="k">ZIP</span><span class="v">${esc(geo.zip || '\u2014')}</span></div>
+      <div class="row"><span class="k">Coordinates</span><span class="v">${geo.lat.toFixed(4)} N, ${geo.lon.toFixed(4)} W</span></div>
+      <div class="row"><span class="k">Census tract</span><span class="v">${esc(geo.tract || '\u2014')}</span></div>
+    </div>
+    <div>
+      <div class="row"><span class="k">Walk Score</span><span class="v"><a href="https://www.walkscore.com/score/${addrPlus}" target="_blank" rel="noopener">Look up \u2197</a></span></div>
+      <div class="row"><span class="k">Nearest hospital</span><span class="v"><a href="https://www.google.com/maps/search/hospital+near+${addrPlus}" target="_blank" rel="noopener">Google: hospitals near here \u2197</a></span></div>
+      <div class="row"><span class="k">Nearest grocery</span><span class="v"><a href="https://www.google.com/maps/search/grocery+near+${addrPlus}" target="_blank" rel="noopener">Google: groceries near here \u2197</a></span></div>
+      <div class="row"><span class="k">Parks</span><span class="v"><a href="https://www.google.com/maps/search/parks+near+${addrPlus}" target="_blank" rel="noopener">Google: parks near here \u2197</a></span></div>
+      <div class="row"><span class="k">Transit</span><span class="v"><a href="https://www.google.com/maps/dir/${addrPlus}/?travelmode=transit" target="_blank" rel="noopener">Google Transit \u2197</a></span></div>
+    </div>
+  </div>
+  <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${(geo.lon-0.015).toFixed(4)},${(geo.lat-0.01).toFixed(4)},${(geo.lon+0.015).toFixed(4)},${(geo.lat+0.01).toFixed(4)}&amp;layer=mapnik&amp;marker=${geo.lat.toFixed(4)},${geo.lon.toFixed(4)}" height="380" loading="lazy"></iframe>
+  <p class="hint" style="margin-top:8px">\u2191 OpenStreetMap embed centered on the parcel. <a href="https://www.openstreetmap.org/?mlat=${geo.lat.toFixed(4)}&mlon=${geo.lon.toFixed(4)}#map=16/${geo.lat.toFixed(4)}/${geo.lon.toFixed(4)}" target="_blank" rel="noopener">Open larger map \u2197</a> \u00B7 <a href="https://www.google.com/maps/@${geo.lat.toFixed(4)},${geo.lon.toFixed(4)},17z" target="_blank" rel="noopener">Google Maps \u2197</a></p>
+</section>
+
+<section id="traffic">
+  <h2>\u{1F6A6} Traffic &amp; access <span class="tag">Daily livability</span></h2>
+  <div class="row"><span class="k">Street class</span><span class="v">Look up at <a href="https://www.openstreetmap.org/?mlat=${geo.lat}&mlon=${geo.lon}#map=18/${geo.lat}/${geo.lon}" target="_blank" rel="noopener">OSM \u2197</a> \u2014 residential streets show as thin grey lines</span></div>
+  <div class="row"><span class="k">Nearest expressway</span><span class="v"><a href="https://www.google.com/maps/dir/${addrPlus}/highway" target="_blank" rel="noopener">Google: routes to nearest highway \u2197</a></span></div>
+  ${inPA ? '<div class="row"><span class="k">PennDOT traffic counts</span><span class="v"><a href="https://gis.penndot.gov/itms/" target="_blank" rel="noopener">PennDOT iTMS AADT lookup \u2197</a></span></div>' : '<div class="row"><span class="k">State DOT traffic counts</span><span class="v"><a href="https://www.google.com/search?q='+enc(geo.state+' DOT traffic count AADT')+'" target="_blank" rel="noopener">Search '+esc(geo.state)+' DOT AADT \u2197</a></span></div>'}
+  <div class="row"><span class="k">Aircraft noise</span><span class="v"><a href="https://globe.adsbexchange.com/?lat=${geo.lat}&lon=${geo.lon}&zoom=11" target="_blank" rel="noopener">ADS-B Exchange \u2014 watch flight tracks over this point \u2197</a></span></div>
+  <div class="row"><span class="k">Train / freight</span><span class="v"><a href="https://www.openrailwaymap.org/?lang=en&lat=${geo.lat}&lon=${geo.lon}&zoom=14" target="_blank" rel="noopener">OpenRailwayMap \u2197</a></span></div>
+  <div class="note-card"><strong>Verify before bid:</strong> Drive past the address at 7:45 AM weekday, 5:30 PM weekday, 9 PM Friday, and 11 AM Saturday before committing. Aircraft and train noise are intermittent \u2014 take more than one visit.</div>
+</section>
+
+<section id="schools">
+  <h2>\u{1F393} Schools <span class="tag">Major value driver</span></h2>
+  ${sd ? `
+    <div class="row"><span class="k">School district</span><span class="v"><strong>${esc(sd.name)}</strong> \u2014 ${esc(sd.tier)}</span></div>
+    <div class="row"><span class="k">District website</span><span class="v"><a href="${esc(sd.site)}" target="_blank" rel="noopener">${esc(sd.site)} \u2197</a></span></div>
+    <div class="row"><span class="k">Verify assignment</span><span class="v">Call the district registrar to confirm by street number \u2014 boundaries can split blocks.</span></div>
+  ` : `
+    <div class="row"><span class="k">School district</span><span class="v">Verify at <a href="https://www.greatschools.org/search/search.page?q=${enc(geo.matched)}" target="_blank" rel="noopener">GreatSchools.org by address \u2197</a></span></div>
+    <div class="row"><span class="k">Free school-boundary tool</span><span class="v"><a href="https://aespinola-bot.github.io/dashboards/home-buyer/" target="_blank" rel="noopener">Home-buyer dashboard \u2014 NCES school assignments + ethnicity \u2197</a></span></div>
+    <div class="row"><span class="k">Niche / Niche rankings</span><span class="v"><a href="https://www.niche.com/k12/search/best-schools/m/${esc(geo.matched.toLowerCase().replace(/[^a-z0-9]+/g,'-'))}/" target="_blank" rel="noopener">Niche.com schools nearby \u2197</a></span></div>
+  `}
+  <div class="ok-card"><strong>School-tax math:</strong> The local school district typically drives 65\u201375% of the property tax bill. High taxes are the price of admission and a major reason resale stays strong in good districts.</div>
+</section>
+
+${taxesSection}
+
+<section id="mortgage">
+  <h2>\u{1F4B0} Mortgage math <span class="tag">Run this for every offer</span></h2>
+  <p class="hint">Using ballpark current rates (mid-2026). For live rates and full amortization use the <a href="https://aespinola-bot.github.io/dashboards/mortgage-sim/" target="_blank" rel="noopener">Mortgage Sim dashboard \u2197</a>.</p>
+  <table>
+    <tr><th>Scenario</th><th>Purchase</th><th>Down</th><th>Loan</th><th>Rate</th><th>P&amp;I/mo</th><th>+Tax+Ins (PITI)</th></tr>
+    <tr><td>Entry</td><td>$500,000</td><td>20% ($100k)</td><td>$400,000</td><td>6.50%</td><td>$2,528</td><td>\u2248 $3,300</td></tr>
+    <tr><td>Mid</td><td>$650,000</td><td>20% ($130k)</td><td>$520,000</td><td>6.50%</td><td>$3,286</td><td>\u2248 $4,250</td></tr>
+    <tr><td>Stretch</td><td>$850,000</td><td>20% ($170k)</td><td>$680,000</td><td>6.75%</td><td>$4,411</td><td>\u2248 $5,700</td></tr>
+    <tr><td>Jumbo</td><td>$1,100,000</td><td>20% ($220k)</td><td>$880,000</td><td>6.85%</td><td>$5,769</td><td>\u2248 $7,400</td></tr>
+  </table>
+  <h3>Total cash to close (rule of thumb)</h3>
+  <div class="calc">Down payment      20%       of price
++ Closing costs     2.5-3.5%  of price (transfer tax + lender + title)
++ Prepaids          ~1%       of price (escrow setup: tax + insurance)
++ Inspections       $1,400    flat (general + radon + termite + sewer${isHorsham?' + PFAS test':''})
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u2248 23-25% of price in cash on day 1</div>
+  <h3>Affordability test</h3>
+  <p>Lenders target back-end DTI \u2264 43%. With Mid scenario PITI \u2248 $4,250/mo, you need <strong>~$9,900/mo gross household income</strong> (~$119k/yr) just to clear DTI \u2014 assuming no other significant debts.</p>
+</section>
+
+<section id="insurance">
+  <h2>\u{1F6E1}\uFE0F Insurance <span class="tag">Often underestimated</span></h2>
+  <div class="row"><span class="k">Homeowner's (HO-3)</span><span class="v">$900\u20131,800/yr typical for a $500\u2013800k SFH</span></div>
+  <div class="row"><span class="k">Flood insurance</span><span class="v">$400\u20132,500/yr <em>only if in FEMA Zone A/AE</em> \u2014 <a href="https://msc.fema.gov/portal/search?AddressQuery=${enc(geo.matched)}" target="_blank" rel="noopener">FEMA map for this parcel \u2197</a></span></div>
+  <div class="row"><span class="k">Umbrella ($1M)</span><span class="v">$250\u2013500/yr \u2014 recommended (pool/trampoline/teen-driver exposure)</span></div>
+  <div class="row"><span class="k">Sewer backup rider</span><span class="v">$50\u2013100/yr \u2014 <strong>add it</strong>, finished basements are common</span></div>
+  <div class="row"><span class="k">Service line coverage</span><span class="v">$60\u2013100/yr \u2014 recommended ($5\u201315k lateral repairs)</span></div>
+  <div class="row"><span class="k">Earthquake</span><span class="v">${inPA ? 'Skip \u2014 negligible PA mid-Atlantic risk' : 'Depends on USGS hazard zone for '+esc(geo.state)+' \u2014 verify with carrier'}</span></div>
+  <div class="warn-card">Get quotes from at least 3 carriers. ${inPA ? 'Erie is dominant in PA and often cheapest for SFH; State Farm, Travelers, USAA (if eligible) are also strong. Bundle with auto for 10\u201320% off.' : 'Shop the local market \u2014 Allstate, State Farm, Travelers, USAA (if eligible), plus any regional carriers active in '+esc(geo.state)+'. Bundle for 10\u201320% off.'}</div>
+</section>
+
+${pfasSection}
+
+<section id="environment">
+  <h2>\u{1F333} Other environmental &amp; hazard checks <span class="tag">Due diligence</span></h2>
+  <h3>Flood zones</h3>
+  <p>Check the <a href="https://msc.fema.gov/portal/search?AddressQuery=${enc(geo.matched)}" target="_blank" rel="noopener">FEMA map for this exact parcel \u2197</a>. Zone AE or A forces flood insurance for any mortgaged property.</p>
+  ${radonNote}
+  <h3>Lead paint</h3>
+  <p>Federally disclosed for pre-1978 homes. Confirm build year on the listing or county records. Test cost $300\u2013500 if pre-1978 and young children in household.</p>
+  <h3>Asbestos</h3>
+  <p>Possible in homes built 1950\u20131980 (popcorn ceilings, pipe wrap, floor tile mastic). Inspector should flag suspect materials; testing $400\u2013800.</p>
+  <h3>Underground oil tank</h3>
+  <p>Some older homes used oil heat; abandoned tanks are a 5-figure remediation if leaking. Request a metal-detector sweep if the home has any oil-heat history in records.</p>
+  <h3>Mold</h3>
+  <p>Finished basements + clay soils \u2192 check sump pump, exterior grading, and foundation perimeter for staining/efflorescence.</p>
+  ${asbestosNote}
+  <h3>EPA Superfund / contaminated sites nearby</h3>
+  <p>Search <a href="https://www.epa.gov/superfund/search-superfund-sites-where-you-live" target="_blank" rel="noopener">EPA Superfund site locator \u2197</a> by ZIP ${esc(geo.zip||'')}. Also check <a href="https://enviro.epa.gov/envirofacts/" target="_blank" rel="noopener">EPA Envirofacts \u2197</a> for any reported releases within a mile.</p>
+  <h3>Wells / septic</h3>
+  <p>Confirm in the seller disclosure whether the property is on public water/sewer or private well/septic. Septic systems require a separate inspection (~$500) and 5\u20137 year pumping records.</p>
+</section>
+
+<section id="utilities">
+  <h2>\u{1F50C} Utilities &amp; internet <span class="tag">Quality of life</span></h2>
+  <table>
+    <tr><th>Service</th><th>How to verify</th><th>Typical bill</th></tr>
+    <tr><td>Electric</td><td>${inPA ? '<a href="https://papowerswitch.com" target="_blank" rel="noopener">PA Power Switch \u2197</a> for supplier choice' : 'Local utility (search "'+esc(cnty)+' County '+esc(geo.state)+' electric utility")'}</td><td>$120\u2013250/mo</td></tr>
+    <tr><td>Natural gas</td><td>Local distribution (PECO, Columbia, PGW in Philly, etc.)</td><td>$60\u2013180/mo</td></tr>
+    <tr><td>Water</td><td>Confirm public vs. private well in seller disclosure</td><td>$60\u2013100/mo if public</td></tr>
+    <tr><td>Sewer</td><td>Confirm public vs. septic; septic = inspection required</td><td>$70\u2013110/mo if public</td></tr>
+    <tr><td>Trash</td><td>Township contract or private hauler</td><td>$30\u201345/mo</td></tr>
+    <tr><td>Internet</td><td><a href="https://broadbandnow.com/search?zip=${esc(geo.zip||'')}" target="_blank" rel="noopener">BroadbandNow by ZIP \u2197</a> \u00B7 verify fiber at the exact address</td><td>$60\u2013120/mo</td></tr>
+  </table>
+  <div class="note-card">${inPA && /horsham|upper dublin|abington|warminster/.test(sub) ? '<strong>Verizon Fios</strong> has widespread coverage in this part of Montgomery / Bucks County. Verify at <a href="https://www.fios.com/availability" target="_blank" rel="noopener">Verizon Fios availability \u2197</a>.' : 'Fiber-vs-cable availability can vary block by block. Verify on <a href="https://broadbandnow.com" target="_blank" rel="noopener">BroadbandNow \u2197</a> and the FCC <a href="https://broadbandmap.fcc.gov/location-summary/fixed?location_id=&addr=' + enc(geo.matched) + '" target="_blank" rel="noopener">National Broadband Map \u2197</a>. Fiber typically commands a 5\u201310% resale premium.'}</div>
+</section>
+
+<section id="crime">
+  <h2>\u{1F693} Crime &amp; safety <span class="tag">${inPA ? 'Generally very low for SE PA suburbs' : 'Verify locally'}</span></h2>
+  <div class="row"><span class="k">Police jurisdiction</span><span class="v">${esc(subShort || 'Local')} Police Department${cnty?' \u00B7 '+esc(cnty)+' County Sheriff':''}</span></div>
+  <div class="row"><span class="k">Crime map</span><span class="v"><a href="https://crimegrade.org/safest-places-near-${enc(geo.matched)}/" target="_blank" rel="noopener">CrimeGrade \u2197</a> \u00B7 <a href="https://spotcrime.com/#${geo.lat},${geo.lon},14" target="_blank" rel="noopener">SpotCrime map \u2197</a></span></div>
+  <div class="row"><span class="k">Sex-offender registry</span><span class="v">${inPA ? '<a href="https://www.pameganslaw.state.pa.us" target="_blank" rel="noopener">PA Megan\u2019s Law \u2197</a>' : '<a href="https://www.nsopw.gov/" target="_blank" rel="noopener">National Sex Offender Public Website \u2197</a>'} \u2014 check by ZIP ${esc(geo.zip||'')} before close</div>
+  <div class="row"><span class="k">Property crime</span><span class="v">${inPA ? 'Typically low in Montco/Bucks suburbs \u2014 mostly car break-ins (unlocked vehicles) and package theft' : 'Pull FBI UCR data for the local PD'}</span></div>
+  <div class="row"><span class="k">FBI UCR data</span><span class="v"><a href="https://cde.ucr.cjis.gov/" target="_blank" rel="noopener">FBI Crime Data Explorer \u2197</a> \u2014 trends by agency</span></div>
+</section>
+
+<section id="commute">
+  <h2>\u{1F697} Commute &amp; transit <span class="tag">Major driver of resale</span></h2>
+  <p class="hint">Drive the actual route at 7:45 AM and 5:30 PM \u2014 free Google estimates are typically 10\u201320% optimistic for peak.</p>
+  <table>
+    <tr><th>Destination</th><th>Route lookup</th></tr>
+    ${inPA ? `
+    <tr><td>Center City Philadelphia</td><td><a href="https://www.google.com/maps/dir/${addrPlus}/Philadelphia,+PA" target="_blank" rel="noopener">Google Maps \u2197</a></td></tr>
+    <tr><td>King of Prussia</td><td><a href="https://www.google.com/maps/dir/${addrPlus}/King+of+Prussia,+PA" target="_blank" rel="noopener">Google Maps \u2197</a></td></tr>
+    <tr><td>Conshohocken / Plymouth Meeting</td><td><a href="https://www.google.com/maps/dir/${addrPlus}/Conshohocken,+PA" target="_blank" rel="noopener">Google Maps \u2197</a></td></tr>
+    <tr><td>Philadelphia Int'l (PHL)</td><td><a href="https://www.google.com/maps/dir/${addrPlus}/PHL+Airport" target="_blank" rel="noopener">Google Maps \u2197</a></td></tr>
+    <tr><td>SEPTA Regional Rail nearest</td><td><a href="https://www.septa.org/" target="_blank" rel="noopener">SEPTA \u2197</a> \u00B7 <a href="https://www.google.com/maps/search/SEPTA+regional+rail+near+${addrPlus}" target="_blank" rel="noopener">Find nearest station \u2197</a></td></tr>
+    ` : `
+    <tr><td>Major employment center</td><td><a href="https://www.google.com/maps/dir/${addrPlus}/" target="_blank" rel="noopener">Google Maps directions \u2197</a></td></tr>
+    <tr><td>Nearest airport</td><td><a href="https://www.google.com/maps/search/airport+near+${addrPlus}" target="_blank" rel="noopener">Nearest airport \u2197</a></td></tr>
+    <tr><td>Nearest transit hub</td><td><a href="https://www.google.com/maps/search/transit+station+near+${addrPlus}" target="_blank" rel="noopener">Search transit \u2197</a></td></tr>
+    `}
+  </table>
+</section>
+
+<section id="hoa">
+  <h2>\u{1F3D8}\uFE0F HOA, zoning, and covenants <span class="tag">Restrictions on what you can do</span></h2>
+  <h3>HOA</h3>
+  <p>Older single-family streets are usually NOT in a formal HOA. Newer developments (1995+) often have a small HOA ($150\u2013500/yr) for shared open space. <strong>Get the HOA disclosure packet before signing</strong> if there is one.</p>
+  <h3>Township zoning</h3>
+  <p>Residential zones (R-1 / R-2 in most PA townships) have standard setbacks: ~30 ft front, 15 ft side, 50 ft rear. Lot coverage cap typically 25\u201330%. <strong>Pool, shed, fence, and addition all require permits.</strong> Pull the parcel's zoning page at the township website${inPA ? ' \u2014 <a href="https://www.google.com/search?q='+enc(subShort+' '+geo.state+' zoning ordinance')+'" target="_blank" rel="noopener">search '+esc(subShort)+' zoning \u2197</a>' : ''}.</p>
+  <h3>Deed restrictions</h3>
+  <p>The title commitment lists historic covenants (no commercial use, RV/boat storage limits, architectural review). Read them \u2014 some 1990s subdivisions still restrict garage color and roof material.</p>
+</section>
+
+<section id="inspection">
+  <h2>\u{1F50D} Inspection package <span class="tag">$1,400 well spent</span></h2>
+  <ul class="checklist">
+    <li><strong>General home inspection</strong> ($450\u2013650) \u2014 InterNACHI or ASHI certified</li>
+    <li><strong>Radon test</strong> ($150) \u2014 ${inPA ? 'non-negotiable in PA' : 'cheap insurance everywhere'}</li>
+    ${isHorsham ? '<li><strong>PFAS water test</strong> ($300\u2013500) \u2014 <strong>add this in Horsham</strong> (especially if private well)</li>' : ''}
+    <li><strong>Termite / WDI</strong> ($75\u2013150) \u2014 most lenders require</li>
+    <li><strong>Sewer lateral scope</strong> ($175\u2013275) \u2014 finds collapsed clay tile / root invasion</li>
+    <li><strong>Roof inspection</strong> ($200\u2013350 if 15+ year roof) \u2014 separate roofer estimate is gold during negotiation</li>
+    <li><strong>HVAC inspection</strong> ($150) \u2014 separate HVAC tech if system is &gt;10 years old</li>
+    <li><strong>Septic inspection</strong> ($400\u2013600) \u2014 only if on septic</li>
+    <li><strong>Well water test</strong> ($150\u2013300) \u2014 bacteria, nitrates, lead \u2014 only if on well</li>
+    <li><strong>Mold air sampling</strong> ($400\u2013700) \u2014 only if visible staining or musty smell</li>
+    <li><strong>Lead paint test</strong> ($300\u2013500) \u2014 only if built pre-1978 and young kids</li>
+    <li><strong>Underground oil tank scan</strong> ($150) \u2014 only if oil-heat history</li>
+    <li><strong>Pool inspection</strong> ($175\u2013300) \u2014 if pool present</li>
+    <li><strong>Chimney scope</strong> ($150\u2013250) \u2014 wood-burning fireplaces often need relining</li>
+    <li><strong>Survey</strong> ($600\u20131,200) \u2014 required for title insurance</li>
+  </ul>
+  <h3>Red flags to walk away from</h3>
+  <ul>
+    <li>Active foundation settlement (cracks &gt;1/4" with stair-step pattern)</li>
+    <li>Major roof age + multiple layers (re-roof = $15\u201330k)</li>
+    <li>Polybutylene plumbing (1980s grey/blue pipe) \u2014 full repipe $8\u201315k</li>
+    <li>Aluminum branch wiring (1965\u201373) \u2014 some insurers won't cover</li>
+    <li>Cast-iron drain stack at end of life ($6\u201312k to replace)</li>
+    <li>Knob-and-tube wiring (pre-1950) still active</li>
+    <li>Active mold remediation needed (&gt;10 sq ft)</li>
+    <li>Septic system failing or undersized for bedroom count</li>
+    ${isHorsham ? '<li><strong>Private well PFAS &gt; EPA limits without RO treatment</strong></li>' : ''}
+  </ul>
+</section>
+
+${closingSection}
+
+<section id="resale">
+  <h2>\u{1F4C8} Resale outlook <span class="tag">5\u201310 year view</span></h2>
+  <div class="row"><span class="k">National 5-yr appreciation</span><span class="v">~5\u20137% CAGR (2020\u20132025 surge, normalizing)</span></div>
+  <div class="row"><span class="k">Long-term U.S. median</span><span class="v">~4% CAGR nominal</span></div>
+  <div class="row"><span class="k">Local comps</span><span class="v"><a href="https://www.zillow.com/homes/recently_sold/${esc(geo.zip||'')}/" target="_blank" rel="noopener">Zillow recent sales in ZIP ${esc(geo.zip||'')} \u2197</a> \u00B7 <a href="https://www.redfin.com/zipcode/${esc(geo.zip||'')}" target="_blank" rel="noopener">Redfin ${esc(geo.zip||'')} \u2197</a></span></div>
+  <div class="row"><span class="k">Days on market</span><span class="v">Pull 90-day median from Redfin's ZIP page</span></div>
+  <div class="row"><span class="k">Resale drivers</span><span class="v">${sd ? esc(sd.name)+' assignment, ' : ''}lot \u2265 0.25 ac, finished basement, attached 2-car garage, public water/sewer, fiber, no flood zone</span></div>
+  <div class="row"><span class="k">Resale drags</span><span class="v">Septic, private well, FEMA Zone AE, dated kitchen/baths, single-car garage, audible aircraft / train noise${isHorsham?', private well + PFAS history':''}</span></div>
+</section>
+
+<section id="checklist">
+  <h2>\u2705 Full buyer checklist <span class="tag">Print this</span></h2>
+  <h3>Before making an offer</h3>
+  <ul class="checklist">
+    <li>Mortgage pre-approval letter in hand (not pre-qualification)</li>
+    <li>Down payment + closing cash verified in liquid accounts</li>
+    <li>FEMA flood map checked for exact parcel</li>
+    <li>${c ? esc(c.boaName)+' assessment and tax history pulled' : 'County assessor record pulled, tax history reviewed'}</li>
+    <li>School assignments verified with district registrar${sd ? ' ('+esc(sd.name)+')' : ''}</li>
+    <li>Fiber / cable availability confirmed at the address</li>
+    <li>${inPA ? 'PA Megan\u2019s Law' : 'NSOPW'} registry checked by ZIP ${esc(geo.zip||'')}</li>
+    <li>Water provider confirmed (public utility vs. private well)</li>
+    <li>Drive past at 7:45 AM weekday, 5:30 PM weekday, 9 PM Friday, 11 AM Saturday</li>
+    <li>Listen for aircraft / train activity over several days</li>
+    <li>Walk the lot perimeter, check drainage, neighbor encroachment</li>
+  </ul>
+  <h3>In the offer</h3>
+  <ul class="checklist">
+    <li>Inspection contingency (10\u201314 days)</li>
+    <li>Mortgage / appraisal contingency (30\u201345 days)</li>
+    <li>Radon test contingency</li>
+    ${isHorsham ? '<li>PFAS water test contingency (if private well)</li>' : ''}
+    ${inPA ? '<li>Seller pays 1% transfer tax (negotiation lever)</li>' : '<li>Negotiate state/county transfer tax split per local custom</li>'}
+    <li>Home warranty ($500\u2013700) requested as seller-paid</li>
+    <li>Earnest money 1\u20133% of price, held by listing brokerage / title company</li>
+  </ul>
+  <h3>During inspection window</h3>
+  <ul class="checklist">
+    <li>Full inspection package per Inspection section</li>
+    <li>Get 3 contractor estimates for any item &gt; $5k repair</li>
+    <li>Request seller credit OR repair, not both</li>
+    <li>Re-pull insurance quotes once inspection is done</li>
+  </ul>
+  <h3>Pre-close (last 14 days)</h3>
+  <ul class="checklist">
+    <li>Final walk-through 24\u201348 hr before close</li>
+    <li>All utilities set to transfer day after close</li>
+    <li>Wire-fraud protection: call escrow agent at a verified number to confirm wire instructions</li>
+    <li>Bring photo ID + cashier's check (or wire) for closing funds</li>
+    <li>Save HUD-1 / Closing Disclosure for tax filing</li>
+  </ul>
+  <h3>Year-one to-do</h3>
+  <ul class="checklist">
+    <li>${c ? 'File homestead exclusion application with '+esc(c.boaName) : 'File homestead exemption with the county assessor'}</li>
+    ${inPA ? '<li>Re-shop electric supplier on PA Power Switch</li>' : '<li>Re-shop electric supplier if your state has a competitive market</li>'}
+    ${isHorsham ? '<li>Install point-of-use RO if any PFAS concern</li>' : ''}
+    <li>Drain water heater, change HVAC filters, test smoke/CO detectors</li>
+    <li>Add umbrella insurance policy</li>
+    <li>Update will/trust with new property address</li>
+    <li>Set property tax reminder (${c && !c.isPhilly ? 'bills typically March / September in PA' : 'check county billing schedule'})</li>
+  </ul>
+</section>
+`;
+  $('#report').innerHTML = html;
+  $('#intro').style.display = 'none';
 }
 
-function resetState(){
-  if(!confirm('Reset all checkboxes? This clears your saved progress for this property.')) return;
-  STATE = {}; saveState(); renderSections(); recalc();
+// ---------- Run ----------
+async function run(){
+  const addr = acInput.value.trim();
+  if (!addr){ showErr('Type an address first.'); return; }
+  showErr('');
+  const btn = $('#go');
+  btn.disabled = true;
+  $('#loading').classList.add('show');
+  try {
+    const geo = await geocode(addr);
+    localStorage.setItem('pdd-last-address', addr);
+    renderReport(geo);
+    document.title = 'Due diligence \u2014 ' + geo.matched;
+    window.scrollTo({top:0, behavior:'smooth'});
+  } catch (e){
+    showErr(e.message || 'Geocoding failed. Try a more specific address (street + city + state).');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    $('#loading').classList.remove('show');
+  }
 }
-
-function exportJson(){
-  const blob = new Blob([JSON.stringify({savedAt:new Date().toISOString(), state:STATE}, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `property-checklist-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
+function showErr(msg){
+  const e = $('#err');
+  if (!msg){ e.classList.remove('show'); e.textContent=''; return; }
+  e.classList.add('show'); e.textContent = msg;
 }
+$('#go').addEventListener('click', run);
 
-renderTOC();
-renderSections();
-recalc();
+// ---------- Boot ----------
+(function boot(){
+  const last = localStorage.getItem('pdd-last-address');
+  if (last){
+    acInput.value = last;
+    run();
+  } else {
+    acInput.placeholder = '1212 Marietta Dr, Ambler, PA 19002';
+  }
+})();
 </script>
 
 <script>
-// Visit counter (sessionStorage-guarded)
 (function(){try{var K='visit-tracked-property-checklist';if(sessionStorage.getItem(K))return;sessionStorage.setItem(K,'1');fetch('https://abacus.jasoncameron.dev/hit/aespinola-bot-dashboards/property-checklist').catch(function(){});}catch(e){}})();
 </script>
 </body>
