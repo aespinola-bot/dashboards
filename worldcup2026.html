@@ -2819,7 +2819,52 @@ function groupsComplete(src) {
   return MATCHES.every(m => src[m.id]);
 }
 
+// FIFA's officially drawn R32 bracket (when group stage is fully played).
+// Order matches r32Spec so adjacent pairs feed each R16 match.
+// Source: ESPN scoreboard for fifa.world, locked after group stage.
+const LOCKED_R32 = [
+  { home:'Mexico',          ga:'A', away:'Ecuador',              gb:'E' },   // R32-1   1A vs 3E
+  { home:'Switzerland',     ga:'B', away:'Algeria',              gb:'J' },   // R32-2   1B vs 3J
+  { home:'Brazil',          ga:'C', away:'Japan',                gb:'F' },   // R32-3   1C vs 2F
+  { home:'United States',   ga:'D', away:'Bosnia & Herzegovina', gb:'B' },   // R32-4   1D vs 3B
+  { home:'Germany',         ga:'E', away:'Paraguay',             gb:'D' },   // R32-5   1E vs 3D
+  { home:'South Africa',    ga:'A', away:'Canada',               gb:'B' },   // R32-6   2A vs 2B
+  { home:'Netherlands',     ga:'F', away:'Morocco',              gb:'C' },   // R32-7   1F vs 2C
+  { home:'Ivory Coast',     ga:'E', away:'Norway',               gb:'I' },   // R32-8   2E vs 2I
+  { home:'Belgium',         ga:'G', away:'Senegal',              gb:'I' },   // R32-9   1G vs 3I
+  { home:'Spain',           ga:'H', away:'Austria',              gb:'J' },   // R32-10  1H vs 2J
+  { home:'France',          ga:'I', away:'Sweden',               gb:'F' },   // R32-11  1I vs 3F
+  { home:'Argentina',       ga:'J', away:'Cape Verde',           gb:'H' },   // R32-12  1J vs 2H
+  { home:'Colombia',        ga:'K', away:'Ghana',                gb:'L' },   // R32-13  1K vs 3L
+  { home:'Australia',       ga:'D', away:'Egypt',                gb:'G' },   // R32-14  2D vs 2G
+  { home:'England',         ga:'L', away:'DR Congo',             gb:'K' },   // R32-15  1L vs 3K
+  { home:'Portugal',        ga:'K', away:'Croatia',              gb:'L' }    // R32-16  2K vs 2L
+];
+
 function buildR32(src) {
+  // If the entire group stage has been played for real (and src matches the
+  // actuals — which is true for Real Progress mode and full-real Hybrid),
+  // use FIFA's officially locked R32 draw instead of computing it.
+  const allRealMatchesPlayed = MATCHES.every(m => m.actual);
+  const srcMatchesActuals = allRealMatchesPlayed && MATCHES.every(m => {
+    const s = src[m.id];
+    return s && s[0] === m.actual[0] && s[1] === m.actual[1];
+  });
+  if (srcMatchesActuals) {
+    // Build the standings tables anyway so KO simulation has the right group context.
+    const groupTables = {};
+    Object.keys(GROUPS).forEach(g => { groupTables[g] = computeSimStandings(g, src); });
+    const findRow = (group, team) =>
+      (groupTables[group] || []).find(r => r.team === team)
+      || { team, group, Pts: 0, GD: 0, GF: 0 };
+    return LOCKED_R32.map((p, i) => ({
+      id: `R32-${i + 1}`,
+      home: findRow(p.ga, p.home),
+      away: findRow(p.gb, p.away)
+    }));
+  }
+
+  // ---- Otherwise fall back to the official-pairings constraint solver ----
   // Compute each group's full table once
   const groupTables = {};
   const allThirds = [];
