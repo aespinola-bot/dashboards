@@ -2840,27 +2840,29 @@ function groupsComplete(src) {
   return MATCHES.every(m => src[m.id]);
 }
 
-// FIFA's officially drawn R32 bracket (when group stage is fully played).
-// Order = M73..M88 (the official FIFA match numbers). Adjacent pairs
-// (0,1), (2,3), ... naturally feed each R16 match per the FIFA bracket.
-// Source: ESPN scoreboard for fifa.world, locked after group stage.
+// FIFA's officially drawn R32 bracket — ordered by BRACKET POSITION
+// (top->bottom, left flank then right flank) so adjacent pairs (0,1),
+// (2,3), ... naturally feed each R16 match per the FIFA poster.
+// Source: FIFA's published 48-team bracket (Fox/ESPN scoreboard).
 const LOCKED_R32 = [
-  { home:'South Africa',         ga:'A', away:'Canada',                gb:'B' },  // R32-1   M73  2A vs 2B
-  { home:'Germany',              ga:'E', away:'Paraguay',              gb:'D' },  // R32-2   M74  1E vs 3D
-  { home:'Netherlands',          ga:'F', away:'Morocco',               gb:'C' },  // R32-3   M75  1F vs 2C
-  { home:'Brazil',               ga:'C', away:'Japan',                 gb:'F' },  // R32-4   M76  1C vs 2F
-  { home:'France',               ga:'I', away:'Sweden',                gb:'F' },  // R32-5   M77  1I vs 3F
-  { home:'Ivory Coast',          ga:'E', away:'Norway',                gb:'I' },  // R32-6   M78  2E vs 2I
-  { home:'Mexico',               ga:'A', away:'Ecuador',               gb:'E' },  // R32-7   M79  1A vs 3E
-  { home:'England',              ga:'L', away:'DR Congo',              gb:'K' },  // R32-8   M80  1L vs 3K
-  { home:'United States',        ga:'D', away:'Bosnia & Herzegovina',  gb:'B' },  // R32-9   M81  1D vs 3B
-  { home:'Belgium',              ga:'G', away:'Senegal',               gb:'I' },  // R32-10  M82  1G vs 3I
-  { home:'Portugal',             ga:'K', away:'Croatia',               gb:'L' },  // R32-11  M83  2K vs 2L
-  { home:'Spain',                ga:'H', away:'Austria',               gb:'J' },  // R32-12  M84  1H vs 2J
-  { home:'Switzerland',          ga:'B', away:'Algeria',               gb:'J' },  // R32-13  M85  1B vs 3J
-  { home:'Argentina',            ga:'J', away:'Cape Verde',            gb:'H' },  // R32-14  M86  1J vs 2H
-  { home:'Colombia',             ga:'K', away:'Ghana',                 gb:'L' },  // R32-15  M87  1K vs 3L
-  { home:'Australia',            ga:'D', away:'Egypt',                 gb:'G' }   // R32-16  M88  2D vs 2G
+  // Left flank (top to bottom)
+  { home:'Germany',              ga:'E', away:'Paraguay',              gb:'D' },  // pos  1  M74  1E vs 3D
+  { home:'France',               ga:'I', away:'Sweden',                gb:'F' },  // pos  2  M77  1I vs 3F   -> R16-L1
+  { home:'South Africa',         ga:'A', away:'Canada',                gb:'B' },  // pos  3  M73  2A vs 2B
+  { home:'Netherlands',          ga:'F', away:'Morocco',               gb:'C' },  // pos  4  M75  1F vs 2C   -> R16-L2
+  { home:'Portugal',             ga:'K', away:'Croatia',               gb:'L' },  // pos  5  M83  2K vs 2L
+  { home:'Spain',                ga:'H', away:'Austria',               gb:'J' },  // pos  6  M84  1H vs 2J   -> R16-L3
+  { home:'United States',        ga:'D', away:'Bosnia & Herzegovina',  gb:'B' },  // pos  7  M81  1D vs 3B
+  { home:'Belgium',              ga:'G', away:'Senegal',               gb:'I' },  // pos  8  M82  1G vs 3I   -> R16-L4
+  // Right flank (top to bottom)
+  { home:'Brazil',               ga:'C', away:'Japan',                 gb:'F' },  // pos  9  M76  1C vs 2F
+  { home:'Ivory Coast',          ga:'E', away:'Norway',                gb:'I' },  // pos 10  M78  2E vs 2I   -> R16-R1
+  { home:'Mexico',               ga:'A', away:'Ecuador',               gb:'E' },  // pos 11  M79  1A vs 3E
+  { home:'England',              ga:'L', away:'DR Congo',              gb:'K' },  // pos 12  M80  1L vs 3K   -> R16-R2
+  { home:'Argentina',            ga:'J', away:'Cape Verde',            gb:'H' },  // pos 13  M86  1J vs 2H
+  { home:'Australia',            ga:'D', away:'Egypt',                 gb:'G' },  // pos 14  M88  2D vs 2G   -> R16-R3
+  { home:'Switzerland',          ga:'B', away:'Algeria',               gb:'J' },  // pos 15  M85  1B vs 3J
+  { home:'Colombia',             ga:'K', away:'Ghana',                 gb:'L' }   // pos 16  M87  1K vs 3L   -> R16-R4
 ];
 
 function buildR32(src) {
@@ -2908,25 +2910,27 @@ function buildR32(src) {
   // Source: FIFA's published 48-team bracket. Slot codes:
   //   '1A' = Group A winner, '2A' = Group A runner-up,
   //   '3{groups}' = best 3rd from one of the listed groups.
-  // r32Spec[i] -> match (i+1) in the R16 pairing pattern. Order is chosen so
-  // that pairs (0,1), (2,3), (4,5), ... feed each R16 match.
+  // Ordered by BRACKET POSITION (top->bottom, left flank then right flank)
+  // so pairs (0,1), (2,3), ... feed each R16 match per the FIFA poster.
   const r32Spec = [
-    { home: '2A', away: '2B' },       // R32-1   M73  2A vs 2B
-    { home: '1E', away: '3:ABCDF' },  // R32-2   M74  1E vs 3rd
-    { home: '1F', away: '2C' },       // R32-3   M75  1F vs 2C
-    { home: '1C', away: '2F' },       // R32-4   M76  1C vs 2F
-    { home: '1I', away: '3:CDFGH' },  // R32-5   M77  1I vs 3rd
-    { home: '2E', away: '2I' },       // R32-6   M78  2E vs 2I
-    { home: '1A', away: '3:CEFHI' },  // R32-7   M79  1A vs 3rd
-    { home: '1L', away: '3:EHIJK' },  // R32-8   M80  1L vs 3rd
-    { home: '1D', away: '3:BEFIJ' },  // R32-9   M81  1D vs 3rd
-    { home: '1G', away: '3:AEHIJ' },  // R32-10  M82  1G vs 3rd
-    { home: '2K', away: '2L' },       // R32-11  M83  2K vs 2L
-    { home: '1H', away: '2J' },       // R32-12  M84  1H vs 2J
-    { home: '1B', away: '3:EFGIJ' },  // R32-13  M85  1B vs 3rd
-    { home: '1J', away: '2H' },       // R32-14  M86  1J vs 2H
-    { home: '1K', away: '3:DEIJL' },  // R32-15  M87  1K vs 3rd
-    { home: '2D', away: '2G' }        // R32-16  M88  2D vs 2G
+    // Left flank
+    { home: '1E', away: '3:ABCDF' },  // pos  1  M74  1E vs 3rd
+    { home: '1I', away: '3:CDFGH' },  // pos  2  M77  1I vs 3rd      -> R16-L1
+    { home: '2A', away: '2B' },       // pos  3  M73  2A vs 2B
+    { home: '1F', away: '2C' },       // pos  4  M75  1F vs 2C       -> R16-L2
+    { home: '2K', away: '2L' },       // pos  5  M83  2K vs 2L
+    { home: '1H', away: '2J' },       // pos  6  M84  1H vs 2J       -> R16-L3
+    { home: '1D', away: '3:BEFIJ' },  // pos  7  M81  1D vs 3rd
+    { home: '1G', away: '3:AEHIJ' },  // pos  8  M82  1G vs 3rd      -> R16-L4
+    // Right flank
+    { home: '1C', away: '2F' },       // pos  9  M76  1C vs 2F
+    { home: '2E', away: '2I' },       // pos 10  M78  2E vs 2I       -> R16-R1
+    { home: '1A', away: '3:CEFHI' },  // pos 11  M79  1A vs 3rd
+    { home: '1L', away: '3:EHIJK' },  // pos 12  M80  1L vs 3rd      -> R16-R2
+    { home: '1J', away: '2H' },       // pos 13  M86  1J vs 2H
+    { home: '2D', away: '2G' },       // pos 14  M88  2D vs 2G       -> R16-R3
+    { home: '1B', away: '3:EFGIJ' },  // pos 15  M85  1B vs 3rd
+    { home: '1K', away: '3:DEIJL' }   // pos 16  M87  1K vs 3rd      -> R16-R4
   ];
 
   // ---- Resolve the 8 third-place slots --------------------------------
