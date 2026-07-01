@@ -107,10 +107,13 @@ GOAL_TEMPLATE_RE = re.compile(r"\{\{goal\|([^{}]+)\}\}", re.IGNORECASE)
 
 def _parse_goal_line(line: str) -> list[dict]:
     """Parse one bullet line from a goals block. Returns one dict per goal.
-    Supports both formats:
+    Supports multiple Wikipedia formats:
       *[[Player|Display]] 9' (pen.)
       *[[Player|Display]] {{goal|9}} {{goal|45+1|pen.}}
       *[[Player]] {{goal|9|45+1|o.g.}}
+      *[[Player]] 74, 90                   (comma-separated, no apostrophe)
+      *[[Player]] 90+7 pen                 (suffix modifier, no parens)
+      [[Player]] 59'                       (no leading bullet)
     """
     text = line.lstrip("*").strip()
     if not text:
@@ -136,20 +139,31 @@ def _parse_goal_line(line: str) -> list[dict]:
             for mn in mins:
                 out.append({"p": name_only, "m": mn + "'", **({"t": tag} if tag else {})})
         return out
-    # Fallback: legacy literal "9'" format (possibly multiple minutes per line)
+    # Fallback: literal minutes format. Supports:
+    #   "Krejčí 59'"        (apostrophe)
+    #   "Manzambi 74, 90"   (comma-separated, no apostrophe)
+    #   "Xhaka 90+7 pen"    (suffix modifier, no parens)
     stripped = _strip_wiki_links(text)
-    # Pull out player name (everything before first minute)
-    first = re.search(r"\d+(?:\+\d+)?'", stripped)
+    # Any number (with optional stoppage), followed by optional apostrophe.
+    minute_rx = re.compile(r"\b(\d{1,3}(?:\+\d+)?)'?\b")
+    first = minute_rx.search(stripped)
     if not first:
         return []
     player = stripped[:first.start()].strip(" ,;:")
+    if not player:
+        return []
     rest = stripped[first.start():]
     rest_lc = rest.lower()
-    base_tag = ""
-    if "pen" in rest_lc: base_tag = "pen"
-    elif "o.g." in rest_lc or "own goal" in rest_lc: base_tag = "og"
-    for mn in re.findall(r"(\d+(?:\+\d+)?)'", rest):
-        out.append({"p": player, "m": mn + "'", **({"t": base_tag} if base_tag else {})})
+    # Tags apply to the whole line unless a per-minute tag is specified inline
+    line_tag = ""
+    if re.search(r"\bpen(?:alty|\.)?\b", rest_lc): line_tag = "pen"
+    elif re.search(r"\b(?:o\.?g\.?|own\s+goal)\b", rest_lc): line_tag = "og"
+    for mn in minute_rx.findall(rest):
+        # Skip absurd values (jersey numbers, years) — real minutes are 1..120
+        base = int(mn.split("+")[0])
+        if base < 1 or base > 120:
+            continue
+        out.append({"p": player, "m": mn + "'", **({"t": line_tag} if line_tag else {})})
     return out
 
 
@@ -162,9 +176,13 @@ def parse_match_report(body: str) -> dict | None:
         gb = gm.group("body")
         goals: list[dict] = []
         for line in gb.splitlines():
-            if not line.strip().startswith("*"):
+            # Some Wikipedia editors omit the leading "*" bullet marker,
+            # especially when a side has only one scorer. Accept any line
+            # that yields at least one goal on parse.
+            stripped = line.strip()
+            if not stripped:
                 continue
-            goals.extend(_parse_goal_line(line))
+            goals.extend(_parse_goal_line(stripped))
         if goals:
             out[f"goals_{side}"] = goals
     sm = STADIUM_RE.search(body)
@@ -206,15 +224,26 @@ def collect_all_results():
     import time
     all_results = []
     for g in GROUPS:
-        try:
-            wt = fetch_group_wikitext(g)
-        except Exception as e:
-            print(f"  WARN Group {g}: fetch failed -- {e}", file=sys.stderr)
+        # Retry with exponential backoff on 429 rate-limit
+        for attempt in range(3):
+            try:
+                wt = fetch_group_wikitext(g)
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    delay = 5 * (attempt + 1)
+                    print(f"  Group {g}: rate-limited, retrying in {delay}s...", file=sys.stderr)
+                    time.sleep(delay)
+                else:
+                    print(f"  WARN Group {g}: fetch failed -- {e}", file=sys.stderr)
+                    wt = None
+                    break
+        if wt is None:
             continue
         rs = parse_group_results(wt)
         print(f"  Group {g}: {len(rs)} finished")
         all_results.extend(rs)
-        time.sleep(0.5)  # be nice to Wikipedia API
+        time.sleep(1.2)  # be nice to Wikipedia API (was 0.5, still 429ing)
     return all_results
 
 
