@@ -1018,6 +1018,8 @@
   }
   .bracket-center .ko-match { font-size: 11px; padding: 5px 7px; }
   .ko-meta { font-size: 9px; color: var(--muted); margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .ko-when { font-size: 8.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 3px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.85; }
+  .bracket-center .ko-when { font-size: 10px; white-space: normal; }
   .ko-team { display: flex; align-items: center; gap: 4px; padding: 1px 0; min-width: 0; }
   .ko-team img { width: 14px; height: 10px; object-fit: cover; flex-shrink: 0; }
   .ko-team span:nth-of-type(1) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3141,6 +3143,57 @@ function renderBracket() {
   });
 }
 
+// FIFA 2026 knockout schedule -- date + kickoff time in Pacific Time.
+// Keyed by roundKey + bracket position (0-indexed). Matches the ordering
+// used by LOCKED_R32 (bracket position, top->bottom, left flank then right).
+// Source: FIFA's published 2026 match schedule (Feb 2024 release).
+const KO_SCHEDULE = {
+  r32: [
+    { m:'M74', date:'Sat Jun 27', timePT:'3:00 PM', venue:'Los Angeles, CA'      },  // pos 1
+    { m:'M77', date:'Sun Jun 28', timePT:'12:00 PM',venue:'Atlanta, GA'          },  // pos 2
+    { m:'M73', date:'Sat Jun 27', timePT:'10:00 AM',venue:'Arlington, TX'        },  // pos 3
+    { m:'M75', date:'Sat Jun 27', timePT:'12:00 PM',venue:'Vancouver, BC'        },  // pos 4
+    { m:'M83', date:'Wed Jul 1',  timePT:'9:00 AM', venue:'Houston, TX'          },  // pos 5
+    { m:'M84', date:'Wed Jul 1',  timePT:'1:00 PM', venue:'Monterrey, MX'        },  // pos 6
+    { m:'M81', date:'Tue Jun 30', timePT:'9:00 AM', venue:'Philadelphia, PA'     },  // pos 7
+    { m:'M82', date:'Tue Jun 30', timePT:'1:00 PM', venue:'East Rutherford, NJ'  },  // pos 8
+    { m:'M76', date:'Sun Jun 28', timePT:'9:00 AM', venue:'Miami Gardens, FL'    },  // pos 9
+    { m:'M78', date:'Sun Jun 28', timePT:'4:00 PM', venue:'Seattle, WA'          },  // pos 10
+    { m:'M79', date:'Mon Jun 29', timePT:'9:00 AM', venue:'Guadalajara, MX'      },  // pos 11
+    { m:'M80', date:'Mon Jun 29', timePT:'12:00 PM',venue:'Foxborough, MA'       },  // pos 12
+    { m:'M86', date:'Thu Jul 2',  timePT:'1:00 PM', venue:'Kansas City, MO'      },  // pos 13
+    { m:'M88', date:'Fri Jul 3',  timePT:'12:00 PM',venue:'Miami Gardens, FL'    },  // pos 14
+    { m:'M85', date:'Thu Jul 2',  timePT:'12:00 PM',venue:'Santa Clara, CA'      },  // pos 15
+    { m:'M87', date:'Fri Jul 3',  timePT:'9:00 AM', venue:'Mexico City, MX'      }   // pos 16
+  ],
+  r16: [
+    { m:'M89',  date:'Sat Jul 4',  timePT:'1:00 PM', venue:'Foxborough, MA'      },  // pos 1  (Ger/Par vs Fra/Swe)
+    { m:'M90',  date:'Sat Jul 4',  timePT:'3:00 PM', venue:'Arlington, TX'       },  // pos 2  (SA/Can vs Net/Mor)
+    { m:'M91',  date:'Sun Jul 5',  timePT:'12:00 PM',venue:'Atlanta, GA'         },  // pos 3  (Por/Cro vs Spa/Aus)
+    { m:'M92',  date:'Sun Jul 5',  timePT:'9:00 AM', venue:'Miami Gardens, FL'   },  // pos 4  (USA/Bos vs Bel/Sen)
+    { m:'M93',  date:'Mon Jul 6',  timePT:'3:00 PM', venue:'Los Angeles, CA'     },  // pos 5  (Bra/Jap vs IvC/Nor)
+    { m:'M94',  date:'Mon Jul 6',  timePT:'1:00 PM', venue:'Kansas City, MO'     },  // pos 6  (Mex/Ecu vs Eng/DRC)
+    { m:'M95',  date:'Tue Jul 7',  timePT:'9:00 AM', venue:'Philadelphia, PA'    },  // pos 7  (Arg/CV vs Aus/Egy)
+    { m:'M96',  date:'Tue Jul 7',  timePT:'1:00 PM', venue:'East Rutherford, NJ' }   // pos 8  (Swi/Alg vs Col/Gha)
+  ],
+  qf: [
+    { m:'M97',  date:'Thu Jul 9',  timePT:'3:00 PM', venue:'Los Angeles, CA'     },  // pos 1
+    { m:'M98',  date:'Thu Jul 9',  timePT:'1:00 PM', venue:'Foxborough, MA'      },  // pos 2
+    { m:'M99',  date:'Sat Jul 11', timePT:'1:00 PM', venue:'Arlington, TX'       },  // pos 3
+    { m:'M100', date:'Sat Jul 11', timePT:'9:00 AM', venue:'Miami Gardens, FL'   }   // pos 4
+  ],
+  sf: [
+    { m:'M101', date:'Tue Jul 14', timePT:'1:00 PM', venue:'Arlington, TX'       },  // pos 1
+    { m:'M102', date:'Wed Jul 15', timePT:'12:00 PM',venue:'Atlanta, GA'         }   // pos 2
+  ],
+  third: [
+    { m:'M103', date:'Sat Jul 18', timePT:'12:00 PM',venue:'Miami Gardens, FL'   }
+  ],
+  f: [
+    { m:'M104', date:'Sun Jul 19', timePT:'9:00 AM', venue:'East Rutherford, NJ' }
+  ]
+};
+
 function renderKO(m, roundKey, idx) {
   const isFinal = roundKey === 'f';
   const completed = m.score != null;
@@ -3154,9 +3207,14 @@ function renderKO(m, roundKey, idx) {
       <span class="score">${score ?? ''}</span>
     </div>`;
   };
+  const sched = (KO_SCHEDULE[roundKey] || [])[idx];
+  const schedLine = sched
+    ? `<div class="ko-when">${sched.date} · ${sched.timePT} PT · ${sched.venue}</div>`
+    : '';
   return `
     <div class="ko-match ${cls}">
       <div class="ko-meta"><span>${m.id}</span></div>
+      ${schedLine}
       ${teamRow(m.home, m.away, m.score?m.score[0]:'', completed && m.winner === m.home)}
       ${teamRow(m.away, m.home, m.score?m.score[1]:'', completed && m.winner === m.away)}
       ${completed ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">↻ Re-sim</button>` : ''}
