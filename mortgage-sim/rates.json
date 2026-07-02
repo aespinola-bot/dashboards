@@ -1,9 +1,9 @@
 ﻿{
-    "rate30":  6.49,
-    "rate20":  6.24,
-    "rate15":  5.84,
-    "rate10":  5.74,
-    "asOf":  "06/25/2026",
+    "rate30":  6.43,
+    "rate20":  6.18,
+    "rate15":  5.79,
+    "rate10":  5.69,
+    "asOf":  "07/02/2026",
     "source":  "Freddie Mac PMMS via FRED (MORTGAGE30US / MORTGAGE15US)",
-    "updatedAt":  "07/01/2026 08:29:32"
+    "updatedAt":  "07/02/2026 10:50:34"
 }
