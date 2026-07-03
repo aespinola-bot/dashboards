@@ -1017,7 +1017,10 @@
     box-shadow: 0 1px 2px rgba(20,40,80,0.05);
   }
   .bracket-center .ko-match { font-size: 11px; padding: 5px 7px; }
-  .ko-meta { font-size: 9px; color: var(--muted); margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .ko-meta { font-size: 9px; color: var(--muted); margin-bottom: 2px; display: flex; justify-content: space-between; align-items:center; gap:4px; }
+  .ko-real { font-size: 8px; font-weight: 800; letter-spacing: .1em; color: #fff; background: var(--green); border-radius: 3px; padding: 1px 5px; text-transform: uppercase; }
+  .ko-note { font-size: 8.5px; color: var(--accent); font-style: italic; margin-top: 2px; }
+  .ko-match.real { border-left-color: var(--green); }
   .ko-when { font-size: 8.5px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 3px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.85; }
   .bracket-center .ko-when { font-size: 10px; white-space: normal; }
   .ko-team { display: flex; align-items: center; gap: 4px; padding: 1px 0; min-width: 0; }
@@ -1175,6 +1178,7 @@ body.standings-open .home-pill{opacity:0;pointer-events:none;transform:translate
     <p class="lead">Top 2 from each group + 8 best 3rd-place teams advance to the Round of 32. Goals modelled via Poisson with team-strength ratings + light random variance. Click <em>↻ Re-sim</em> on any match to re-roll.</p>
     <div class="sim-actions">
       <button class="btn primary" id="sim-knockouts">🏆 Build & Simulate Knockouts</button>
+      <button class="btn" id="sim-real-ko">🏟️ Use Real KO Results</button>
       <button class="btn" id="sim-resim-all">🎲 Re-roll All Knockouts</button>
     </div>
     <div id="bracket-wrap"></div>
@@ -2867,6 +2871,215 @@ const LOCKED_R32 = [
   { home:'Colombia',             ga:'K', away:'Ghana',                 gb:'L' }   // pos 16  M87  1K vs 3L   -> R16-R4
 ];
 
+// -----------------------------------------------------------------------
+// Real knockout results (from ESPN scoreboard)
+// -----------------------------------------------------------------------
+// Indexed by bracket position (same order as LOCKED_R32). Each entry is
+// {home, away, h, a, winName, pens?, aet?}. null = not yet played.
+// Refreshed live from ESPN on button click via fetchRealKOResultsFromESPN()
+// but seeded here so the button works offline / if CORS blocks the fetch.
+const REAL_KO_RESULTS = {
+  r32: [
+    { home:'Germany',              away:'Paraguay',              h:1, a:1, winName:'Paraguay',      pens:[3,4] },  // pos 1
+    { home:'France',               away:'Sweden',                h:3, a:0, winName:'France' },                     // pos 2
+    { home:'South Africa',         away:'Canada',                h:0, a:1, winName:'Canada' },                     // pos 3
+    { home:'Netherlands',          away:'Morocco',               h:1, a:1, winName:'Morocco',       pens:[2,3] },  // pos 4
+    { home:'Portugal',             away:'Croatia',               h:2, a:1, winName:'Portugal' },                   // pos 5
+    { home:'Spain',                away:'Austria',               h:3, a:0, winName:'Spain' },                      // pos 6
+    { home:'United States',        away:'Bosnia & Herzegovina',  h:2, a:0, winName:'United States' },              // pos 7
+    { home:'Belgium',              away:'Senegal',               h:3, a:2, winName:'Belgium',       aet:true },    // pos 8
+    { home:'Brazil',               away:'Japan',                 h:2, a:1, winName:'Brazil' },                     // pos 9
+    { home:'Ivory Coast',          away:'Norway',                h:1, a:2, winName:'Norway' },                     // pos 10
+    { home:'Mexico',               away:'Ecuador',               h:2, a:0, winName:'Mexico' },                     // pos 11
+    { home:'England',              away:'DR Congo',              h:2, a:1, winName:'England' },                    // pos 12
+    null,                                                                                                          // pos 13  Argentina vs Cape Verde (Jul 3)
+    null,                                                                                                          // pos 14  Australia vs Egypt (Jul 3)
+    { home:'Switzerland',          away:'Algeria',               h:2, a:0, winName:'Switzerland' },                // pos 15
+    null                                                                                                           // pos 16  Colombia vs Ghana (Jul 4)
+  ],
+  r16: [], qf: [], sf: [], third: [], f: []
+};
+
+// Normalize ESPN team names to match GROUPS/LOCKED_R32 canonical form.
+// The lowercase-array ESPN_TEAM_ALIASES already exists earlier for _teamMatch;
+// this is a display-name map (ESPN casing → our canonical casing).
+const ESPN_DISPLAY_ALIASES = {
+  'Congo DR':               'DR Congo',
+  'Bosnia-Herzegovina':     'Bosnia & Herzegovina',
+  'USA':                    'United States'
+};
+const normESPN = (n) => ESPN_DISPLAY_ALIASES[n] || n;
+
+// Fetch fresh KO results from ESPN and merge into REAL_KO_RESULTS.
+// Best-effort — silently falls back to the hardcoded seed if CORS or
+// network fails. Only matches ordered by bracket position (LOCKED_R32
+// pos 1..16 for R32, etc.).
+async function fetchRealKOResultsFromESPN() {
+  try {
+    const r = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260627-20260719');
+    if (!r.ok) return { fetched:false };
+    const data = await r.json();
+    // Group by round via season.slug: 13801-round-of-32, 13800-round-of-16,
+    // 13799-quarterfinals, 13798-semifinals(?), 13797-final(?), 13796-third(?)
+    const roundKeyFromSlug = (slug) => {
+      if (!slug) return null;
+      if (slug.includes('round-of-32'))  return 'r32';
+      if (slug.includes('round-of-16'))  return 'r16';
+      if (slug.includes('quarterfinal')) return 'qf';
+      if (slug.includes('semifinal'))    return 'sf';
+      if (slug.includes('third'))        return 'third';
+      if (slug.includes('final'))        return 'f';
+      return null;
+    };
+
+    // Build a lookup: (home, away) -> real result
+    const realByPair = {};
+    (data.events || []).forEach(ev => {
+      const rk = roundKeyFromSlug(ev.season && ev.season.slug);
+      if (!rk) return;
+      const comp = ev.competitions && ev.competitions[0];
+      if (!comp) return;
+      const st = comp.status && comp.status.type && comp.status.type.name;
+      const finished = st && (st === 'STATUS_FULL_TIME' || st === 'STATUS_FINAL_AET' || st === 'STATUS_FINAL_PEN');
+      if (!finished) return;
+      const home = comp.competitors.find(c => c.homeAway === 'home');
+      const away = comp.competitors.find(c => c.homeAway === 'away');
+      if (!home || !away) return;
+      const hName = normESPN(home.team.displayName);
+      const aName = normESPN(away.team.displayName);
+      const hs = +home.score, as = +away.score;
+      let winName = null, pens = null;
+      if (comp.notes && comp.notes[0] && comp.notes[0].headline) {
+        const m = comp.notes[0].headline.match(/^([\w\s'-]+) advance\D+(\d+)-(\d+) on penalties/i);
+        if (m) {
+          winName = normESPN(m[1].trim());
+          pens = winName === hName ? [+m[3], +m[2]] : [+m[2], +m[3]];
+        }
+      }
+      if (!winName) winName = hs > as ? hName : (as > hs ? aName : null);
+      if (!winName) return;
+      const entry = { home:hName, away:aName, h:hs, a:as, winName, round:rk };
+      if (pens) entry.pens = pens;
+      if (st === 'STATUS_FINAL_AET') entry.aet = true;
+      realByPair[`${hName}|${aName}`] = entry;
+      realByPair[`${aName}|${hName}`] = entry; // reverse lookup
+    });
+
+    // Merge into REAL_KO_RESULTS by matching each seeded slot's (home,away).
+    // We only OVERWRITE existing seeded slots — new pairings coming from ESPN
+    // are added at their bracket position if the seed there is null.
+    let updated = 0;
+    ['r32','r16','qf','sf','third','f'].forEach(rk => {
+      const seed = REAL_KO_RESULTS[rk];
+      const realsForRound = Object.values(realByPair).filter(e => e.round === rk);
+      // For R32 we have a positional seed — use pair lookup to replace.
+      if (rk === 'r32') {
+        seed.forEach((s, i) => {
+          if (!s) return; // pending
+          const fresh = realByPair[`${s.home}|${s.away}`];
+          if (fresh && (fresh.h !== s.h || fresh.a !== s.a)) { seed[i] = fresh; updated++; }
+        });
+        // Fill null slots if a matching (unseeded) real pair now exists
+        // by matching the LOCKED_R32 team names at that position.
+        LOCKED_R32.forEach((lp, i) => {
+          if (seed[i]) return;
+          const fresh = realByPair[`${lp.home}|${lp.away}`];
+          if (fresh) { seed[i] = fresh; updated++; }
+        });
+      } else {
+        // For later rounds we don't have a fixed positional seed — we'll
+        // fill by (home,away) at bracket-time in applyRealKOResults().
+        // Store the whole set so applyRealKOResults can pair-lookup.
+        REAL_KO_RESULTS['_' + rk + '_byPair'] = realByPair;
+      }
+    });
+    return { fetched:true, updated };
+  } catch (e) {
+    console.warn('ESPN fetch failed, using seeded results only:', e);
+    return { fetched:false, error: String(e) };
+  }
+}
+
+// Overwrite a match's score/winner with a real result. Preserves the
+// existing home/away team objects (which carry Pts/GD/GF for display).
+function applyRealMatch(m, real) {
+  m.score = [real.h, real.a];
+  m.real = true;
+  if (real.pens) m.pens = real.pens;
+  if (real.aet)  m.aet  = true;
+  // The team objects might be flipped (real home vs bracket home) — pick winner by name
+  const win  = real.winName === m.home.team ? m.home : (real.winName === m.away.team ? m.away : null);
+  const lose = win ? (win === m.home ? m.away : m.home) : null;
+  if (win) { m.winner = win; m.loser = lose; }
+}
+
+// After a full simulation, walk each round and OVERRIDE matches for which
+// we have real results (matched by home/away team names). Then cascade
+// downstream rounds so real winners propagate.
+function applyRealKOResults(state) {
+  const rounds = ['r32','r16','qf','sf','third','f'];
+  rounds.forEach(rk => {
+    const positional = (rk === 'r32') ? REAL_KO_RESULTS.r32 : null;
+    const byPair     = REAL_KO_RESULTS['_' + rk + '_byPair'] || null;
+    (state[rk] || []).forEach((m, i) => {
+      let real = null;
+      if (positional && positional[i]) {
+        // R32: real result seeded at bracket position — trust it even if
+        // team names differ (sim may have projected wrong teams).
+        real = positional[i];
+        // If teams don't match, replace them so display is truthful
+        if (real.home !== m.home.team) m.home = { team: real.home, group: m.home.group || '?', Pts:0, GD:0, GF:0 };
+        if (real.away !== m.away.team) m.away = { team: real.away, group: m.away.group || '?', Pts:0, GD:0, GF:0 };
+      } else if (byPair && m.home && m.away) {
+        real = byPair[`${m.home.team}|${m.away.team}`];
+      }
+      if (real) applyRealMatch(m, real);
+    });
+    // Cascade — if we're not on the last round, rebuild the next round
+    // from the (possibly now-real) winners of this round.
+    const nextIdx = rounds.indexOf(rk) + 1;
+    if (nextIdx < rounds.length - 1) {
+      const nextKey = rounds[nextIdx];
+      if (nextKey === 'r16') state.r16 = simulateKO(pairWinners(state.r32, 'R16'), 'R16');
+      else if (nextKey === 'qf') state.qf = simulateKO(pairWinners(state.r16, 'QF'), 'QF');
+      else if (nextKey === 'sf') state.sf = simulateKO(pairWinners(state.qf, 'SF'), 'SF');
+      else if (nextKey === 'third') state.third = simulateKO([{id:'3rd-1', home:state.sf[0].loser, away:state.sf[1].loser}], '3rd');
+      else if (nextKey === 'f') state.f = simulateKO(pairWinners(state.sf, 'F'), 'F');
+    }
+  });
+  state.champion = state.f[0].winner;
+}
+
+// Kickoff for "Use Real KO Results" button.
+async function fillFromRealKO() {
+  // 1) Lock the group stage to real results so R32 teams align with reality.
+  fillFromReal();
+  const src = getActiveGroupScores();
+  if (!groupsComplete(src)) {
+    alert("Group stage isn't complete yet. Real KO results need all groups played.");
+    return;
+  }
+  // 2) Refresh REAL_KO_RESULTS from ESPN (best-effort).
+  const btn = document.getElementById('sim-real-ko');
+  const origLabel = btn.textContent;
+  btn.textContent = '🌐 Fetching latest…';
+  btn.disabled = true;
+  const status = await fetchRealKOResultsFromESPN();
+  btn.textContent = origLabel;
+  btn.disabled = false;
+  // 3) Build bracket + overlay real results + cascade.
+  bracketState = runFullBracket(src);
+  applyRealKOResults(bracketState);
+  renderBracket();
+  const koStatus = document.getElementById('ko-status');
+  if (koStatus) {
+    const realCount = ['r32','r16','qf','sf','third','f']
+      .reduce((n, k) => n + (bracketState[k] || []).filter(m => m.real).length, 0);
+    koStatus.textContent = `Real KO: ${realCount} real · rest simulated${status.fetched ? ' · ESPN synced' : ' · offline seed'}`;
+    koStatus.classList.add('ready');
+  }
+}
+
 function buildR32(src) {
   // Build group tables once.
   const groupTables = {};
@@ -3211,13 +3424,28 @@ function renderKO(m, roundKey, idx) {
   const schedLine = sched
     ? `<div class="ko-when">${sched.date} · ${sched.timePT} PT · ${sched.venue}</div>`
     : '';
+  // Real-result badge + pens/AET note. Real matches cannot be re-simmed.
+  const isReal = !!m.real;
+  const realBadge = isReal ? '<span class="ko-real">REAL</span>' : '';
+  let extraNote = '';
+  if (m.pens) {
+    const [ph, pa] = m.pens;
+    const pw = ph > pa ? m.home.team : m.away.team;
+    extraNote = `<div class="ko-note">${pw} wins ${Math.max(ph,pa)}-${Math.min(ph,pa)} on pens</div>`;
+  } else if (m.aet) {
+    extraNote = `<div class="ko-note">after extra time</div>`;
+  }
+  const resimBtn = (completed && !isReal)
+    ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">↻ Re-sim</button>`
+    : '';
   return `
-    <div class="ko-match ${cls}">
-      <div class="ko-meta"><span>${m.id}</span></div>
+    <div class="ko-match ${cls}${isReal ? ' real' : ''}">
+      <div class="ko-meta"><span>${m.id}</span>${realBadge}</div>
       ${schedLine}
       ${teamRow(m.home, m.away, m.score?m.score[0]:'', completed && m.winner === m.home)}
       ${teamRow(m.away, m.home, m.score?m.score[1]:'', completed && m.winner === m.away)}
-      ${completed ? `<button class="ko-resim" data-round="${roundKey}" data-idx="${idx}">↻ Re-sim</button>` : ''}
+      ${extraNote}
+      ${resimBtn}
     </div>
   `;
 }
@@ -3239,6 +3467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bracketState = runFullBracket(src);
     renderBracket();
   });
+  document.getElementById('sim-real-ko').addEventListener('click', fillFromRealKO);
   document.getElementById('sim-resim-all').addEventListener('click', () => {
     const src = getActiveGroupScores();
     if (!groupsComplete(src)) { alert("Need a complete group stage first."); return; }
